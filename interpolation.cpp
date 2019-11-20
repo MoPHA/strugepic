@@ -1,51 +1,32 @@
+#include"internal_interpolation.hpp"
+#ifndef INTERPOL
+#define INTERPOL
 
+#define POLY_DEGREE W1_8
 
-namespace strugepicInternal 
-{
-
-
-
-
-    template <class T>
-    T W1_6( T x){
-    
-        if( x > 2 ||  x < -2){
-            return 0;
-        }
-        else{
-           return 1; 
-        }
-
-
+// This is just some basic stuff
+// Need to think about the usability
+namespace strugepic
+{    
+    // Change this and recompile to have a different interpolating function
+    auto const fp_d = &strugepicInternal::POLY_DEGREE<double>;
+    double W ( double x , double y , double z){
+        return fp_d(x)*fp_d(y)*fp_d(z);
     }
 
-    
-    template <class T>
-    T W1_8 ( T x ){
-        T coeffs[36]={
-        15.0/1024,15.0/128,49.0/128,21.0/32,35.0/64,0,0,1,1,  // -2 -> -1
-        -15.0/1024,15.0/128,7.0/16,21.0/32,175.0/256,0,-105.0/128,0,337/512, // -1 -> 0
-        -15.0/1024,-15.0/128,7.0/16,-21.0/32,175.0/256,0,-105.0/128,0,337/512, // 0 -> 1
-        15.0/1024,-15.0/128,49.0/128,-21.0/32,35.0/64,0,0,-1,1 //1->2
-        };
-
-        //T W1_8_coeff_m2[] ={15.0/1024,15.0/128,49.0/128,21.0/32,35.0/64,0,0,1,1};
-        // T W1_8_coeff_m1[]={-15.0/1024,15.0/128,7.0/16,21.0/32,175.0/256,0,-105.0/128,0,337/512};
-        //T W1_8_coeff_p1[] ={-15.0/1024,-15.0/128,7.0/16,-21.0/32,175.0/256,0,-105.0/128,0,337/512};
-        //T W1_8_coeff_p2[] ={15.0/1024,-15.0/128,49.0/128,-21.0/32,35.0/64,0,0,-1,1};
-        
-        if( x > 2 ||  x < -2){
-            return 0;
-        }
-        else{
-            int start_idx = ( (x + 2) % 4)*9;
-            T sum
-           return 1; 
-        }
-    
+    auto const fp_f = &strugepicInternal::POLY_DEGREE<float>;
+    float W (float x,float y,float z ){
+        return fp_f(x)*fp_f(y)*fp_f(z);
     }
 
+    double W (double* p){
+        return fp_f(p[0])*fp_f(p[1])*fp_f(p[2]);
+    }
 
-    
+    float  W (float* p){
+        return fp_f(p[0])*fp_f(p[1])*fp_f(p[2]);
+    }
+
 }
 
+#endif

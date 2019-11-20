@@ -65,7 +65,7 @@ array (y, fixnum, num_samples)$
 array (z, fixnum, num_samples)$
 array (res, fixnum, num_samples)$
 
-for i:1 thru num_samples step 1 do
+for i:0 thru num_samples step 1 do
     block(
         x[i]:random(5.0)-2.5,
         y[i]:random(5.0)-2.5,
@@ -73,12 +73,14 @@ for i:1 thru num_samples step 1 do
     )$
 write_data(x,"data_x.out");
 write_data(y,"data_y.out");
-write_data(z,"data_x.out");
-for i:1 thru num_samples step 1 do
+write_data(z,"data_z.out");
+for i:0 thru num_samples step 1 do
     (
         res[i]:W(x[i],y[i],z[i])
     );
 write_data(res,"data_val.out");
+
+
 /*
 Testing that the maxima implementation for the polynominal
 is correct
