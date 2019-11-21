@@ -29,6 +29,38 @@ W1(x):=block(
     else
         0
 )$
+W1d(q):=block(
+    if q >2 then
+        0
+    elseif q<= 2 and q > 1 then(
+        es:diff(15/1024*hh^8-15/128*hh^7+49/128*hh^6-21/32*hh^5+35/64*hh^4-hh+1,hh),
+        float(ev(es,hh=q))
+        )
+    elseif q <= 1 and q > 0 then(
+        es:diff(-15/1024*hh^8-15/128*hh^7+7/16*hh^6-21/32*hh^5+175/256*hh^4-105/128*hh^2+337/512,hh),
+        float(ev(es,hh=q))
+        )
+    elseif q <= 0 and q > -1 then(
+        es:diff(-15/1024*hh^8+15/128*hh^7+7/16*hh^6+21/32*hh^5+175/256*hh^4-105/128*hh^2+337/512,hh),
+        float(ev(es,hh=q))
+        )
+    elseif q <= -1 and q > -2 then(
+        es:diff(15/1024*hh^8+15/128*hh^7+49/128*hh^6+21/32*hh^5+35/64*hh^4+hh+1,hh),
+        float(ev(es,hh=q))
+        )
+    else
+        0
+        
+)$
+
+W12(q):=block(
+    if q > 2 then
+        0
+    elseif q < -1 then
+        0
+    else
+        W1d(q)+W1d(q+1)+W1d(q+2)
+)$
 
 W(x,y,z):=W1(x)*W1(y)*W1(z)$
 
@@ -59,11 +91,12 @@ for i:1 thru 4 step 1 do
 filename:"test_res.out"$
 /* Lets generate some random points for testing*/
 s1:make_random_state(true)$set_random_state(s1)$
-num_samples:1000$
+num_samples:10000$
 array (x, fixnum, num_samples)$
 array (y, fixnum, num_samples)$
 array (z, fixnum, num_samples)$
 array (res, fixnum, num_samples)$
+array (res2,fixnum,num_samples)$
 
 for i:0 thru num_samples step 1 do
     block(
@@ -76,9 +109,11 @@ write_data(y,"data_y.out");
 write_data(z,"data_z.out");
 for i:0 thru num_samples step 1 do
     (
-        res[i]:W(x[i],y[i],z[i])
+        res[i]:W(x[i],y[i],z[i]),
+        res2[i]:W1d(x[i])
     );
 write_data(res,"data_val.out");
+write_data(res2,"data_vald.out");
 
 
 /*
