@@ -40,7 +40,6 @@ int main(void){
     while (xfile >> num) {
         x_vals.push_back(num);
     }
-    int i=0;
     while (yfile >> num) {
         y_vals.push_back(num);
     }
@@ -53,7 +52,7 @@ int main(void){
     }
    
     int failed=0; 
-    for(int i=0; i< x_vals.size()-1;i++){
+    for(int i=0; i< (int) x_vals.size()-1;i++){
         if(i_vals[i] != 0){
             double relative_error = (strugepic::W(x_vals[i],y_vals[i],z_vals[i]) - i_vals[i] )/(i_vals[i]);
             if(fabs(relative_error) > 1.0e-10 && fabs(strugepic::W(x_vals[i],y_vals[i],z_vals[i]) - i_vals[i]) > 1.0e-9 ){
