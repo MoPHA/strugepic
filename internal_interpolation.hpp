@@ -28,7 +28,7 @@ namespace strugepicInternal
     // Function to evaluate  piecewise compact polynominal over -2,2 consisting of 4 parts  
     template <class T,int Pdeg>
     inline T P4_eval(T x,const T* coeffs){
-        if( x >= 2 ||  x <= -2){
+        if( x > 2 ||  x <= -2){
             return 0;
         }
         else{ 

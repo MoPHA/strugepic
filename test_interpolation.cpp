@@ -4,94 +4,63 @@
 #include <vector>
 #include <fstream>
 #include<cmath>
+
+
+
+// Returns 0 if All is ok
+int compare_res(double ref_val, double calc_val){
+        double max_diff=1e-9;
+        int res; 
+        res= !(fabs(calc_val-ref_val) < max_diff);
+        if(res !=0){
+            std::cout << "Error is to large, Value is: " <<calc_val << " Should be:"<< ref_val << std::endl;  
+        }
+        return res;
+};
+
+// 0 -> test Ok
+// 1 -> Numeric test failed,
+// 2 -> could not open input
+int run_test(std::string test_name,double (*test_func)(double),std::string arg_data_file,std::string ref_data_file  ){
+    
+    double num=0.0;
+    std::vector<double> coord_vals;
+    std::vector<double> ref_vals;
+    std::ifstream coordfile(arg_data_file, std::ios::in);
+    std::ifstream reffile(ref_data_file, std::ios::in);
+    if (!coordfile.is_open() || !reffile.is_open()) {
+        return 2;
+    }
+    
+    while (coordfile >> num) {
+        coord_vals.push_back(num);
+    }
+    while (reffile >> num) {
+        ref_vals.push_back(num);
+    }
+    int cr;
+    for(int i=0; i< (int) coord_vals.size()-1;i++){
+     
+        cr=compare_res(ref_vals[i],test_func(coord_vals[i]));
+        if(cr !=0){
+            return 1;
+        }
+    }
+
+    return 0;
+}; 
+int run_test(std::string test_name,double (*test_func)(double,double,double),std::string *arg_data_files,std::string ref_data_file  ){
+
+    return 0;
+}
+
+
+
 int main(void){
-
     std::cout << "Running tests:" << std::endl;
-    std::vector<double> x_vals;
-    std::vector<double> y_vals;
-    std::vector<double> z_vals;
-    std::vector<double> i_vals;
-    std::vector<double> id_vals;
-
-    std::ifstream xfile("data_x.out", std::ios::in);
-    std::ifstream yfile("data_y.out", std::ios::in);
-    std::ifstream zfile("data_z.out", std::ios::in);
-    std::ifstream ifile("data_val.out", std::ios::in);
-    std::ifstream idfile("data_vald.out",std::ios::in);
-    
-    double num = 0.0;
-    
-    if (!xfile.is_open()) {
-        std::cerr << "There was a problem opening the input file!\n";
-        exit(1);//exit or do additional error checking
-    }
-    if (!yfile.is_open()) {
-        std::cerr << "There was a problem opening the input file!\n";
-        exit(1);//exit or do additional error checking
-    }
-    if (!zfile.is_open()) {
-        std::cerr << "There was a problem opening the input file!\n";
-        exit(1);//exit or do additional error checking
-    }
-    if (!ifile.is_open()) {
-        std::cerr << "There was a problem opening the input file!\n";
-        exit(1);//exit or do additional error checking
-    }
-    if (!idfile.is_open()) {
-        std::cerr << "There was a problem opening the input file!\n";
-        exit(1);//exit or do additional error checking
-    }
-
-
-    while (xfile >> num) {
-        x_vals.push_back(num);
-    }
-    while (yfile >> num) {
-        y_vals.push_back(num);
-    }
-    while (zfile >> num) {
-
-        z_vals.push_back(num);
-    }
-    while (ifile >> num) {
-        i_vals.push_back(num);
-    }
-    while (idfile >> num) {
-        id_vals.push_back(num);
-    }
-   
-    int failed=0; 
-    for(int i=0; i< (int) x_vals.size()-1;i++){
-        if(i_vals[i] != 0){
-            double relative_error = (strugepic::W(x_vals[i],y_vals[i],z_vals[i]) - i_vals[i] )/(i_vals[i]);
-            if(fabs(relative_error) > 1.0e-10 && fabs(strugepic::W(x_vals[i],y_vals[i],z_vals[i]) - i_vals[i]) > 1.0e-9 ){
-            std::cout << "error: value is " << strugepic::W(x_vals[i],y_vals[i],z_vals[i])<< std::setprecision (15)  
-                << " should be: " << i_vals[i] << std::setprecision (15) << "  relative error is:" <<  relative_error <<std::endl;
-            failed=1;
-            }
-        }
-        else{
-            if(strugepic::W(x_vals[i],y_vals[i],z_vals[i]) != 0){
-            std::cout << "ERROR: value is " << strugepic::W(x_vals[i],y_vals[i],z_vals[i])<< std::setprecision (15)  
-                << " Should be: " << i_vals[i] << std::setprecision (15) <<std::endl;
-            std::cout << x_vals[i]  << " , " << y_vals[i] << " , " << z_vals[i] << "  " << i <<std::endl;
-            failed=1;
-            }
-        }
-    }
-    for(int i=0; i< (int) x_vals.size()-1;i++){
-        if(id_vals[i] != 0){
-            double relative_error = (strugepic::W1d(x_vals[i]) - id_vals[i] )/(id_vals[i]);
-            if(fabs(relative_error) > 1.0e-10 && fabs(strugepic::W1d(x_vals[i]) - id_vals[i]) > 1.0e-9 ){
-            std::cout << "error: value is " << strugepic::W1d(x_vals[i])<< std::setprecision (15)  
-                << " should be: " << id_vals[i] << std::setprecision (15) << "  relative error is:" <<  relative_error <<std::endl;
-            failed=1;
-        }
-        }
-    }
-    if(failed==0){
-        std::cout << "PASS" << std::endl;
-    }
-    return failed;
-
+    int retvals[2];
+    std::string coordf[3]={"data_x.out","data_y.out","data_z.out"};
+    retvals[0]=run_test("W1d",strugepic::W1d,coordf[0],"./data_W1d.out");
+    retvals[1]=run_test("W",strugepic::W,coordf,"data_W.out");
+    std::cout << retvals[0] << std::endl;
 }
