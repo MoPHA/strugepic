@@ -18,90 +18,110 @@ int compare_res(double ref_val, double calc_val){
         return res;
 };
 
-// 0 -> test Ok
-// 1 -> Numeric test failed,
-// 2 -> could not open input
-int run_test(std::string test_name,double (*test_func)(double),std::string arg_data_file,std::string ref_data_file  ){
+
+template< int NumArgs>
+double ev_f(void * test_func, std::vector<double>* coords,int i){
+
+double (*tf1)(double);
+double (*tf2)(double,double);
+double (*tf3)(double,double,double);
+
+if(NumArgs ==1){
+    tf1 = (*(double(**)(double)) (&test_func)); 
+    return tf1(coords[0][i]);
+}
+else if(NumArgs ==2){
+    tf2 = (*(double(**)(double,double)) (&test_func));
+    return tf2(coords[0][i],coords[1][i]);
+}
+else if(NumArgs ==3){
+    tf3 = (*(double(**)(double,double,double)) (&test_func));
+    return tf3(coords[0][i],coords[1][i],coords[2][i]);
+}
+else{
+
+    return -2000000;
+}
+
+}
+
+
+template<int NumArgs >
+int run_test(std::string test_name,void * test_func,std::string *arg_data_files,std::string ref_data_file  ){
+
+    std::cout << "TEST: " << test_name;
+    std::cerr << "TEST: " << test_name << std::endl;
     
     double num=0.0;
-    std::vector<double> coord_vals;
+    std::vector<double> coord_vals[NumArgs];
     std::vector<double> ref_vals;
-    std::ifstream coordfile(arg_data_file, std::ios::in);
-    std::ifstream reffile(ref_data_file, std::ios::in);
-    if (!coordfile.is_open() || !reffile.is_open()) {
-        return 2;
-    }
+    std::ifstream coordfiles[NumArgs];
     
-    while (coordfile >> num) {
-        coord_vals.push_back(num);
-    }
-    while (reffile >> num) {
-        ref_vals.push_back(num);
-    }
-    int cr;
-    for(int i=0; i< (int) coord_vals.size()-1;i++){
-     
-        cr=compare_res(ref_vals[i],test_func(coord_vals[i]));
-        if(cr !=0){
-            return 1;
+    for(int i=0; i< NumArgs ; i++){
+        coordfiles[i].open(arg_data_files[i], std::ios::in);
+        if(!coordfiles[i].is_open()){
+            return 2;
         }
     }
 
-    return 0;
-}; 
-int run_test(std::string test_name,double (*test_func)(double,double,double),std::string *arg_data_files,std::string ref_data_file  ){
 
-    double num=0.0;
-    std::vector<double> coord_vals[3];
-    std::vector<double> ref_vals;
-    std::ifstream coordfiles[3];
-    coordfiles[0].open(arg_data_files[0], std::ios::in);
-    coordfiles[1].open(arg_data_files[1], std::ios::in);
-    coordfiles[2].open(arg_data_files[2], std::ios::in);
     std::ifstream reffile(ref_data_file, std::ios::in);
-    
-    if (!coordfiles[0].is_open() || !coordfiles[1].is_open() || !coordfiles[2].is_open() || !reffile.is_open() ) {
+    if(!reffile.is_open()){
         return 2;
     }
 
-    for(int i=0; i<3; i++){
+
+
+    for(int i=0; i<NumArgs; i++){
         while (coordfiles[i] >> num) {
             coord_vals[i].push_back(num);
         }
     } 
 
-        while (reffile >> num) {
+    while (reffile >> num) {
             ref_vals.push_back(num);
-        }
+    }
 
     int cr;
+
+    
     for(int i=0; i< (int) ref_vals.size()-1;i++){
-     
-        cr=compare_res(ref_vals[i],test_func(coord_vals[0][i],coord_vals[1][i],coord_vals[2][i]));
+        
+        double f_res=ev_f<NumArgs>(test_func,coord_vals,i);
+
+        cr=compare_res(ref_vals[i],f_res);
         if(cr !=0){
+            std::cout << " FAIL"  << std::endl;
             return 1;
         }
     }
+
     
-    return 0;
+    std::cout << " PASS" << std::endl;
+    return 0 ;
 }
 
 
 
 int main(void){
-    int retval=0;
     std::cout << "Running tests:" << std::endl;
 
     std::string coordf[3]={"data_x.out","data_y.out","data_z.out"};
-    std::cout << " W(x,y,z):";
-    std::cerr << " W(x,y,z):" << std::endl;
-    retval=run_test("W",strugepic::W,coordf,"data_W.out");
-    retval? std::cout << " FAIL" : std::cout << " PASS";
-    std::cout << std::endl;
 
-    std::cout << " W1d(x):" ;
-    std::cerr << " W1d(x):" << std::endl;
-    retval=run_test("W1d",strugepic::W1d,coordf[0],"./data_W1d.out");
-    retval? std::cout << " FAIL" : std::cout << " PASS";
-    std::cout << std::endl;
+    auto f1= strugepic::W;
+    void *tf1 = *(void**)(&f1);
+    run_test<3>("W(x,y,z)",tf1,coordf,"data_W.out");
+
+    auto f2= strugepic::W1d;
+    void *tf2 = *(void**)(&f2);
+    run_test<1>("W1d(x)",tf2,coordf,"./data_W1d.out");
+
+    auto f3= strugepic::W12;
+    void *tf3 = *(void**)(&f3);
+    run_test<1>("W12(x)",tf3,coordf,"./data_W12.out");
+    
+    auto f4= strugepic::I_W12;
+    void *tf4 = *(void**)(&f4);
+    run_test<2>("IW12",tf4,coordf,"./data_IW12.out");
+
 }

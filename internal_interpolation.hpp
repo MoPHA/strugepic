@@ -56,8 +56,25 @@ namespace strugepicInternal
             if(x >= 2 || x <= -1   ){
                 return 0;
             }else{
-                return W1d<T,Pdeg>(x)*W1d<T,Pdeg>(x+1)*W1d<T,Pdeg>(x+2);
+                return W1d<T,Pdeg>(x)+W1d<T,Pdeg>(x+1)+W1d<T,Pdeg>(x+2);
             }
         }
- 
+
+    // Integral function of W12
+    template <class T,int Pdeg>
+      inline  T IH_W12(T q){
+            if(q >= 2 || q <= -1   ){
+                return 0;
+            }
+            else{
+                return W1<T,Pdeg>(q)+W1<T,Pdeg>(q+1)+W1<T,Pdeg>(q+2);
+            }
+        }
+
+    // Integrate over a range.
+    template <class T,int Pdeg>
+        T I_W12(T a, T b ){
+          return IH_W12<T,Pdeg>(b) -IH_W12<T,Pdeg>(a); 
+        }
+
 }

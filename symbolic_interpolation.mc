@@ -68,7 +68,7 @@ W12(q):=block(
 W(x,y,z):=W1(x)*W1(y)*W1(z)$
 
 W_basis(id,x,y,z):=W(x-id[1],y-id[2],z-id[3])$
-
+IW12(a,b):=quad_qag( W12(x),x,a,b,3,'epsrel=1d-6);
 
 /*Index combinations for nonzero basis functions*/
 /*

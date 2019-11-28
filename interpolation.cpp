@@ -15,27 +15,20 @@ __attribute__ ((visibility ("default")))   double W ( double x , double y , doub
         return fp_d(x)*fp_d(y)*fp_d(z);
     }
 
-    auto const fp_f = &strugepicInternal::W1<float,POLY_DEGREE>;
-
-__attribute__ ((visibility ("default")))    float W (float x,float y,float z ){
-        return fp_f(x)*fp_f(y)*fp_f(z);
-    }
 
 __attribute__ ((visibility ("default"))) double W12(double  x){
                     return strugepicInternal::W12<double,POLY_DEGREE>(x);
                 }
 
-__attribute__ ((visibility ("default"))) float W12(float  x){
-                    return strugepicInternal::W12<float,POLY_DEGREE>(x);
-                }
 
 __attribute__ ((visibility ("default"))) double W1d(double  x){
                     return strugepicInternal::W1d<double,POLY_DEGREE>(x);
                 }
 
-__attribute__ ((visibility ("default"))) float W1d(float  x){
-                    return strugepicInternal::W1d<float,POLY_DEGREE>(x);
+ __attribute__ ((visibility ("default")))double I_W12(double a,double b){
+                return strugepicInternal::I_W12<double,POLY_DEGREE>(a,b);
                 }
+
 }
 
 #endif
