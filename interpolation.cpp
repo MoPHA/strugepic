@@ -19,7 +19,9 @@ __attribute__ ((visibility ("default")))   double W ( double x , double y , doub
 __attribute__ ((visibility ("default"))) double W12(double  x){
                     return strugepicInternal::W12<double,POLY_DEGREE>(x);
                 }
-
+__attribute__ ((visibility ("default"))) double W1(double x){
+                    return strugepicInternal::W1<double,POLY_DEGREE>(x);
+}
 
 __attribute__ ((visibility ("default"))) double W1d(double  x){
                     return strugepicInternal::W1d<double,POLY_DEGREE>(x);
@@ -28,6 +30,11 @@ __attribute__ ((visibility ("default"))) double W1d(double  x){
  __attribute__ ((visibility ("default")))double I_W12(double a,double b){
                 return strugepicInternal::I_W12<double,POLY_DEGREE>(a,b);
                 }
+
+ __attribute__ ((visibility ("default")))double I_W1(double a,double b){
+                return strugepicInternal::I_W1<double,POLY_DEGREE>(a,b);
+                }
+
 
 }
 

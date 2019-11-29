@@ -29,6 +29,33 @@ W1(x):=block(
     else
         0
 )$
+
+IHW1(q):=block(
+    if q >2 then
+        1
+    elseif q<= 2 and q > 1 then(
+        e:integrate( 15/1024*x^8-15/128*x^7+49/128*x^6-21/32*x^5+35/64*x^4-x+1,x ),
+        ev(e+5/12,x=q)
+        )
+    elseif q <= 1 and q > 0 then(
+        e:integrate(-15/1024*x^8-15/128*x^7+7/16*x^6-21/32*x^5+175/256*x^4-105/128*x^2+337/512,x),
+        ev(e+1/2,x=q)
+        )
+    elseif q <= 0 and q > -1 then(
+        e:integrate(-15/1024*x^8+15/128*x^7+7/16*x^6+21/32*x^5+175/256*x^4-105/128*x^2+337/512,x),
+        ev(e+1/2,x=q)
+        )
+    elseif q <= -1 and q > -2 then(
+        e:integrate( 15/1024*x^8+15/128*x^7+49/128*x^6+21/32*x^5+35/64*x^4+x+1,x),
+        ev(e+7/12,x=q)
+        )
+    else
+        0    
+)$ 
+
+I_W1(a,b):=IHW1(b)-IHW1(a)$
+IW1(a,b):=quad_qag( W1,x,a,b,3,'epsrel=1d-12);
+
 /*
 Derivative of W1
 */
@@ -69,6 +96,15 @@ W(x,y,z):=W1(x)*W1(y)*W1(z)$
 
 W_basis(id,x,y,z):=W(x-id[1],y-id[2],z-id[3])$
 IW12(a,b):=quad_qag( W12(x),x,a,b,3,'epsrel=1d-6);
+IHW12(q):=block(
+        if q>2 then
+            0
+        elseif q< -1 then
+            1
+        else
+            W1(q)+W1(q+1)+W1(q+2)
+);
+I_W12(a,b):=IHW12(b)-IHW12(a)$
 
 /*Index combinations for nonzero basis functions*/
 /*

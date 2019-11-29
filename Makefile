@@ -1,6 +1,8 @@
 
-libinterpol.so: internal_interpolation.hpp 
+libinterpol.so: internal_interpolation.hpp interpolation.cpp interpolation.hpp 
 	g++  -O3 -std=c++11 -fvisibility=hidden -fPIC -shared -Wall -Werror interpolation.cpp -o libinterpol.so
+
+
 
 test_main: libinterpol.so test_interpolation.cpp test_interpolation.cpp
 	g++ -O3 -std=c++11 -Wall -Werror test_interpolation.cpp  -Wl,-rpath=$(PWD) -L/$(PWD) -linterpol -o test_main	 

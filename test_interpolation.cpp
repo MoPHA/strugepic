@@ -13,7 +13,7 @@ int compare_res(double ref_val, double calc_val){
         int res; 
         res= !(fabs(calc_val-ref_val) < max_diff);
         if(res !=0){
-            std::cerr << "Error is to large, Value is: " <<calc_val << " Should be:"<< ref_val << std::endl;  
+            std::cerr << std::setprecision(16) << "Error is to large, Value is: " <<calc_val << " Should be:"<< ref_val << std::endl;  
         }
         return res;
 };
@@ -60,6 +60,8 @@ int run_test(std::string test_name,void * test_func,std::string *arg_data_files,
     for(int i=0; i< NumArgs ; i++){
         coordfiles[i].open(arg_data_files[i], std::ios::in);
         if(!coordfiles[i].is_open()){
+            std::cerr << "Could not open file: " << arg_data_files[i] << std::endl;
+            std::cout << " FAIL"  << std::endl;
             return 2;
         }
     }
@@ -67,6 +69,8 @@ int run_test(std::string test_name,void * test_func,std::string *arg_data_files,
 
     std::ifstream reffile(ref_data_file, std::ios::in);
     if(!reffile.is_open()){
+        std::cerr << "Could not open file: " << ref_data_file << std::endl;
+        std::cout << " FAIL"  << std::endl;
         return 2;
     }
 
@@ -120,8 +124,17 @@ int main(void){
     void *tf3 = *(void**)(&f3);
     run_test<1>("W12(x)",tf3,coordf,"./data_W12.out");
     
-    auto f4= strugepic::I_W12;
+
+    auto f4= strugepic::W1;
     void *tf4 = *(void**)(&f4);
-    run_test<2>("IW12",tf4,coordf,"./data_IW12.out");
+    run_test<1>("W1(x)",tf4,coordf,"./data_W1.out");
+
+    auto f5= strugepic::I_W12;
+    void *tf5 = *(void**)(&f5);
+    run_test<2>("I_W12(a,b)",tf5,coordf,"./data_IW12.out");
+
+    auto f6 = strugepic::I_W1;
+    void *tf6 = *(void**)(&f6);
+    run_test<2>("I_W1(a,b)",tf6,coordf,"./data_IW1.out");
 
 }

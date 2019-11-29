@@ -15,11 +15,20 @@ static const double P8d_coeffs[32]={
          15.0/128, -105.0/128, 147.0/64,-105.0/32 ,35.0/16,0,0,-1 // 1 -> 2 
          };
 
+// Integral coefficients (with extra constant so continuous)
+static const double P8I_coeffs[40]={
+        5.0/3072,15.0/1024,7.0/128,7.0/64,7.0/64,0,0,1.0/2,1,7.0/12, // -2 -> 1
+        -5./3072,15./1024,1./16,7./64,35./256,0,-35./128,0,337./512,1.0/2 , // -1->0
+        -5./3072,-15./1024,1./16,-7./64,35./256,0,-35./128,0,337./512,1.0/2 , // 0->1
+        5.0/3072,-15.0/1024,7.0/128,-7.0/64,7.0/64,0,0,-1.0/2,1,5.0/12 // 1 -> 2
+        };
+
 // Polynominal coefficients for different orders low -> High
 static const double* P_COEFS[9]={0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,P8_coeffs};
-// Coefficients for the derivatives low -> High
+// Coefficients for the derivatives low -> high
 static const double* Pd_COEFS[8]={0x0,0x0,0x0,0x0,0x0,0x0,0x0,P8d_coeffs};
-
+// Coefficients for the integrals low -> high
+static const double* PI_COEFS[10]={0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,P8I_coeffs};
 
 
 namespace strugepicInternal 
@@ -28,10 +37,6 @@ namespace strugepicInternal
     // Function to evaluate  piecewise compact polynominal over -2,2 consisting of 4 parts  
     template <class T,int Pdeg>
     inline T P4_eval(T x,const T* coeffs){
-        if( x > 2 ||  x <= -2){
-            return 0;
-        }
-        else{ 
             int start_idx = ( (int )(x+2))*(Pdeg+1);
             T sum =coeffs[start_idx];
             for(int i=1; i<(Pdeg+1);i++){
@@ -39,16 +44,28 @@ namespace strugepicInternal
             }
             return sum;
         }
-    }
+    
 
     template <class T,int Pdeg>
         T W1(T x){
+
+        if( x >= 2 ||  x <= -2){
+            return 0;
+        }
+        else{ 
             return P4_eval<T,Pdeg>(x,(T *)P_COEFS[Pdeg]);
+        }
         }
 
     template <class T, int Pdeg>
         T W1d(T x){
+
+        if( x >= 2 ||  x <= -2){
+            return 0;
+        }
+        else{ 
             return P4_eval<T,Pdeg-1>(x,(T *)Pd_COEFS[Pdeg-1]);
+            }
         }
     
     template <class T,int Pdeg>
@@ -60,21 +77,46 @@ namespace strugepicInternal
             }
         }
 
+    
+    template <class T, int Pdeg>
+        inline T IH_W1(T q){
+            if(q >= 2){
+                return 1;
+            }else if(q < -2){
+
+                return 0;
+            }
+            else{
+                return P4_eval<T,Pdeg+1>(q,(T *)PI_COEFS[Pdeg+1]);
+            }
+        }
+
+    template <class T, int Pdeg>
+        T I_W1(T a, T b){
+            return IH_W1<T,Pdeg>(b)-IH_W1<T,Pdeg>(a);
+        }
+
+
     // Integral function of W12
     template <class T,int Pdeg>
       inline  T IH_W12(T q){
-            if(q >= 2 || q <= -1   ){
+            if(q > 2 ){
                 return 0;
+            }
+            else if(q< -1){
+                return 1;
             }
             else{
                 return W1<T,Pdeg>(q)+W1<T,Pdeg>(q+1)+W1<T,Pdeg>(q+2);
             }
         }
 
+
+
     // Integrate over a range.
     template <class T,int Pdeg>
         T I_W12(T a, T b ){
-          return IH_W12<T,Pdeg>(b) -IH_W12<T,Pdeg>(a); 
+          return IH_W12<T,Pdeg>(b) - IH_W12<T,Pdeg>(a); 
         }
 
 }
