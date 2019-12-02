@@ -109,32 +109,33 @@ int run_test(std::string test_name,void * test_func,std::string *arg_data_files,
 
 int main(void){
     std::cout << "Running tests:" << std::endl;
-
     std::string coordf[3]={"data_x.out","data_y.out","data_z.out"};
 
     auto f1= strugepic::W;
     void *tf1 = *(void**)(&f1);
-    run_test<3>("W(x,y,z)",tf1,coordf,"data_W.out");
+    int res1=run_test<3>("W(x,y,z)",tf1,coordf,"data_W.out");
 
     auto f2= strugepic::W1d;
     void *tf2 = *(void**)(&f2);
-    run_test<1>("W1d(x)",tf2,coordf,"./data_W1d.out");
+    int res2=run_test<1>("W1d(x)",tf2,coordf,"./data_W1d.out");
 
     auto f3= strugepic::W12;
     void *tf3 = *(void**)(&f3);
-    run_test<1>("W12(x)",tf3,coordf,"./data_W12.out");
+    int res3=run_test<1>("W12(x)",tf3,coordf,"./data_W12.out");
     
 
     auto f4= strugepic::W1;
     void *tf4 = *(void**)(&f4);
-    run_test<1>("W1(x)",tf4,coordf,"./data_W1.out");
+    int res4=run_test<1>("W1(x)",tf4,coordf,"./data_W1.out");
 
     auto f5= strugepic::I_W12;
     void *tf5 = *(void**)(&f5);
-    run_test<2>("I_W12(a,b)",tf5,coordf,"./data_IW12.out");
+    int res5=run_test<2>("I_W12(a,b)",tf5,coordf,"./data_IW12.out");
 
     auto f6 = strugepic::I_W1;
     void *tf6 = *(void**)(&f6);
-    run_test<2>("I_W1(a,b)",tf6,coordf,"./data_IW1.out");
+    int res6=run_test<2>("I_W1(a,b)",tf6,coordf,"./data_IW1.out");
+
+    return (res1 || res2 || res3 || res4 || res5 || res6);
 
 }

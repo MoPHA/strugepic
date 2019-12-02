@@ -1,24 +1,37 @@
 
-libinterpol.so: internal_interpolation.hpp interpolation.cpp interpolation.hpp 
-	g++  -O3 -std=c++11 -fvisibility=hidden -fPIC -shared -Wall -Werror interpolation.cpp -o libinterpol.so
+CXX=g++
+LIB_FLAGS=-fvisibility=hidden -fPIC -shared
+CXX_FLAGS=-O3 -std=c++11 -Wall -Werror
+LIB_NAME=interpol
+LIB_SRC=internal_interpolation.hpp interpolation.cpp
+LIB_HEADDER=interpolation.hpp
+LINK_FLAGS=-Wl,-rpath=$(PWD) -L$(PWD) -l$(LIB_NAME)
+TEST_SRC=test_interpolation.cpp
+TEST_MAIN=test_main
+CLEAN_C=rm -f *.out
+MAXIMA_C=maxima  --very-quiet --batch-string
+ERR_FILE=err.out
+
+all: lib$(LIB_NAME).so $(TEST_MAIN)
+
+lib$(LIB_NAME).so: $(LIB_SRC) 
+	$(CXX) $(CXX_FLAGS) $(LIB_FLAGS) $(LIB_SRC) -o lib$(LIB_NAME).so
 
 
+$(TEST_MAIN): lib$(LIB_NAME).so $(TEST_SRC) 
+	$(CXX) $(CXX_FLAGS) $(TEST_SRC)  $(LINK_FLAGS) -o $(TEST_MAIN) 
 
-test_main: libinterpol.so test_interpolation.cpp test_interpolation.cpp
-	g++ -O3 -std=c++11 -Wall -Werror test_interpolation.cpp  -Wl,-rpath=$(PWD) -L/$(PWD) -linterpol -o test_main	 
-
-run-test: test_main
-	@rm -f data*.out
-	@maxima  --very-quiet --batch-string "load(\"generate_testdata.mc\")$$" >/dev/null
-	@./test_main 2>err.out
-	@rm -f data*.out
+run-test: $(TEST_MAIN) lib$(LIB_NAME).so
+	$(CLEAN_C)
+	$(MAXIMA_C) "load(\"generate_testdata.mc\")$$" >/dev/null
+	@./$(TEST_MAIN) 2>$(ERR_FILE)  && $(CLEAN_C) || echo "Test failed, see $(ERR_FILE) for details"
 
 run-test-symbolic:
-	@maxima  --very-quiet --batch-string "load(\"verify_symbolic.mc\")$$"
+	@$(MAXIMA_C) "load(\"verify_symbolic.mc\")$$"
 
 
 .PHONY: clean
 
 clean:
-	rm -f test_main libinterpol.so
-	rm -f *.out
+	rm -f $(TEST_MAIN) lib$(LIB_NAME).so
+	$(CLEAN_C)
