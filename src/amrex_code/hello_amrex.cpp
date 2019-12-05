@@ -12,6 +12,7 @@
 #include <AMReX_Particles.H>
 #include <AMReX_Particle.H>
 #include <AMReX_Utility.H>
+#include <AMReX_NeighborParticles.H>
 
 void main_main();
 
@@ -36,9 +37,9 @@ void init_B (amrex::Box const& bx, amrex::Array4<amrex::Real> const& a)
    for     (int k = lo.z; k <= hi.z; ++k) {
      for   (int j = lo.y; j <= hi.y; ++j) {
        for (int i = lo.x; i <= hi.x; ++i) { 
-         a(i,j,k,0) = (i+k+j);
-         a(i,j,k,1) = (i*j*k);
-         a(i,j,k,2) = (i*j*k);
+         a(i,j,k,0) = 0;
+         a(i,j,k,1) = 0;
+         a(i,j,k,2) = 0.5;
        }
      }
    }
@@ -60,7 +61,7 @@ void main_main()
     // Simulation parameters,  these should be read from a file quite soon
     
     int n_cell = 32;
-    int max_grid_size=16;
+    int max_grid_size=8;
     int nsteps=100;
     // Do a quite even load balancing
     amrex::DistributionMapping::strategy(amrex::DistributionMapping::KNAPSACK);
@@ -96,7 +97,7 @@ void main_main()
   
     amrex::MultiFab E(ba,dm,Ncomp,Nghost);
     amrex::MultiFab B(ba,dm,Ncomp,Nghost);
-    amrex::ParticleContainer<5,0,0,0> P(geom,dm,ba);
+    amrex::NeighborParticleContainer<5,0> P(geom,dm,ba,3);
 
     for (amrex::MFIter mfi(E); mfi.isValid(); ++mfi) // Loop over grids
 {
@@ -127,37 +128,47 @@ for(amrex::MFIter mfi= P.MakeMFIter(0) ;mfi.isValid();++mfi){
     // Each grid,tile has a their own local particle container
     auto& particles = P.GetParticles(0)[std::make_pair(mfi.index(),
                                         mfi.LocalTileIndex())];
-    if(mfi.index() !=0){
-        continue;
-    }
-    amrex::Particle<5,0> p;
-    p.id()   = amrex::Particle<5,0>::NextID();
+    //if(mfi.index() !=0){
+    //    continue;
+   // }
+    amrex::Particle<5> p;
+    p.id()   = amrex::Particle<5>::NextID();
     p.cpu()  = amrex::ParallelDescriptor::MyProc();
-    p.pos(0) = 16;
-    p.pos(1) = 16;
-    p.pos(2) = 16;
-    // mass and charge
-    p.rdata(0)  = 1 ; 
-    p.rdata(1)  = 1 ;
-    // velocity
-    p.rdata(0)= 0.5;
-    p.rdata(1)=0;
-    p.rdata(2)=0;
+    p.pos(0) = mfi.index();
+    p.pos(1) = mfi.index();
+    p.pos(2) = mfi.index();
+    p.rdata(0)=1;
+    p.rdata(1)=-1;
+    p.rdata(2)=0.5;
+    p.rdata(3)=0;
+    p.rdata(4)=0;
     particles.push_back(p);
 }
 
     P.Redistribute();
+    P.fillNeighbors ();
     E.FillBoundary(geom.periodicity());
+    B.FillBoundary(geom.periodicity());
             
+
+    
+
+
+
 
 
     int n=0;
     amrex::Real time=0.0;
-    const std::string& pltfile_E = amrex::Concatenate("plt_E",n,5);
-    WriteSingleLevelPlotfile(pltfile_E, E, {"E_field"}, geom, time, n);
-    const std::string& pltfile_B = amrex::Concatenate("plt_B",n,5);
-    WriteSingleLevelPlotfile(pltfile_B, E, {"B_field"}, geom, time, n);
-    P.Checkpoint(pltfile_B,"Particles");
+    const std::string& pltfile_E = amrex::Concatenate("plt_E",n,2);
+    WriteSingleLevelPlotfile(pltfile_E, E, {"E_x","E_y","E_z"}, geom, time, n);
+    const std::string& pltfile_B = amrex::Concatenate("plt_B",n,2);
+    WriteSingleLevelPlotfile(pltfile_B, B, {"B_x","B_y","B_z"}, geom, time, n);
+    const std::string& pltfile_P = amrex::Concatenate("plt_P",n,2);
+    
+    const amrex::Vector<std::string> var_names={"Mass","Charge","Vx","Vy","Vz"};
+    const std::string p_name="test_particle";
+    P.WritePlotFile(pltfile_P,p_name,var_names);
+
 
 
 }
