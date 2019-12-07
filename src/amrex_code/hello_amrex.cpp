@@ -12,6 +12,7 @@
 #include <AMReX_Particles.H>
 #include <AMReX_Particle.H>
 #include <AMReX_Utility.H>
+#include <AMReX_ParticleUtil.H>
 #include <AMReX_NeighborParticles.H>
 
 void main_main();
@@ -60,8 +61,8 @@ void main_main()
 {
     // Simulation parameters,  these should be read from a file quite soon
     
-    int n_cell = 32;
-    int max_grid_size=8;
+    int n_cell = 64;
+    int max_grid_size=32;
     int nsteps=100;
     // Do a quite even load balancing
     amrex::DistributionMapping::strategy(amrex::DistributionMapping::KNAPSACK);
@@ -90,6 +91,7 @@ void main_main()
     
     // How Boxes are distrubuted among MPI processes
     amrex::DistributionMapping dm(ba);
+
     int Nghost = 2;
     
     // Ncomp = number of components for each array
@@ -131,12 +133,16 @@ for(amrex::MFIter mfi= P.MakeMFIter(0) ;mfi.isValid();++mfi){
     //if(mfi.index() !=0){
     //    continue;
    // }
+   
+    auto box=mfi.validbox();
+    const auto lo = amrex::lbound(box);
+    const auto hi = amrex::ubound(box);
     amrex::Particle<5> p;
     p.id()   = amrex::Particle<5>::NextID();
     p.cpu()  = amrex::ParallelDescriptor::MyProc();
-    p.pos(0) = mfi.index();
-    p.pos(1) = mfi.index();
-    p.pos(2) = mfi.index();
+    p.pos(0) = lo.x+1.1;
+    p.pos(1) = lo.y+1.1;
+    p.pos(2) = lo.z+1.1;
     p.rdata(0)=1;
     p.rdata(1)=-1;
     p.rdata(2)=0.5;
@@ -146,10 +152,28 @@ for(amrex::MFIter mfi= P.MakeMFIter(0) ;mfi.isValid();++mfi){
 }
 
     P.Redistribute();
-    P.fillNeighbors ();
+    P.fillNeighbors();
+    P.updateNeighbors();
+
     E.FillBoundary(geom.periodicity());
     B.FillBoundary(geom.periodicity());
-            
+
+using MyParIter = amrex::ParConstIter<5,0,0,0>;
+for (MyParIter pti(P, 0); pti.isValid(); ++pti) {
+    const auto& particles = pti.GetArrayOfStructs();
+    amrex::FArrayBox& efab = E[pti];
+    const amrex::Box& box = pti.validbox();;
+    amrex::Array4<amrex::Real> const& a = efab.array();
+    const auto lo = amrex::lbound(box);
+    const auto hi = amrex::ubound(box);
+    amrex::Print() << pti.validbox() << std::endl;
+    for (const auto& p : particles) {
+    amrex::Print() << p.pos(0) << " " << p.pos(1) << " " << p.pos(2) << std::endl ;
+    }
+    const auto& n_particles = P.GetNeighbors(0,pti.index(),pti.LocalTileIndex());
+    for(const auto& p: n_particles){
+    }
+}
 
     
 
