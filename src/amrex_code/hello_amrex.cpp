@@ -14,19 +14,39 @@
 #include <AMReX_Utility.H>
 #include <AMReX_ParticleUtil.H>
 #include <AMReX_NeighborParticles.H>
+#include <iostream>
+#include "AMReX_Array4.H"
+#include "amrex_util.hpp"
 
 void main_main();
 
-void init_E (amrex::Box const& bx, amrex::Array4<amrex::Real> const& a)
-{
+void push_B( amrex::Box const& bx,  amrex::Array4<amrex::Real> const& B, amrex::Array4<amrex::Real> const& E){
    const auto lo = amrex::lbound(bx);
    const auto hi = amrex::ubound(bx);
    for     (int k = lo.z; k <= hi.z; ++k) {
      for   (int j = lo.y; j <= hi.y; ++j) {
        for (int i = lo.x; i <= hi.x; ++i) { 
-         a(i,j,k,0) = 0;
-         a(i,j,k,1) = 0;
-         a(i,j,k,2) = 0;
+         B(i,j,k,0) -= E(i+1,j,k,0)-E(i-1,j,k,0);
+         B(i,j,k,1) -= E(i,j+1,k,1)-E(i,j-1,k,1);
+         B(i,j,k,2) -= E(i,j,k+1,2)-E(i,j,k-1,2);
+       }
+     }
+   }
+
+}
+
+
+void init_E (amrex::Box const& bx, amrex::Array4<amrex::Real> const& a)
+{
+   const auto lo = amrex::lbound(bx);
+   const auto hi = amrex::ubound(bx);
+   const auto val = amrex::ParallelDescriptor::MyProc() +1;
+   for     (int k = lo.z; k <= hi.z; ++k) {
+     for   (int j = lo.y; j <= hi.y; ++j) {
+       for (int i = lo.x; i <= hi.x; ++i) { 
+         a(i,j,k,0) = val;
+         a(i,j,k,1) = val;
+         a(i,j,k,2) = val;
        }
      }
    }
@@ -61,7 +81,7 @@ void main_main()
 {
     // Simulation parameters,  these should be read from a file quite soon
     
-    int n_cell = 64;
+    const  int n_cell = 64;
     int max_grid_size=32;
     int nsteps=100;
     // Do a quite even load balancing
@@ -83,12 +103,11 @@ void main_main()
     ba.maxSize(max_grid_size);
 
     // This defines the physical box, [-1,1] in each direction.
-    amrex::RealBox real_box({AMREX_D_DECL(0,0,0)},
-                     {AMREX_D_DECL( n_cell,n_cell,n_cell)});
+    amrex::RealBox real_box({AMREX_D_DECL(-1,-1,-1)},
+                     {AMREX_D_DECL( 1,1,1)});
 
     // This defines a Geometry object
     amrex::Geometry geom(domain,&real_box,amrex::CoordSys::cartesian,is_periodic.data());
-    
     // How Boxes are distrubuted among MPI processes
     amrex::DistributionMapping dm(ba);
 
@@ -121,7 +140,9 @@ void main_main()
     // equal to "box".
     init_E(box, a);
     init_B(box, b);
+    push_B(box,b,a);
 }
+
 
     // Init single particle
     
@@ -130,9 +151,9 @@ for(amrex::MFIter mfi= P.MakeMFIter(0) ;mfi.isValid();++mfi){
     // Each grid,tile has a their own local particle container
     auto& particles = P.GetParticles(0)[std::make_pair(mfi.index(),
                                         mfi.LocalTileIndex())];
-    //if(mfi.index() !=0){
-    //    continue;
-   // }
+    if(mfi.index() !=0){
+        continue;
+   }
    
     auto box=mfi.validbox();
     const auto lo = amrex::lbound(box);
@@ -140,9 +161,9 @@ for(amrex::MFIter mfi= P.MakeMFIter(0) ;mfi.isValid();++mfi){
     amrex::Particle<5> p;
     p.id()   = amrex::Particle<5>::NextID();
     p.cpu()  = amrex::ParallelDescriptor::MyProc();
-    p.pos(0) = lo.x+1.1;
-    p.pos(1) = lo.y+1.1;
-    p.pos(2) = lo.z+1.1;
+    p.pos(0) =geom.ProbLo(0) + geom.CellSize(0)*5;
+    p.pos(1) =geom.ProbLo(1) + geom.CellSize(1)*6;
+    p.pos(2) =geom.ProbLo(2)+ geom.CellSize(2)*7;
     p.rdata(0)=1;
     p.rdata(1)=-1;
     p.rdata(2)=0.5;
@@ -157,24 +178,28 @@ for(amrex::MFIter mfi= P.MakeMFIter(0) ;mfi.isValid();++mfi){
 
     E.FillBoundary(geom.periodicity());
     B.FillBoundary(geom.periodicity());
-
-using MyParIter = amrex::ParConstIter<5,0,0,0>;
+for(int n=0; n<nsteps;n++){
+//using MyParIter = amrex::ParConstIter<5,0,0,0>;
+using MyParIter = amrex::ParIter<5,0,0,0>;
 for (MyParIter pti(P, 0); pti.isValid(); ++pti) {
-    const auto& particles = pti.GetArrayOfStructs();
-    amrex::FArrayBox& efab = E[pti];
-    const amrex::Box& box = pti.validbox();;
-    amrex::Array4<amrex::Real> const& a = efab.array();
-    const auto lo = amrex::lbound(box);
-    const auto hi = amrex::ubound(box);
-    amrex::Print() << pti.validbox() << std::endl;
-    for (const auto& p : particles) {
-    amrex::Print() << p.pos(0) << " " << p.pos(1) << " " << p.pos(2) << std::endl ;
+     auto& particles = pti.GetArrayOfStructs();
+ //   amrex::FArrayBox& efab = E[pti];
+ //   const amrex::Box& box = pti.validbox();;
+ //   amrex::Array4<amrex::Real> const& a = efab.array();
+ //   const auto lo = amrex::lbound(box);
+ //   const auto hi = amrex::ubound(box);
+ //   amrex::Print() << pti.validbox() << std::endl;
+     
+    for (auto& p : particles) {
+        auto cell = get_point_cell(geom,{p.pos(0),p.pos(1),p.pos(2)});
+        p.pos(0) +=0.05;
+        P.Reset(p,true);
     }
-    const auto& n_particles = P.GetNeighbors(0,pti.index(),pti.LocalTileIndex());
-    for(const auto& p: n_particles){
-    }
+    //const auto& n_particles = P.GetNeighbors(0,pti.index(),pti.LocalTileIndex());
+    //for(const auto& p: n_particles){
+   // }
 }
-
+}
     
 
 
