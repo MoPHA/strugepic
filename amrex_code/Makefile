@@ -12,9 +12,9 @@ run: amrex_main
 
 
 .PHONY: clean
-clean:
-	rm -f plt_* -r
+clean: co
 	rm -f amrex_main
 .PHONY: co
 co:	
 	rm -f plt_* -r
+	rm -f Backtrace*
