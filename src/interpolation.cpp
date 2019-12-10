@@ -1,4 +1,5 @@
 #include"internal_interpolation.hpp"
+#include<array>
 #ifndef INTERPOL
 #define INTERPOL
 
@@ -34,7 +35,12 @@ __attribute__ ((visibility ("default"))) double W1d(double  x){
  __attribute__ ((visibility ("default")))double I_W1(double a,double b){
                 return strugepicInternal::I_W1<double,POLY_DEGREE>(a,b);
                 }
-
+ __attribute__ ((visibility ("default"))) std::array<double,3> W_s1(const std::array<double,3> coord){
+                return {strugepicInternal::W12<double,3>(coord[0])*strugepicInternal::W1<double,3>(coord[1])*strugepicInternal::W1<double,3>(coord[2]),   
+                        strugepicInternal::W1<double,3>(coord[0])*strugepicInternal::W12<double,3>(coord[1])*strugepicInternal::W1<double,3>(coord[2]),
+                        strugepicInternal::W1<double,3>(coord[0])*strugepicInternal::W1<double,3>(coord[1])*strugepicInternal::W12<double,3>(coord[2])
+                        };
+                }
 
 }
 
