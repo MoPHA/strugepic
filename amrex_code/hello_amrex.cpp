@@ -1,3 +1,4 @@
+// Amrex
 #include <AMReX.H>
 #include <AMReX_Print.H>
 #include <AMReX_BoxArray.H>
@@ -14,26 +15,18 @@
 #include <AMReX_Utility.H>
 #include <AMReX_ParticleUtil.H>
 #include <AMReX_NeighborParticles.H>
-#include <iostream>
 #include "AMReX_Array4.H"
+
+
+// std c++
+#include <iostream>
+// Own
 #include "amrex_util.hpp"
+#include "propagators.hpp"
+#include "particle_defs.hpp"
 
 void main_main();
 
-void push_B( amrex::Box const& bx,  amrex::Array4<amrex::Real> const& B, amrex::Array4<amrex::Real> const& E){
-   const auto lo = amrex::lbound(bx);
-   const auto hi = amrex::ubound(bx);
-   for     (int k = lo.z; k <= hi.z; ++k) {
-     for   (int j = lo.y; j <= hi.y; ++j) {
-       for (int i = lo.x; i <= hi.x; ++i) { 
-         B(i,j,k,0) -= E(i+1,j,k,0)-E(i-1,j,k,0);
-         B(i,j,k,1) -= E(i,j+1,k,1)-E(i,j-1,k,1);
-         B(i,j,k,2) -= E(i,j,k+1,2)-E(i,j,k-1,2);
-       }
-     }
-   }
-
-}
 
 
 void init_E (amrex::Box const& bx, amrex::Array4<amrex::Real> const& a)
@@ -82,8 +75,9 @@ void main_main()
     // Simulation parameters,  these should be read from a file quite soon
     
     const  int n_cell = 64;
-    int max_grid_size=32;
-    int nsteps=100;
+    int max_grid_size=16;
+    int nsteps=2;
+    double dt=0.5;
     // Do a quite even load balancing
     amrex::DistributionMapping::strategy(amrex::DistributionMapping::KNAPSACK);
 
@@ -118,7 +112,7 @@ void main_main()
   
     amrex::MultiFab E(ba,dm,Ncomp,Nghost);
     amrex::MultiFab B(ba,dm,Ncomp,Nghost);
-    amrex::NeighborParticleContainer<5,0> P(geom,dm,ba,3);
+    CParticleContainer P(geom,dm,ba,3);
 
     for (amrex::MFIter mfi(E); mfi.isValid(); ++mfi) // Loop over grids
 {
@@ -140,36 +134,22 @@ void main_main()
     // equal to "box".
     init_E(box, a);
     init_B(box, b);
-    push_B(box,b,a);
 }
 
 
-    // Init single particle
     
 for(amrex::MFIter mfi= P.MakeMFIter(0) ;mfi.isValid();++mfi){
     
     // Each grid,tile has a their own local particle container
     auto& particles = P.GetParticles(0)[std::make_pair(mfi.index(),
                                         mfi.LocalTileIndex())];
-    if(mfi.index() !=0){
-        continue;
-   }
-   
     auto box=mfi.validbox();
     const auto lo = amrex::lbound(box);
-    const auto hi = amrex::ubound(box);
-    amrex::Particle<5> p;
-    p.id()   = amrex::Particle<5>::NextID();
-    p.cpu()  = amrex::ParallelDescriptor::MyProc();
-    p.pos(0) =geom.ProbLo(0) + geom.CellSize(0)*5;
-    p.pos(1) =geom.ProbLo(1) + geom.CellSize(1)*6;
-    p.pos(2) =geom.ProbLo(2)+ geom.CellSize(2)*7;
-    p.rdata(0)=1;
-    p.rdata(1)=-1;
-    p.rdata(2)=0.5;
-    p.rdata(3)=0;
-    p.rdata(4)=0;
-    particles.push_back(p);
+    //const auto hi = amrex::ubound(box);
+    double x = geom.ProbLo(0) + lo.x * geom.CellSize(0)*1.1;
+    double y = geom.ProbLo(1) + lo.y * geom.CellSize(1)*1.1;
+    double z =geom.ProbLo(2) + lo.z * geom.CellSize(2)*1.1;
+    add_single_particle(particles,{x,y,z},{0.5,0,0},1,-1);    
 }
 
     P.Redistribute();
@@ -178,30 +158,48 @@ for(amrex::MFIter mfi= P.MakeMFIter(0) ;mfi.isValid();++mfi){
 
     E.FillBoundary(geom.periodicity());
     B.FillBoundary(geom.periodicity());
-for(int n=0; n<nsteps;n++){
+for(int step=0; step<nsteps;step++){
 //using MyParIter = amrex::ParConstIter<5,0,0,0>;
-using MyParIter = amrex::ParIter<5,0,0,0>;
-for (MyParIter pti(P, 0); pti.isValid(); ++pti) {
-     auto& particles = pti.GetArrayOfStructs();
- //   amrex::FArrayBox& efab = E[pti];
- //   const amrex::Box& box = pti.validbox();;
- //   amrex::Array4<amrex::Real> const& a = efab.array();
- //   const auto lo = amrex::lbound(box);
- //   const auto hi = amrex::ubound(box);
- //   amrex::Print() << pti.validbox() << std::endl;
+for (CParIter pti(P, 0); pti.isValid(); ++pti) {
+    auto&  particles = pti.GetArrayOfStructs();
+    amrex::FArrayBox& efab = E[pti];
+    amrex::FArrayBox& bfab =B[pti];
+    const amrex::Box& box = pti.validbox();;
+    amrex::Array4<amrex::Real> const& E_loc = efab.array();
+    amrex::Array4<amrex::Real> const& B_loc = bfab.array();
      
+    Theta_E(geom,box,E_loc,B_loc,particles,dt);
+
+
     for (auto& p : particles) {
-        auto cell = get_point_cell(geom,{p.pos(0),p.pos(1),p.pos(2)});
-        p.pos(0) +=0.05;
-        P.Reset(p,true);
+       // P.Reset(p,true);
+       //
+    std::cout << p.pos(0) << "," << p.pos(1) << "," << p.pos(2) << std::endl;
     }
     //const auto& n_particles = P.GetNeighbors(0,pti.index(),pti.LocalTileIndex());
     //for(const auto& p: n_particles){
    // }
 }
-}
-    
 
+
+    for (amrex::MFIter mfi(E); mfi.isValid(); ++mfi){
+    // This is the valid Box of the current FArrayBox.
+    // By "valid", we mean the original ungrown Box in BoxArray.
+    const amrex::Box& box = mfi.validbox();
+
+    // A reference to the current FArrayBox in this loop iteration.
+    amrex::FArrayBox& fab = E[mfi];
+    amrex::FArrayBox& fabB = B[mfi];
+    // Obtain Array4 from FArrayBox.  We can also do
+    //     Array4<Real> const& a = mf.array(mfi);
+    amrex::Array4<amrex::Real> const& E_loc = fab.array();
+    amrex::Array4<amrex::Real> const& B_loc = fabB.array();
+    
+    Theta_B(box,E_loc,B_loc,dt);
+
+    }
+    
+}
 
 
 

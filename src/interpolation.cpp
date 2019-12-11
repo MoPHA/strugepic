@@ -1,7 +1,5 @@
 #include"internal_interpolation.hpp"
 #include<array>
-#ifndef INTERPOL
-#define INTERPOL
 
 #define POLY_DEGREE 8
 
@@ -44,4 +42,3 @@ __attribute__ ((visibility ("default"))) double W1d(double  x){
 
 }
 
-#endif

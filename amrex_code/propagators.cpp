@@ -1,5 +1,19 @@
-#include "AMReX_Box.H"
 #include "AMReX_Geometry.H"
+#include "particle_defs.hpp"
+#include "propagators.hpp"
+#include "amrex_util.hpp"
+
+
+void Theta_E(const amrex::Geometry geom,amrex::Box const& bx,amrex::Array4<amrex::Real> const& E,amrex::Array4<amrex::Real> const& B,CParticles&particles,double dt ){
+    push_B(bx, B,E,dt);
+    push_V_E(particles,geom,E,dt);
+}
+
+void Theta_B(amrex::Box const& bx,amrex::Array4<amrex::Real> const& E,amrex::Array4<amrex::Real> const& B,double dt ){
+    push_E(bx,E,B,dt);
+}
+
+
 
 void push_B( amrex::Box const& bx,  amrex::Array4<amrex::Real> const& B, amrex::Array4<amrex::Real> const& E,double dt){
    const auto lo = amrex::lbound(bx);
@@ -31,20 +45,23 @@ void push_E( amrex::Box const& bx,  amrex::Array4<amrex::Real> const& E, amrex::
 
 }
 
-template<class Particles>
-void push_V_E( const Particles&particles, const amrex::Geometry geom,double dt,amrex::Array4<amrex::Real> const& E ){
+
+void push_V_E( CParticles&particles, const amrex::Geometry geom,amrex::Array4<amrex::Real> const& E ,double dt){
+
+    // Basis functions are supported over two cells in each direction
+    const int idx_list[4]={-1,0,1,2};
+    // All the particles in a give container have the same mass and charge
+    // We could probably do without saving the mass and charge for each particle
+    const double m= particles[0].rdata(0);
+    const double q= particles[0].rdata(1);
+    const double coef = dt*q/m;
+    const double inv_dx = 1/geom.CellSize(0);
+    const double inv_dy = 1/geom.CellSize(1);
+    const double inv_dz = 1/geom.CellSize(2);
+    
     for(auto& p : particles){
         auto index =get_point_cell(geom,{p.pos(0),p.pos(1),p.pos(2)}) ;
-        // Basis functions are supported over two cells in each direction
-        // Need some other particle strucutre to have constant m and q for some
-        const int idx_list[4]={-2,1,0,1};
-        const double m= p.rdata(0);
-        const double q= p.rdata(1);
        
-        const double coef = dt*q/m;
-        const double inv_dx = 1/geom.CellSize(0);
-        const double inv_dy = 1/geom.CellSize(1);
-        const double inv_dz = 1/geom.CellSize(2);
         double dvx=0;
         double dvy=0;
         double dvz=0;
@@ -53,9 +70,10 @@ void push_V_E( const Particles&particles, const amrex::Geometry geom,double dt,a
         for(auto k: idx_list){
             for(auto j: idx_list){
                 for(auto i: idx_list){
-                   dvx+= 
-                   dvy+= 
-                   dvz+= 
+                   auto W = strugepic::W_s1({ p.pos(0)*inv_dx - (index[0]+i),p.pos(1)*inv_dy -(index[1]+j),p.pos(2)*inv_dz -(index[2]+k) }); 
+                   dvx+= E(index[0]+i,index[1]+j,index[2]+k,0)*W[0]; 
+                   dvy+= E(index[0]+i,index[1]+j,index[2]+k,1)*W[1];
+                   dvz+= E(index[0]+i,index[1]+j,index[2]+k,2)*W[2];
                 }
             }
         }
@@ -64,4 +82,3 @@ void push_V_E( const Particles&particles, const amrex::Geometry geom,double dt,a
         p.rdata(4)+=dvz*coef;
     }
 }
-

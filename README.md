@@ -11,6 +11,10 @@ optimized! Just using straightforwards Horner's rule
 
 We leave the normalization of the arguments to the simulation side,
 
+## Code
+
+Top-level `include`, `src` and `lib` are for the interpolating function
+
 ## Amrex example
 
 The code using Amrex assumes that include paths and library paths 
