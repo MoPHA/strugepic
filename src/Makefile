@@ -1,6 +1,6 @@
 CXX=g++
 LIB_FLAGS=-fvisibility=hidden -fPIC -shared
-CXX_FLAGS=-O3 -std=c++11 -Wall -Werror
+CXX_FLAGS=-O3 -std=c++14 -Wall -Werror
 LIB_NAME=interpol
 LIB_SRC=internal_interpolation.hpp interpolation.cpp
 LIB_HEADDER=interpolation.hpp

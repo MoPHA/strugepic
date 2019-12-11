@@ -34,9 +34,9 @@ __attribute__ ((visibility ("default"))) double W1d(double  x){
                 return strugepicInternal::I_W1<double,POLY_DEGREE>(a,b);
                 }
  __attribute__ ((visibility ("default"))) std::array<double,3> W_s1(const std::array<double,3> coord){
-                return {strugepicInternal::W12<double,3>(coord[0])*strugepicInternal::W1<double,3>(coord[1])*strugepicInternal::W1<double,3>(coord[2]),   
-                        strugepicInternal::W1<double,3>(coord[0])*strugepicInternal::W12<double,3>(coord[1])*strugepicInternal::W1<double,3>(coord[2]),
-                        strugepicInternal::W1<double,3>(coord[0])*strugepicInternal::W1<double,3>(coord[1])*strugepicInternal::W12<double,3>(coord[2])
+                return {W12(coord[0])*W1(coord[1])*W1(coord[2]),   
+                        W1(coord[0])*W12(coord[1])*W1(coord[2]),
+                        W1(coord[0])*W1(coord[1])*W12(coord[2])
                         };
                 }
 

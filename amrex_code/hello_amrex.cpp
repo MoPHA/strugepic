@@ -97,8 +97,8 @@ void main_main()
     ba.maxSize(max_grid_size);
 
     // This defines the physical box, [-1,1] in each direction.
-    amrex::RealBox real_box({AMREX_D_DECL(-1,-1,-1)},
-                     {AMREX_D_DECL( 1,1,1)});
+    amrex::RealBox real_box({AMREX_D_DECL(0,0,0)},
+                     {AMREX_D_DECL( n_cell,n_cell,n_cell)});
 
     // This defines a Geometry object
     amrex::Geometry geom(domain,&real_box,amrex::CoordSys::cartesian,is_periodic.data());
@@ -159,7 +159,6 @@ for(amrex::MFIter mfi= P.MakeMFIter(0) ;mfi.isValid();++mfi){
     E.FillBoundary(geom.periodicity());
     B.FillBoundary(geom.periodicity());
 for(int step=0; step<nsteps;step++){
-//using MyParIter = amrex::ParConstIter<5,0,0,0>;
 for (CParIter pti(P, 0); pti.isValid(); ++pti) {
     auto&  particles = pti.GetArrayOfStructs();
     amrex::FArrayBox& efab = E[pti];
@@ -174,7 +173,7 @@ for (CParIter pti(P, 0); pti.isValid(); ++pti) {
     for (auto& p : particles) {
        // P.Reset(p,true);
        //
-    std::cout << p.pos(0) << "," << p.pos(1) << "," << p.pos(2) << std::endl;
+//    std::cout << p.pos(0) << "," << p.pos(1) << "," << p.pos(2) << std::endl;
     }
     //const auto& n_particles = P.GetNeighbors(0,pti.index(),pti.LocalTileIndex());
     //for(const auto& p: n_particles){
@@ -201,8 +200,11 @@ for (CParIter pti(P, 0); pti.isValid(); ++pti) {
     
 }
 
+    auto slist =get_segment_list<0>(geom,2.1,0.5) ; 
 
-
+    for(auto a : slist){
+    std::cout << std::get<0>(a) << "," <<  std::get<1>(a) << std::endl;
+    }
 
     int n=0;
     amrex::Real time=0.0;

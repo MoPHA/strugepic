@@ -1,5 +1,5 @@
 CXX=g++
-CXX_FLAGS=-O3 -std=c++11 -Wall -Werror
+CXX_FLAGS=-O3 -std=c++14 -Wall -Werror
 LIB_NAME=interpol
 LIB_DIR=../lib
 INC_DIR=../include

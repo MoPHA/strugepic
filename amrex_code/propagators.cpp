@@ -55,9 +55,9 @@ void push_V_E( CParticles&particles, const amrex::Geometry geom,amrex::Array4<am
     const double m= particles[0].rdata(0);
     const double q= particles[0].rdata(1);
     const double coef = dt*q/m;
-    const double inv_dx = 1/geom.CellSize(0);
-    const double inv_dy = 1/geom.CellSize(1);
-    const double inv_dz = 1/geom.CellSize(2);
+    const double inv_dx = geom.InvCellSize(0);
+    const double inv_dy = geom.InvCellSize(1);
+    const double inv_dz = geom.InvCellSize(2);
     
     for(auto& p : particles){
         auto index =get_point_cell(geom,{p.pos(0),p.pos(1),p.pos(2)}) ;
@@ -70,7 +70,7 @@ void push_V_E( CParticles&particles, const amrex::Geometry geom,amrex::Array4<am
         for(auto k: idx_list){
             for(auto j: idx_list){
                 for(auto i: idx_list){
-                   auto W = strugepic::W_s1({ p.pos(0)*inv_dx - (index[0]+i),p.pos(1)*inv_dy -(index[1]+j),p.pos(2)*inv_dz -(index[2]+k) }); 
+                  auto W = strugepic::W_s1({ p.pos(0)*inv_dx - (index[0]+i),p.pos(1)*inv_dy -(index[1]+j),p.pos(2)*inv_dz -(index[2]+k) }); 
                    dvx+= E(index[0]+i,index[1]+j,index[2]+k,0)*W[0]; 
                    dvy+= E(index[0]+i,index[1]+j,index[2]+k,1)*W[1];
                    dvz+= E(index[0]+i,index[1]+j,index[2]+k,2)*W[2];
@@ -82,3 +82,17 @@ void push_V_E( CParticles&particles, const amrex::Geometry geom,amrex::Array4<am
         p.rdata(4)+=dvz*coef;
     }
 }
+
+// This is for one particle type
+// If there are several you need to do this again
+// 0 -> x  , 1-> y 2->z
+template<int comp>
+void push_E(CParticles&particles, const amrex::Geometry geom,amrex::Array4<amrex::Real> const& E ,double dt){
+    const  double coef = particles[0].rdata(1)*geom.InvCellSize(0)*geom.InvCellSize(1)*geom.InvCellSize(2);
+    double dE =0;
+
+    for(auto& p : particles){
+    }
+
+    dE*coef;
+};

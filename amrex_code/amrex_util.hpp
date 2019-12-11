@@ -3,8 +3,83 @@
 #include "AMReX_Array.H"
 #include "AMReX_Geometry.H"
 #include "particle_defs.hpp"
+#include <tuple>
 // What cell index is a given point in?
 // This is equivalent with the index for the "Lower left" corner
 amrex::IntArray get_point_cell(const amrex::Geometry geom,const amrex::RealArray pos); 
-void add_single_particle( CParticleTile&particlett ,amrex::RealArray pos , amrex::RealArray vel, double m,double q);
+void add_single_particle( CParticleTile&particlet ,amrex::RealArray pos , amrex::RealArray vel, double m,double q);
+std::array<int,3> get_num_segments(const amrex::Geometry geom,const amrex::RealArray x_start,const amrex::RealArray  x_end);
+
+template <typename T> int sgn(T val) {
+    return (T(0) < val) - (val < T(0));
+}
+
+
+
+
+template<int comp>
+int get_point_line(const amrex::Geometry geom,const amrex::Real pos){ 
+    const auto icellsize=geom.InvCellSize(comp);
+    auto problo=geom.ProbLo(comp);
+    return floor((pos -problo)*icellsize);
+}
+template<int comp>
+int get_num_segments(const amrex::Geometry geom, amrex::Real x_start,amrex::Real x_end ){
+    auto start_idx=get_point_line<comp>(geom,x_start);
+    auto end_idx=get_point_line<comp>(geom,x_end);
+    return abs(start_idx-end_idx)+1;
+
+}
+
+
+// List of segments with start,end , cell_inxed. all 1D
+// How do we handle periodicity?
+template<int comp>
+std::vector<std::tuple<amrex::Real,amrex::Real,int>> get_segment_list(const amrex::Geometry geom, amrex::Real x_start ,amrex::Real x_end){
+        
+    amrex::Real lp;
+    amrex::Real rp;
+    std::vector<std::tuple<amrex::Real,amrex::Real,int>> seg_list;
+    const auto cellsize=geom.CellSize(comp);
+    const auto problo = geom.ProbLo(comp);
+    auto num_segments = get_num_segments<comp>(geom,x_start,x_end);
+        // Path is in the negative direction
+        // Then we flip the start and end points of the segments
+        if(x_start > x_end ){
+            lp = x_end;
+            rp = x_start;
+                
+            double segment_start = lp;
+            double segment_end;
+            int segment_index=get_point_line<comp>(geom,segment_start);
+            for(int seg=1;seg < num_segments;seg++){ 
+                segment_end = (segment_index+1)*cellsize + problo; 
+                seg_list.push_back(std::make_tuple(segment_end,segment_start,segment_index));
+                segment_index++;
+                segment_start=segment_end;
+
+            }
+            segment_end = rp;
+            seg_list.push_back(std::make_tuple(segment_end,segment_start,segment_index));
+
+        }else{
+            lp =x_start;
+            rp = x_end;
+            double segment_start = lp;
+            double segment_end;
+            int segment_index=get_point_line<comp>(geom,segment_start);
+            for(int seg=1;seg < num_segments;seg++){ 
+                segment_end = (segment_index+1)*cellsize + problo; 
+                seg_list.push_back(std::make_tuple(segment_start,segment_end,segment_index));
+                segment_index++;
+                segment_start=segment_end;
+
+            }
+            segment_end = rp;
+            seg_list.push_back(std::make_tuple(segment_start,segment_end,segment_index));
+        }
+        return seg_list;
+
+}
+
 #endif
