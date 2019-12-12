@@ -4,6 +4,7 @@
 #include "AMReX_Geometry.H"
 #include "particle_defs.hpp"
 #include <tuple>
+#include <math.h>
 // What cell index is a given point in?
 // This is equivalent with the index for the "Lower left" corner
 amrex::IntArray get_point_cell(const amrex::Geometry geom,const amrex::RealArray pos); 
@@ -32,52 +33,44 @@ int get_num_segments(const amrex::Geometry geom, amrex::Real x_start,amrex::Real
 }
 
 
-// List of segments with start,end , cell_inxed. all 1D
+// List of segments with start,end , cell_idexx. all 1D
 // How do we handle periodicity?
 template<int comp>
 std::vector<std::tuple<amrex::Real,amrex::Real,int>> get_segment_list(const amrex::Geometry geom, amrex::Real x_start ,amrex::Real x_end){
         
-    amrex::Real lp;
-    amrex::Real rp;
     std::vector<std::tuple<amrex::Real,amrex::Real,int>> seg_list;
     const auto cellsize=geom.CellSize(comp);
     const auto problo = geom.ProbLo(comp);
+    // Periodic index
+    int index_mod = geom.Domain().hiVect()[comp]+1;
+    const auto prob_size=geom.ProbHi(comp)-problo;
     auto num_segments = get_num_segments<comp>(geom,x_start,x_end);
-        // Path is in the negative direction
-        // Then we flip the start and end points of the segments
-        if(x_start > x_end ){
-            lp = x_end;
-            rp = x_start;
-                
-            double segment_start = lp;
-            double segment_end;
-            int segment_index=get_point_line<comp>(geom,segment_start);
+    
+
+    double segment_start = x_start;
+    double segment_end;
+    int segment_index=get_point_line<comp>(geom,segment_start);
+    
+    if(x_start > x_end ){
             for(int seg=1;seg < num_segments;seg++){ 
-                segment_end = (segment_index+1)*cellsize + problo; 
-                seg_list.push_back(std::make_tuple(segment_end,segment_start,segment_index));
-                segment_index++;
-                segment_start=segment_end;
+                segment_end = (segment_index)*cellsize + problo; 
+                seg_list.push_back(std::make_tuple(segment_start,segment_end,segment_index));
+                segment_index =(segment_index -1) % index_mod ;
+                segment_start=fmod(segment_end-problo,prob_size)+problo;
 
             }
-            segment_end = rp;
-            seg_list.push_back(std::make_tuple(segment_end,segment_start,segment_index));
 
         }else{
-            lp =x_start;
-            rp = x_end;
-            double segment_start = lp;
-            double segment_end;
-            int segment_index=get_point_line<comp>(geom,segment_start);
             for(int seg=1;seg < num_segments;seg++){ 
                 segment_end = (segment_index+1)*cellsize + problo; 
                 seg_list.push_back(std::make_tuple(segment_start,segment_end,segment_index));
-                segment_index++;
-                segment_start=segment_end;
+                segment_index =(segment_index +1)% index_mod;
+                segment_start=fmod(segment_end-problo,prob_size)+problo;
 
             }
-            segment_end = rp;
-            seg_list.push_back(std::make_tuple(segment_start,segment_end,segment_index));
         }
+        segment_end = fmod(x_end-problo,prob_size)+problo;;
+        seg_list.push_back(std::make_tuple(segment_start,segment_end,segment_index));
         return seg_list;
 
 }

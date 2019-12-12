@@ -97,8 +97,8 @@ void main_main()
     ba.maxSize(max_grid_size);
 
     // This defines the physical box, [-1,1] in each direction.
-    amrex::RealBox real_box({AMREX_D_DECL(0,0,0)},
-                     {AMREX_D_DECL( n_cell,n_cell,n_cell)});
+    amrex::RealBox real_box({AMREX_D_DECL(-1,-1,-1)},
+                     {AMREX_D_DECL( 1,1,1)});
 
     // This defines a Geometry object
     amrex::Geometry geom(domain,&real_box,amrex::CoordSys::cartesian,is_periodic.data());
@@ -168,8 +168,6 @@ for (CParIter pti(P, 0); pti.isValid(); ++pti) {
     amrex::Array4<amrex::Real> const& B_loc = bfab.array();
      
     Theta_E(geom,box,E_loc,B_loc,particles,dt);
-
-
     for (auto& p : particles) {
        // P.Reset(p,true);
        //
@@ -200,10 +198,10 @@ for (CParIter pti(P, 0); pti.isValid(); ++pti) {
     
 }
 
-    auto slist =get_segment_list<0>(geom,2.1,0.5) ; 
-
+    auto slist =get_segment_list<0>(geom,0.9,1.52313) ; 
+    
     for(auto a : slist){
-    std::cout << std::get<0>(a) << "," <<  std::get<1>(a) << std::endl;
+    std::cout << std::get<0>(a) << "," <<  std::get<1>(a) << "," << std::get<2>(a) << std::endl;
     }
 
     int n=0;
