@@ -1,3 +1,4 @@
+#include "AMReX_Array.H"
 #include "AMReX_Geometry.H"
 #include "particle_defs.hpp"
 #include "propagators.hpp"
@@ -83,16 +84,6 @@ void push_V_E( CParticles&particles, const amrex::Geometry geom,amrex::Array4<am
     }
 }
 
-// This is for one particle type
-// If there are several you need to do this again
-// 0 -> x  , 1-> y 2->z
-template<int comp>
-void push_E(CParticles&particles, const amrex::Geometry geom,amrex::Array4<amrex::Real> const& E ,double dt){
-    const  double coef = particles[0].rdata(1)*geom.InvCellSize(0)*geom.InvCellSize(1)*geom.InvCellSize(2);
-    double dE =0;
 
-    for(auto& p : particles){
-    }
 
-    dE*coef;
-};
+

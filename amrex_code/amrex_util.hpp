@@ -42,36 +42,34 @@ std::vector<std::tuple<amrex::Real,amrex::Real,int>> get_segment_list(const amre
     const auto cellsize=geom.CellSize(comp);
     const auto problo = geom.ProbLo(comp);
     // Periodic index
-    int index_mod = geom.Domain().hiVect()[comp]+1;
+    const int index_mod = geom.Domain().hiVect()[comp]+1;
     const auto prob_size=geom.ProbHi(comp)-problo;
-    auto num_segments = get_num_segments<comp>(geom,x_start,x_end);
+    const auto num_segments = get_num_segments<comp>(geom,x_start,x_end);
     
 
-    double segment_start = x_start;
-    double segment_end;
-    int segment_index=get_point_line<comp>(geom,segment_start);
-    
+     double segment_start = x_start;
+     double segment_end;
+     int segment_index=get_point_line<comp>(geom,segment_start);
+        int sig;
     if(x_start > x_end ){
-            for(int seg=1;seg < num_segments;seg++){ 
-                segment_end = (segment_index)*cellsize + problo; 
-                seg_list.push_back(std::make_tuple(segment_start,segment_end,segment_index));
-                segment_index =(segment_index -1) % index_mod ;
-                segment_start=fmod(segment_end-problo,prob_size)+problo;
+        sig=-1; 
 
-            }
 
-        }else{
-            for(int seg=1;seg < num_segments;seg++){ 
-                segment_end = (segment_index+1)*cellsize + problo; 
-                seg_list.push_back(std::make_tuple(segment_start,segment_end,segment_index));
-                segment_index =(segment_index +1)% index_mod;
-                segment_start=fmod(segment_end-problo,prob_size)+problo;
+    }else{
+        sig=1;
+    }
+    for(int seg=1;seg < num_segments;seg++){ 
+            segment_end = (segment_index+ (sig+1)/2)*cellsize + problo; 
+            seg_list.push_back(std::make_tuple(segment_start,segment_end,segment_index));
+            segment_index =(((segment_index +sig) % index_mod) +index_mod) %index_mod ;
+        
+            segment_start=(segment_index -((sig-1))/2)*cellsize+problo;
 
-            }
-        }
-        segment_end = fmod(x_end-problo,prob_size)+problo;;
-        seg_list.push_back(std::make_tuple(segment_start,segment_end,segment_index));
-        return seg_list;
+    }
+
+   segment_end = fmod(fmod(x_end-problo,prob_size)+problo-((sig-1)/2)*prob_size,prob_size);
+   seg_list.push_back(std::make_tuple(segment_start,segment_end,segment_index));
+   return seg_list;
 
 }
 

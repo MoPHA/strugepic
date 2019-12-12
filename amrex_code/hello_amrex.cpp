@@ -149,7 +149,7 @@ for(amrex::MFIter mfi= P.MakeMFIter(0) ;mfi.isValid();++mfi){
     double x = geom.ProbLo(0) + lo.x * geom.CellSize(0)*1.1;
     double y = geom.ProbLo(1) + lo.y * geom.CellSize(1)*1.1;
     double z =geom.ProbLo(2) + lo.z * geom.CellSize(2)*1.1;
-    add_single_particle(particles,{x,y,z},{0.5,0,0},1,-1);    
+    add_single_particle(particles,{x,y,z},{0.1,0.1,0.1},1,-1);    
 }
 
     P.Redistribute();
@@ -161,6 +161,7 @@ for(amrex::MFIter mfi= P.MakeMFIter(0) ;mfi.isValid();++mfi){
 for(int step=0; step<nsteps;step++){
 for (CParIter pti(P, 0); pti.isValid(); ++pti) {
     auto&  particles = pti.GetArrayOfStructs();
+    const auto& n_particles = P.GetNeighbors(0,pti.index(),pti.LocalTileIndex());
     amrex::FArrayBox& efab = E[pti];
     amrex::FArrayBox& bfab =B[pti];
     const amrex::Box& box = pti.validbox();;
@@ -168,14 +169,12 @@ for (CParIter pti(P, 0); pti.isValid(); ++pti) {
     amrex::Array4<amrex::Real> const& B_loc = bfab.array();
      
     Theta_E(geom,box,E_loc,B_loc,particles,dt);
-    for (auto& p : particles) {
+    push_E_p<0>(particles,n_particles,geom,E_loc,dt);
+//    for (auto& p : particles) {
        // P.Reset(p,true);
        //
 //    std::cout << p.pos(0) << "," << p.pos(1) << "," << p.pos(2) << std::endl;
-    }
-    //const auto& n_particles = P.GetNeighbors(0,pti.index(),pti.LocalTileIndex());
-    //for(const auto& p: n_particles){
-   // }
+//    }
 }
 
 
@@ -198,11 +197,6 @@ for (CParIter pti(P, 0); pti.isValid(); ++pti) {
     
 }
 
-    auto slist =get_segment_list<0>(geom,0.9,1.52313) ; 
-    
-    for(auto a : slist){
-    std::cout << std::get<0>(a) << "," <<  std::get<1>(a) << "," << std::get<2>(a) << std::endl;
-    }
 
     int n=0;
     amrex::Real time=0.0;
