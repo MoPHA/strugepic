@@ -15,6 +15,7 @@ template <typename T> int sgn(T val) {
     return (T(0) < val) - (val < T(0));
 }
 
+void print_Particle_info(const amrex::Geometry geom,CParticleContainer&P );
 
 
 

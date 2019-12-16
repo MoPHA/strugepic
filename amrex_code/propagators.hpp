@@ -5,6 +5,8 @@
 #include "particle_defs.hpp"
 #include "amrex_util.hpp"
 
+// These are All local update functions
+
 void push_B( amrex::Box const& bx,  amrex::Array4<amrex::Real> const& B, amrex::Array4<amrex::Real> const& E,double dt);
 
 void push_E( amrex::Box const& bx,  amrex::Array4<amrex::Real> const& E, amrex::Array4<amrex::Real> const& B,double dt);
@@ -14,6 +16,20 @@ void push_V_E( CParticles&particles, const amrex::Geometry geom,amrex::Array4<am
 void Theta_E(const amrex::Geometry geom,amrex::Box const& bx,amrex::Array4<amrex::Real> const& E,amrex::Array4<amrex::Real> const& B,CParticles&particles,double dt );
 
 void Theta_B(amrex::Box const& bx,amrex::Array4<amrex::Real> const& E,amrex::Array4<amrex::Real> const& B,double dt );
+
+void Theta_x(CParticleContainer&ParticleC, CParticles&local_particles,const CNParticles&neighbour_particles, const amrex::Geometry geom,amrex::Array4<amrex::Real> const& E, amrex::Array4<amrex::Real> const& B ,double dt);
+
+void Theta_y(CParticleContainer&ParticleC, CParticles&local_particles,const CNParticles&neighbour_particles, const amrex::Geometry geom,amrex::Array4<amrex::Real> const& E, amrex::Array4<amrex::Real> const& B ,double dt);
+
+void Theta_z(CParticleContainer&ParticleC, CParticles&local_particles,const CNParticles&neighbour_particles, const amrex::Geometry geom,amrex::Array4<amrex::Real> const& E, amrex::Array4<amrex::Real> const& B ,double dt);
+
+// Global update, they also handle triggering the updates
+void G_Theta_E(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &E, amrex::MultiFab &B,double dt );
+void G_Theta_B(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &E, amrex::MultiFab &B,double dt );
+void G_Theta_x(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &E, amrex::MultiFab &B,double dt );
+void G_Theta_y(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &E, amrex::MultiFab &B,double dt );
+void G_Theta_z(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &E, amrex::MultiFab &B,double dt );
+
 
 
 
@@ -46,13 +62,13 @@ void push_E_part(const Pcontainter&particles, const amrex::Geometry geom,amrex::
                     if(E.contains(coord[0]+i,coord[1]+j,coord[2]+k)){
                     switch(comp){
                         case 0:
-                            res=strugepic::I_W1(i_s - (coord[0]+i)*dx,i_e - (coord[0]+i)*dx)*strugepic::W1(p.pos(1) - (coord[1]+j)*dy  )*strugepic::W1(p.pos(2) - (coord[2]+k)*dz  );
+                            res=strugepic::I_W12(i_s - (coord[0]+i)*dx,i_e - (coord[0]+i)*dx)*strugepic::W1(p.pos(1) - (coord[1]+j)*dy  )*strugepic::W1(p.pos(2) - (coord[2]+k)*dz  );
                             break;
                         case 1:
-                            res=strugepic::I_W1(i_s- (coord[1]+j)*dy,i_e - (coord[1]+j)*dy)*strugepic::W1(p.pos(2)- (coord[2]+k)*dz  )*strugepic::W1(p.pos(0) - (coord[0]+i)*dx  );
+                            res=strugepic::I_W12(i_s- (coord[1]+j)*dy,i_e - (coord[1]+j)*dy)*strugepic::W1(p.pos(2)- (coord[2]+k)*dz  )*strugepic::W1(p.pos(0) - (coord[0]+i)*dx  );
                             break;
                         case 2:
-                            res=strugepic::I_W1(i_s- (coord[2]+k)*dz,i_e - (coord[2]+k)*dz)*strugepic::W1(p.pos(0)- (coord[0]+i)*dx  )*strugepic::W1(p.pos(1) - (coord[1]+j)*dy  );
+                            res=strugepic::I_W12(i_s- (coord[2]+k)*dz,i_e - (coord[2]+k)*dz)*strugepic::W1(p.pos(0)- (coord[0]+i)*dx  )*strugepic::W1(p.pos(1) - (coord[1]+j)*dy  );
                             break;
                 
                     }
@@ -78,9 +94,10 @@ void push_E_p(const CParticles&local_particles,const CNParticles&neighbour_parti
 }
 
 template<int comp>
-void push_V_p(const CParticles&local_particles,double dt){
-        for(auto p: local_particles){
+void push_V_p(CParticleContainer&p_container ,CParticles&local_particles,double dt){
+        for(auto &p: local_particles){
             p.pos(comp)+=dt*p.rdata(2+comp);
+            p_container.Reset(p,true);
         }
 }
 
@@ -104,9 +121,27 @@ void push_B_p(CParticles&particles, const amrex::Geometry geom, const amrex::Arr
             auto i_s = std::get<0>(seg); 
             auto i_e = std::get<1>(seg);
 
+
+// The W_1^{(2)} function is supported over -1 < x< 2 so symmetric looping is not the best, but will do for now.
     for(auto k: idx_list){
             for(auto j: idx_list){
                 for(auto i: idx_list){
+                    
+                    switch(comp){
+                        case 0:
+                            res_c1+=B(coord[0]+i,coord[1]+j,coord[2]+k,1)*strugepic::I_W1(i_s- (coord[1]+j)*dy,i_e - (coord[1]+j)*dy)*strugepic::W12(p.pos(2)- (coord[2]+k)*dz  )*strugepic::W12(p.pos(0) - (coord[0]+i)*dx  );
+                            res_c2-=B(coord[0]+i,coord[1]+j,coord[2]+k,2)*strugepic::I_W1(i_s- (coord[2]+k)*dz,i_e - (coord[2]+k)*dz)*strugepic::W12(p.pos(0)- (coord[0]+i)*dx  )*strugepic::W12(p.pos(1) - (coord[1]+j)*dy  );
+                            break;
+                        case 1:
+                            res_c1+=B(coord[0]+i,coord[1]+j,coord[2]+k,2)*strugepic::I_W1(i_s- (coord[2]+k)*dz,i_e - (coord[2]+k)*dz)*strugepic::W12(p.pos(0)- (coord[0]+i)*dx  )*strugepic::W12(p.pos(1) - (coord[1]+j)*dy  );
+                            res_c2-=B(coord[0]+i,coord[1]+j,coord[2]+k,0)*strugepic::I_W1(i_s - (coord[0]+i)*dx,i_e - (coord[0]+i)*dx)*strugepic::W12(p.pos(1) - (coord[1]+j)*dy  )*strugepic::W12(p.pos(2) - (coord[2]+k)*dz  );
+                            break;
+                        case 2:
+                            res_c1+=B(coord[0]+i,coord[1]+j,coord[2]+k,0)*strugepic::I_W1(i_s - (coord[0]+i)*dx,i_e - (coord[0]+i)*dx)*strugepic::W12(p.pos(1) - (coord[1]+j)*dy  )*strugepic::W12(p.pos(2) - (coord[2]+k)*dz  );
+                            res_c2-=B(coord[0]+i,coord[1]+j,coord[2]+k,1)*strugepic::I_W1(i_s- (coord[1]+j)*dy,i_e - (coord[1]+j)*dy)*strugepic::W12(p.pos(2)- (coord[2]+k)*dz  )*strugepic::W12(p.pos(0) - (coord[0]+i)*dx  );
+                            break;
+                
+                    }
 
                     
                 }
@@ -114,8 +149,8 @@ void push_B_p(CParticles&particles, const amrex::Geometry geom, const amrex::Arr
             }
     }
     }
-        p.rdata( (comp +1 )% 3 +2   )+=coef*res_c1; 
-        p.rdata( (comp+2) % 3 +2  )+=coef*res_c1; 
+        p.rdata( (comp +1 )% 3 +2   )+=coef*res_c1*p.rdata(coef); 
+        p.rdata( (comp+2) % 3 +2  )+=coef*res_c2*p.rdata(coef); 
 }
     
 }

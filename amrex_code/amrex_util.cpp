@@ -55,3 +55,16 @@ std::array<int,3> get_num_segments(const amrex::Geometry geom,const amrex::RealA
     p.rdata(4)=vel[2];
     particlet.push_back(p);
 }
+
+void print_Particle_info(const amrex::Geometry geom,CParticleContainer&P ){
+
+    for (CParIter pti(P, 0); pti.isValid(); ++pti) {
+        auto&  particles = pti.GetArrayOfStructs();
+        for(auto p : particles ){
+            amrex::Print() << "(" << p.cpu()<<"," << p.id()<<")" << std::endl;
+            amrex::Print() << "[" << p.pos(0)<<"," << p.pos(1)<<"," << p.pos(2) << "]" << std::endl;
+            amrex::Print() << "[" << p.rdata(2)<<"," << p.rdata(3)<<"," << p.rdata(4) << "]" << std::endl;
+        }
+    }
+
+}

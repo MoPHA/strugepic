@@ -33,13 +33,12 @@ void init_E (amrex::Box const& bx, amrex::Array4<amrex::Real> const& a)
 {
    const auto lo = amrex::lbound(bx);
    const auto hi = amrex::ubound(bx);
-   const auto val = amrex::ParallelDescriptor::MyProc() +1;
    for     (int k = lo.z; k <= hi.z; ++k) {
      for   (int j = lo.y; j <= hi.y; ++j) {
        for (int i = lo.x; i <= hi.x; ++i) { 
-         a(i,j,k,0) = val;
-         a(i,j,k,1) = val;
-         a(i,j,k,2) = val;
+         a(i,j,k,0) = 0;
+         a(i,j,k,1) = 0;
+         a(i,j,k,2) = 0;
        }
      }
    }
@@ -170,6 +169,7 @@ for (CParIter pti(P, 0); pti.isValid(); ++pti) {
      
     Theta_E(geom,box,E_loc,B_loc,particles,dt);
     push_E_p<0>(particles,n_particles,geom,E_loc,dt);
+    push_B_p<0>(particles,geom,B_loc,dt);
 //    for (auto& p : particles) {
        // P.Reset(p,true);
        //
