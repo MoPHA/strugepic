@@ -37,9 +37,9 @@ void push_B( amrex::Box const& bx,  amrex::Array4<amrex::Real> const& B, amrex::
    for     (int k = lo.z; k <= hi.z; ++k) {
      for   (int j = lo.y; j <= hi.y; ++j) {
        for (int i = lo.x; i <= hi.x; ++i) { 
-         B(i,j,k,0) -=dt* (E(i+1,j,k,0)-E(i,j,k,0));
-         B(i,j,k,1) -=dt* (E(i,j+1,k,1)-E(i,j,k,1));
-         B(i,j,k,2) -=dt* (E(i,j,k+1,2)-E(i,j,k,2));
+         B(i,j,k,0) -=dt*((E(i,j+1,k,2)-E(i,j,k,2))-( E(i,j,k+1,1)-E(i,j,k,1)));  
+         B(i,j,k,1) -=dt*((E(i,j,k+1,0)-E(i,j,k,0))-( E(i+1,j,k,2)-E(i,j,k,2)));
+         B(i,j,k,2) -=dt*((E(i+1,j,k,1)-E(i,j,k,1))-( E(i,j+1,k,0)-E(i,j,k,0)));
        }
      }
    }
@@ -52,9 +52,9 @@ void push_E( amrex::Box const& bx,  amrex::Array4<amrex::Real> const& E, amrex::
    for     (int k = lo.z; k <= hi.z; ++k) {
      for   (int j = lo.y; j <= hi.y; ++j) {
        for (int i = lo.x; i <= hi.x; ++i) { 
-        E(i,j,k,0) += dt*(B(i+1,j,k,0)-B(i,j,k,0));
-         E(i,j,k,1) +=dt* (B(i,j+1,k,1)-B(i,j,k,1));
-         E(i,j,k,2) +=dt* (B(i,j,k+1,2)-B(i,j,k,2));
+         E(i,j,k,0) +=dt*((B(i,j+1,k,2)-B(i,j,k,2))-( B(i,j,k+1,1)-B(i,j,k,1)));  
+         E(i,j,k,1) +=dt*((B(i,j,k+1,0)-B(i,j,k,0))-( B(i+1,j,k,2)-B(i,j,k,2)));
+         E(i,j,k,2) +=dt*((B(i+1,j,k,1)-B(i,j,k,1))-( B(i,j+1,k,0)-B(i,j,k,0)));
        }
      }
    }
@@ -93,6 +93,7 @@ void push_V_E( CParticles&particles, const amrex::Geometry geom,amrex::Array4<am
                 }
             }
         }
+       // std::cout << "Speed updates from E: "<<dvx*coef  << "," << dvy*coef  << ","<< dvx*coef <<std::endl;
         p.rdata(2)+=dvx*coef;
         p.rdata(3)+=dvy*coef;
         p.rdata(4)+=dvz*coef;
@@ -100,20 +101,25 @@ void push_V_E( CParticles&particles, const amrex::Geometry geom,amrex::Array4<am
 }
 
 
-
-
-
 void G_Theta_E(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab&E, amrex::MultiFab&B,double dt ){
+
 
     for (CParIter pti(P, 0); pti.isValid(); ++pti) {
         auto&  particles = pti.GetArrayOfStructs();
         amrex::FArrayBox& efab = E[pti];
-        amrex::FArrayBox& bfab =B[pti];
-        const amrex::Box& box = pti.validbox();;
         amrex::Array4<amrex::Real> const& E_loc = efab.array();
-        amrex::Array4<amrex::Real> const& B_loc = bfab.array();
          
-        Theta_E(geom,box,E_loc,B_loc,particles,dt);
+        push_V_E(particles,geom,E_loc,dt);
+    }
+
+    for (amrex::MFIter mfi(E); mfi.isValid(); ++mfi){
+        const amrex::Box& box = mfi.validbox();
+        amrex::FArrayBox& fab = E[mfi];
+        amrex::FArrayBox& fabB = B[mfi];
+        amrex::Array4<amrex::Real> const& E_loc = fab.array();
+        amrex::Array4<amrex::Real> const& B_loc = fabB.array(); 
+        push_B(box, B_loc,E_loc,dt);
+
     }
 
     P.updateNeighbors();
@@ -121,6 +127,9 @@ void G_Theta_E(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab&
 
 
 }
+
+
+
 void G_Theta_B(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab&E, amrex::MultiFab&B,double dt ){
 
     for (amrex::MFIter mfi(E); mfi.isValid(); ++mfi){
