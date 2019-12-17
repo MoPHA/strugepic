@@ -105,7 +105,7 @@ void push_V_p(CParticleContainer&p_container ,CParticles&local_particles,double 
 template<int comp>
 void push_B_p(CParticles&particles, const amrex::Geometry geom, const amrex::Array4<amrex::Real> & B ,double dt){ 
     const int idx_list[4]={-1,0,1,2};
-    const  double coef = particles[0].rdata(1)/particles[0].rdata(1);
+    const  double coef = particles[0].rdata(1)/particles[0].rdata(0);
     const  double dx = geom.CellSize(0);
     const  double dy = geom.CellSize(1);
     const  double dz = geom.CellSize(2);
@@ -126,19 +126,18 @@ void push_B_p(CParticles&particles, const amrex::Geometry geom, const amrex::Arr
     for(auto k: idx_list){
             for(auto j: idx_list){
                 for(auto i: idx_list){
-                    
                     switch(comp){
                         case 0:
-                            res_c1+=B(coord[0]+i,coord[1]+j,coord[2]+k,1)*strugepic::I_W1(i_s- (coord[1]+j)*dy,i_e - (coord[1]+j)*dy)*strugepic::W12(p.pos(2)- (coord[2]+k)*dz  )*strugepic::W12(p.pos(0) - (coord[0]+i)*dx  );
-                            res_c2-=B(coord[0]+i,coord[1]+j,coord[2]+k,2)*strugepic::I_W1(i_s- (coord[2]+k)*dz,i_e - (coord[2]+k)*dz)*strugepic::W12(p.pos(0)- (coord[0]+i)*dx  )*strugepic::W12(p.pos(1) - (coord[1]+j)*dy  );
+                            res_c1+=B(coord[0]+i,coord[1]+j,coord[2]+k,1)*strugepic::I_W12(i_s- (coord[0]+i)*dx,i_e - (coord[0]+i)*dx)*strugepic::W1(p.pos(1)- (coord[1]+j)*dy  )*strugepic::W12(p.pos(2) - (coord[2]+k)*dz  );
+                            res_c2-=B(coord[0]+i,coord[1]+j,coord[2]+k,2)*strugepic::I_W12(i_s- (coord[0]+i)*dx,i_e - (coord[0]+i)*dx)*strugepic::W12(p.pos(1)- (coord[1]+j)*dy  )*strugepic::W1(p.pos(2) - (coord[2]+k)*dz  );
                             break;
                         case 1:
-                            res_c1+=B(coord[0]+i,coord[1]+j,coord[2]+k,2)*strugepic::I_W1(i_s- (coord[2]+k)*dz,i_e - (coord[2]+k)*dz)*strugepic::W12(p.pos(0)- (coord[0]+i)*dx  )*strugepic::W12(p.pos(1) - (coord[1]+j)*dy  );
-                            res_c2-=B(coord[0]+i,coord[1]+j,coord[2]+k,0)*strugepic::I_W1(i_s - (coord[0]+i)*dx,i_e - (coord[0]+i)*dx)*strugepic::W12(p.pos(1) - (coord[1]+j)*dy  )*strugepic::W12(p.pos(2) - (coord[2]+k)*dz  );
+                            res_c1+=B(coord[0]+i,coord[1]+j,coord[2]+k,2)*strugepic::I_W12(i_s- (coord[1]+j)*dy,i_e - (coord[1]+j)*dy)*strugepic::W12(p.pos(0)- (coord[0]+i)*dx  )*strugepic::W1(p.pos(2) - (coord[2]+k)*dz  );
+                            res_c2-=B(coord[0]+i,coord[1]+j,coord[2]+k,0)*strugepic::I_W12(i_s - (coord[1]+j)*dy,i_e - (coord[1]+j)*dy)*strugepic::W1(p.pos(0) - (coord[0]+i)*dx  )*strugepic::W12(p.pos(2) - (coord[2]+k)*dz  );
                             break;
                         case 2:
-                            res_c1+=B(coord[0]+i,coord[1]+j,coord[2]+k,0)*strugepic::I_W1(i_s - (coord[0]+i)*dx,i_e - (coord[0]+i)*dx)*strugepic::W12(p.pos(1) - (coord[1]+j)*dy  )*strugepic::W12(p.pos(2) - (coord[2]+k)*dz  );
-                            res_c2-=B(coord[0]+i,coord[1]+j,coord[2]+k,1)*strugepic::I_W1(i_s- (coord[1]+j)*dy,i_e - (coord[1]+j)*dy)*strugepic::W12(p.pos(2)- (coord[2]+k)*dz  )*strugepic::W12(p.pos(0) - (coord[0]+i)*dx  );
+                            res_c1+=B(coord[0]+i,coord[1]+j,coord[2]+k,0)*strugepic::I_W12(i_s - (coord[2]+k)*dz,i_e - (coord[2]+k)*dz)*strugepic::W1(p.pos(0) - (coord[0]+i)*dx  )*strugepic::W12(p.pos(1) - (coord[1]+j)*dy  );
+                            res_c2-=B(coord[0]+i,coord[1]+j,coord[2]+k,1)*strugepic::I_W12(i_s- (coord[2]+k)*dz,i_e - (coord[2]+k)*dz)*strugepic::W12(p.pos(0)- (coord[0]+i)*dx  )*strugepic::W1(p.pos(1) - (coord[1]+j)*dy  );
                             break;
                 
                     }
@@ -149,8 +148,8 @@ void push_B_p(CParticles&particles, const amrex::Geometry geom, const amrex::Arr
             }
     }
     }
-        p.rdata( (comp +1 )% 3 +2   )+=coef*res_c1*p.rdata(coef); 
-        p.rdata( (comp+2) % 3 +2  )+=coef*res_c2*p.rdata(coef); 
+        p.rdata( (comp +2 )% 3 +2   )+=coef*res_c1*p.rdata(comp+2); 
+        p.rdata( (comp+1) % 3 +2  )+=coef*res_c2*p.rdata(comp+2); 
 }
     
 }
