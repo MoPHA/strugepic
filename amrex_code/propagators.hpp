@@ -42,9 +42,8 @@ template<int comp,class Pcontainter>
 void push_E_part(const Pcontainter&particles, const amrex::Geometry geom,amrex::Array4<amrex::Real> const& E ,double dt){ 
     const int idx_list[4]={-1,0,1,2};
     const  double coef = particles[0].rdata(1)*geom.InvCellSize(0)*geom.InvCellSize(1)*geom.InvCellSize(2);
-    const  double dx = geom.CellSize(0);
-    const  double dy = geom.CellSize(1);
-    const  double dz = geom.CellSize(2);
+    const auto low = geom.ProbLo();
+    const auto Ics = geom.InvCellSize();
 
     for(auto& p : particles){
         const auto p_segments = get_segment_list<comp>(geom, p.pos(comp) , p.pos(comp)+dt*p.rdata(comp+2));
@@ -58,21 +57,25 @@ void push_E_part(const Pcontainter&particles, const amrex::Geometry geom,amrex::
             for(auto j: idx_list){
                 for(auto i: idx_list){
                     amrex::Real res;
+                    auto cx = coord[0]+i;
+                    auto cy = coord[1]+j;
+                    auto cz = coord[2]+k;
+                    using namespace strugepic;
 
-                    if(E.contains(coord[0]+i,coord[1]+j,coord[2]+k)){
+                    if(E.contains(cx,cy,cz)){
                     switch(comp){
                         case 0:
-                            res=strugepic::I_W12(i_s - (coord[0]+i)*dx,i_e - (coord[0]+i)*dx)*strugepic::W1(p.pos(1) - (coord[1]+j)*dy  )*strugepic::W1(p.pos(2) - (coord[2]+k)*dz  );
+                            res=I_W12((i_s-low[0])*Ics[0]- cx ,(i_e-low[0])*Ics[0]- cx)*W1((p.pos(1)-low[1])*Ics[1]-cy  )*W1((p.pos(2)-low[2])*Ics[2]-cz );
                             break;
                         case 1:
-                            res=strugepic::I_W12(i_s- (coord[1]+j)*dy,i_e - (coord[1]+j)*dy)*strugepic::W1(p.pos(2)- (coord[2]+k)*dz  )*strugepic::W1(p.pos(0) - (coord[0]+i)*dx  );
+                            res=I_W12((i_s-low[1])*Ics[1]- cy ,(i_e-low[1])*Ics[1]- cy)*W1((p.pos(2)-low[2])*Ics[2]-cz )*W1( (p.pos(0)-low[0])*Ics[0]-cx   );
                             break;
                         case 2:
-                            res=strugepic::I_W12(i_s- (coord[2]+k)*dz,i_e - (coord[2]+k)*dz)*strugepic::W1(p.pos(0)- (coord[0]+i)*dx  )*strugepic::W1(p.pos(1) - (coord[1]+j)*dy  );
+                            res=I_W12((i_s-low[2])*Ics[2]- cz ,(i_e-low[2])*Ics[2]- cz)*W1( (p.pos(0)-low[0])*Ics[0]-cx   )*W1((p.pos(1)-low[1])*Ics[1]-cy  );
                             break;
                 
                     }
-                    E(coord[0]+i,coord[1]+j,coord[2]+k,comp)-=coef*p.rdata(comp+2)*res;
+                    E(cx,cy,cz,comp)-=coef*p.rdata(comp+2)*res;
                     }
                     
                 }
@@ -106,9 +109,8 @@ template<int comp>
 void push_B_p(CParticles&particles, const amrex::Geometry geom, const amrex::Array4<amrex::Real> & B ,double dt){ 
     const int idx_list[4]={-1,0,1,2};
     const  double coef = particles[0].rdata(1)/particles[0].rdata(0);
-    const  double dx = geom.CellSize(0);
-    const  double dy = geom.CellSize(1);
-    const  double dz = geom.CellSize(2);
+    const auto low = geom.ProbLo();
+    const auto Ics = geom.InvCellSize();
 
     for(auto& p : particles){
         const auto p_segments = get_segment_list<comp>(geom, p.pos(comp) , p.pos(comp)+dt*p.rdata(comp+2));
@@ -122,22 +124,29 @@ void push_B_p(CParticles&particles, const amrex::Geometry geom, const amrex::Arr
             auto i_e = std::get<1>(seg);
 
 
+
 // The W_1^{(2)} function is supported over -1 < x< 2 so symmetric looping is not the best, but will do for now.
+    double norm_res=0;
     for(auto k: idx_list){
             for(auto j: idx_list){
                 for(auto i: idx_list){
+                    auto cx = coord[0]+i;
+                    auto cy = coord[1]+j;
+                    auto cz = coord[2]+k;
+                    using namespace strugepic;
+ //                   norm_res+=W( (p.pos(0)-low[0])*Ics[0]-cx  , (p.pos(1)-low[1])*Ics[1]-cy    ,  (p.pos(2)-low[2])*Ics[2]-cz ) ;
                     switch(comp){
                         case 0:
-                            res_c1+=B(coord[0]+i,coord[1]+j,coord[2]+k,1)*strugepic::I_W12(i_s- (coord[0]+i)*dx,i_e - (coord[0]+i)*dx)*strugepic::W1(p.pos(1)- (coord[1]+j)*dy  )*strugepic::W12(p.pos(2) - (coord[2]+k)*dz  );
-                            res_c2-=B(coord[0]+i,coord[1]+j,coord[2]+k,2)*strugepic::I_W12(i_s- (coord[0]+i)*dx,i_e - (coord[0]+i)*dx)*strugepic::W12(p.pos(1)- (coord[1]+j)*dy  )*strugepic::W1(p.pos(2) - (coord[2]+k)*dz  );
+                            res_c1+=B(cx,cy,cz,1)*I_W12((i_s-low[0])*Ics[0]- cx ,(i_e-low[0])*Ics[0]- cx)*W1(  (p.pos(1)-low[1])*Ics[1]-cy  )*W12( (p.pos(2)-low[2])*Ics[2]-cz  );
+                            res_c2-=B(cx,cy,cz,2)*I_W12((i_s-low[0])*Ics[0]- cx ,(i_e-low[0])*Ics[0]- cx)*W12( (p.pos(1)-low[1])*Ics[1]-cy  )*W1( (p.pos(2)-low[2])*Ics[2]-cz  );
                             break;
                         case 1:
-                            res_c1+=B(coord[0]+i,coord[1]+j,coord[2]+k,2)*strugepic::I_W12(i_s- (coord[1]+j)*dy,i_e - (coord[1]+j)*dy)*strugepic::W12(p.pos(0)- (coord[0]+i)*dx  )*strugepic::W1(p.pos(2) - (coord[2]+k)*dz  );
-                            res_c2-=B(coord[0]+i,coord[1]+j,coord[2]+k,0)*strugepic::I_W12(i_s - (coord[1]+j)*dy,i_e - (coord[1]+j)*dy)*strugepic::W1(p.pos(0) - (coord[0]+i)*dx  )*strugepic::W12(p.pos(2) - (coord[2]+k)*dz  );
+                            res_c1+=B(cx,cy,cz,2)*I_W12((i_s-low[1])*Ics[1]- cy ,(i_e-low[1])*Ics[1]- cy)*W12( (p.pos(0)-low[0])*Ics[0]-cx  )*W1( (p.pos(2)-low[2])*Ics[2]-cz  );
+                            res_c2-=B(cx,cy,cz,0)*I_W12((i_s-low[1])*Ics[1]- cy ,(i_e-low[1])*Ics[1]- cy)*W1( (p.pos(0)-low[0])*Ics[0]-cx  )*W12( (p.pos(2)-low[2])*Ics[2]-cz  );
                             break;
                         case 2:
-                            res_c1+=B(coord[0]+i,coord[1]+j,coord[2]+k,0)*strugepic::I_W12(i_s - (coord[2]+k)*dz,i_e - (coord[2]+k)*dz)*strugepic::W1(p.pos(0) - (coord[0]+i)*dx  )*strugepic::W12(p.pos(1) - (coord[1]+j)*dy  );
-                            res_c2-=B(coord[0]+i,coord[1]+j,coord[2]+k,1)*strugepic::I_W12(i_s- (coord[2]+k)*dz,i_e - (coord[2]+k)*dz)*strugepic::W12(p.pos(0)- (coord[0]+i)*dx  )*strugepic::W1(p.pos(1) - (coord[1]+j)*dy  );
+                            res_c1+=B(cx,cy,cz,0)*I_W12((i_s-low[2])*Ics[2]- cz ,(i_e-low[2])*Ics[2]- cz)*W1( (p.pos(0)-low[0])*Ics[0]-cx  )*W12((p.pos(1)-low[1])*Ics[1]-cy  );
+                            res_c2-=B(cx,cy,cz,1)*I_W12((i_s-low[2])*Ics[2]- cz ,(i_e-low[2])*Ics[2]- cz)*W12( (p.pos(0)-low[0])*Ics[0]-cx  )*W1((p.pos(1)-low[1])*Ics[1]-cy);
                             break;
                 
                     }
@@ -146,7 +155,7 @@ void push_B_p(CParticles&particles, const amrex::Geometry geom, const amrex::Arr
                 }
 
             }
-    }
+    }   
     }
         p.rdata( (comp +2 )% 3 +2   )+=coef*res_c1*p.rdata(comp+2); 
         p.rdata( (comp+1) % 3 +2  )+=coef*res_c2*p.rdata(comp+2); 

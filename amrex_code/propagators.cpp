@@ -71,29 +71,30 @@ void push_V_E( CParticles&particles, const amrex::Geometry geom,amrex::Array4<am
     const double m= particles[0].rdata(0);
     const double q= particles[0].rdata(1);
     const double coef = dt*q/m;
-    const double dx = geom.CellSize(0);
-    const double dy = geom.CellSize(1);
-    const double dz = geom.CellSize(2);
+    const auto low =geom.ProbLo();
+    const auto Ics = geom.InvCellSize();
     
     for(auto& p : particles){
-        auto index =get_point_cell(geom,{p.pos(0),p.pos(1),p.pos(2)}) ;
+        auto coord =get_point_cell(geom,{p.pos(0),p.pos(1),p.pos(2)}) ;
        
         double dvx=0;
         double dvy=0;
         double dvz=0;
 
-
+        double test_res=0;
         for(auto k: idx_list){
             for(auto j: idx_list){
                 for(auto i: idx_list){
-                  auto W = strugepic::W_s1({ p.pos(0) - (index[0]+i)*dx,p.pos(1) -(index[1]+j)*dy,p.pos(2) -(index[2]+k)*dz }); 
-                   dvx+= E(index[0]+i,index[1]+j,index[2]+k,0)*W[0]; 
-                   dvy+= E(index[0]+i,index[1]+j,index[2]+k,1)*W[1];
-                   dvz+= E(index[0]+i,index[1]+j,index[2]+k,2)*W[2];
+                  auto cx = coord[0]+i;
+                  auto cy = coord[1]+j;
+                  auto cz = coord[2]+k;
+                  using namespace strugepic;
+                   dvx+= E(cx,cy,cz,0)*W12((p.pos(0)-low[0])*Ics[0]-cx)*W1((p.pos(1)-low[1])*Ics[1]-cy)*W1((p.pos(2)-low[2])*Ics[2]-cz); 
+                   dvy+= E(cx,cy,cz,1)*W1((p.pos(0)-low[0])*Ics[0]-cx)*W12((p.pos(1)-low[1])*Ics[1]-cy)*W1((p.pos(2)-low[2])*Ics[2]-cz);
+                   dvz+= E(cx,cy,cz,2)*W1((p.pos(0)-low[0])*Ics[0]-cx)*W1((p.pos(1)-low[1])*Ics[1]-cy)*W12((p.pos(2)-low[2])*Ics[2]-cz);
                 }
             }
         }
-       // std::cout << "Speed updates from E: "<<dvx*coef  << "," << dvy*coef  << ","<< dvx*coef <<std::endl;
         p.rdata(2)+=dvx*coef;
         p.rdata(3)+=dvy*coef;
         p.rdata(4)+=dvz*coef;
