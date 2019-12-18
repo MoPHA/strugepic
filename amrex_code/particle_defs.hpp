@@ -29,9 +29,13 @@
 #define X 0
 #define Y 1
 #define Z 2
+
 // 
 #define M 0
 #define Q 1
+#define VX 2
+#define VY 3
+#define VZ 4
 
 
 typedef amrex::ParIter< C_NUM_REALS  ,C_NUM_INTS,C_NUM_SOA_REALS,C_NUM_SOA_INTS> CParIter;

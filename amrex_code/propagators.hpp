@@ -7,9 +7,9 @@
 
 // These are All local update functions, I.e they operate only on local data 
 
-void push_B( amrex::Box const& bx,  amrex::Array4<amrex::Real> const& B, amrex::Array4<amrex::Real> const& E,double dt);
+void push_B_E( amrex::Box const& bx,  amrex::Array4<amrex::Real> const& B, amrex::Array4<amrex::Real> const& E,double dt);
 
-void push_E( amrex::Box const& bx,  amrex::Array4<amrex::Real> const& E, amrex::Array4<amrex::Real> const& B,double dt);
+void push_E_B( amrex::Box const& bx,  amrex::Array4<amrex::Real> const& E, amrex::Array4<amrex::Real> const& B,double dt);
 
 void push_V_E( CParticles&particles, const amrex::Geometry geom,amrex::Array4<amrex::Real> const& E ,double dt);
 
@@ -17,18 +17,11 @@ void Theta_E(const amrex::Geometry geom,amrex::Box const& bx,amrex::Array4<amrex
 
 void Theta_B(amrex::Box const& bx,amrex::Array4<amrex::Real> const& E,amrex::Array4<amrex::Real> const& B,double dt );
 
-void Theta_x(CParticleContainer&ParticleC, CParticles&local_particles,const CNParticles&neighbour_particles, const amrex::Geometry geom,amrex::Array4<amrex::Real> const& E, amrex::Array4<amrex::Real> const& B ,double dt);
-
-void Theta_y(CParticleContainer&ParticleC, CParticles&local_particles,const CNParticles&neighbour_particles, const amrex::Geometry geom,amrex::Array4<amrex::Real> const& E, amrex::Array4<amrex::Real> const& B ,double dt);
-
-void Theta_z(CParticleContainer&ParticleC, CParticles&local_particles,const CNParticles&neighbour_particles, const amrex::Geometry geom,amrex::Array4<amrex::Real> const& E, amrex::Array4<amrex::Real> const& B ,double dt);
 
 // Global update, they also handle triggering global communication
 void G_Theta_E(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &E, amrex::MultiFab &B,double dt );
 void G_Theta_B(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &E, amrex::MultiFab &B,double dt );
-void G_Theta_x(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &E, amrex::MultiFab &B,double dt );
-void G_Theta_y(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &E, amrex::MultiFab &B,double dt );
-void G_Theta_z(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &E, amrex::MultiFab &B,double dt );
+
 
 
 
@@ -82,7 +75,7 @@ void push_E_part(const Pcontainter&particles, const amrex::Geometry geom,amrex::
 
 
 template<int comp>
-void push_E_p(const CParticles&local_particles,const CNParticles&neighbour_particles, const amrex::Geometry geom,amrex::Array4<amrex::Real> const& E ,double dt){
+void push_E_pos(const CParticles&local_particles,const CNParticles&neighbour_particles, const amrex::Geometry geom,amrex::Array4<amrex::Real> const& E ,double dt){
     push_E_part<comp,CParticles>(local_particles,geom,E,dt); 
     if(neighbour_particles.size()!=0){
     push_E_part<comp,CNParticles>(neighbour_particles,geom,E,dt); 
@@ -90,7 +83,7 @@ void push_E_p(const CParticles&local_particles,const CNParticles&neighbour_parti
 }
 
 template<int comp>
-void push_V_p(CParticleContainer&p_container ,CParticles&local_particles,double dt){
+void push_pos_pos(CParticleContainer&p_container ,CParticles&local_particles,double dt){
         for(auto &p: local_particles){
             p.pos(comp)+=dt*p.rdata(2+comp);
             p_container.Reset(p,true);
@@ -99,7 +92,7 @@ void push_V_p(CParticleContainer&p_container ,CParticles&local_particles,double 
 
 
 template<int comp>
-void push_B_p(CParticles&particles, const amrex::Geometry geom, const amrex::Array4<amrex::Real> & B ,double dt){ 
+void push_B_pos(CParticles&particles, const amrex::Geometry geom, const amrex::Array4<amrex::Real> & B ,double dt){ 
     const int idx_list[4]={-1,0,1,2};
     const  double coef = particles[0].rdata(Q)/particles[0].rdata(M);
     const auto low = geom.ProbLo();
@@ -148,6 +141,37 @@ void push_B_p(CParticles&particles, const amrex::Geometry geom, const amrex::Arr
         p.rdata( (comp+1) % 3 +2  )+=coef*res_c2*p.rdata(comp+2); 
     } // over particles
 } // function end
+
+
+template <int coord>
+void Theta(CParticleContainer&ParticleC, CParticles&local_particles,const CNParticles&neighbour_particles, const amrex::Geometry geom,amrex::Array4<amrex::Real> const& E, amrex::Array4<amrex::Real> const& B ,double dt)
+{
+    push_E_pos<coord>(local_particles,neighbour_particles,geom,E,dt);
+    push_B_pos<coord>(local_particles,geom,B,dt);
+    push_pos_pos<coord>(ParticleC,local_particles,dt);
+}
+
+
+
+template <int coord>
+void G_Theta(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &E, amrex::MultiFab &B,double dt ){
+
+    for (CParIter pti(P, 0); pti.isValid(); ++pti) {
+        auto&  particles = pti.GetArrayOfStructs();
+        const auto& n_particles = P.GetNeighbors(0,pti.index(),pti.LocalTileIndex());
+        amrex::FArrayBox& efab = E[pti];
+        amrex::FArrayBox& bfab =B[pti];
+        amrex::Array4<amrex::Real> const& E_loc = efab.array();
+        amrex::Array4<amrex::Real> const& B_loc = bfab.array(); 
+
+        Theta<coord>(P,particles,n_particles,geom,E_loc,B_loc,dt);
+    }
+    P.Redistribute();
+    P.updateNeighbors();
+    E.FillBoundary();
+    B.FillBoundary();
+    
+}
 
 #endif
 
