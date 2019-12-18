@@ -41,7 +41,6 @@ void push_E_part(const Pcontainter&particles, const amrex::Geometry geom,amrex::
     for(auto& p : particles){
         const auto p_segments = get_segment_list<comp>(geom, p.pos(comp) , p.pos(comp)+dt*p.rdata(comp+2));
         auto coord =get_point_cell(geom,{p.pos(X),p.pos(Y),p.pos(Z)}) ;
-        
         for(auto seg: p_segments){
             coord[comp] = std::get<2>(seg);
             auto i_s = std::get<0>(seg); 
@@ -64,7 +63,7 @@ void push_E_part(const Pcontainter&particles, const amrex::Geometry geom,amrex::
                                 *W1((p.pos(comp_u)-low[comp_u])*Ics[comp_u]-cl[comp_u])
                                 *W1((p.pos(comp_l)-low[comp_l])*Ics[comp_l]-cl[comp_l]);
 
-                            E(cl[X],cl[Y],cl[Z],comp)-=coef*p.rdata(comp+2)*res;
+                            E(cl[X],cl[Y],cl[Z],comp)-=coef*res;
                         }
                     }
                 }
@@ -137,8 +136,8 @@ void push_B_pos(CParticles&particles, const amrex::Geometry geom, const amrex::A
             } // over k  
         } // over segments
 
-        p.rdata( (comp +2 )% 3 +2   )+=coef*res_c1*p.rdata(comp+2); 
-        p.rdata( (comp+1) % 3 +2  )+=coef*res_c2*p.rdata(comp+2); 
+        p.rdata( (comp +2 )% 3 +2   )+=coef*res_c1;
+        p.rdata( (comp+1) % 3 +2  )+=coef*res_c2; 
     } // over particles
 } // function end
 
@@ -168,8 +167,8 @@ void G_Theta(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &E
     }
     P.Redistribute();
     P.updateNeighbors();
-    E.FillBoundary();
-    B.FillBoundary();
+    E.FillBoundary(geom.periodicity());
+    B.FillBoundary(geom.periodicity());
     
 }
 
