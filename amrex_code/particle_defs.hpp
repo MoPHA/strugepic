@@ -25,6 +25,13 @@
 #define C_NUM_SOA_REALS 0 
 #define C_NUM_SOA_INTS 0 
 
+// Pos variable indices
+#define X 0
+#define Y 1
+#define Z 2
+// 
+#define M 0
+#define Q 1
 
 
 typedef amrex::ParIter< C_NUM_REALS  ,C_NUM_INTS,C_NUM_SOA_REALS,C_NUM_SOA_INTS> CParIter;

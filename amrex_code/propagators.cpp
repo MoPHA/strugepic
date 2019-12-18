@@ -15,19 +15,19 @@ void Theta_B(amrex::Box const& bx,amrex::Array4<amrex::Real> const& E,amrex::Arr
 }
 
 void Theta_x(CParticleContainer&ParticleC, CParticles&local_particles,const CNParticles&neighbour_particles, const amrex::Geometry geom,amrex::Array4<amrex::Real> const& E, amrex::Array4<amrex::Real> const& B ,double dt){
-    push_E_p<0>(local_particles,neighbour_particles,geom,E,dt);
-    push_B_p<0>(local_particles,geom,B,dt);
-    push_V_p<0>(ParticleC,local_particles,dt);
+    push_E_p<X>(local_particles,neighbour_particles,geom,E,dt);
+    push_B_p<X>(local_particles,geom,B,dt);
+    push_V_p<X>(ParticleC,local_particles,dt);
 }
 void Theta_y(CParticleContainer&ParticleC, CParticles&local_particles,const CNParticles&neighbour_particles, const amrex::Geometry geom,amrex::Array4<amrex::Real> const& E, amrex::Array4<amrex::Real> const& B ,double dt){
-    push_E_p<1>(local_particles,neighbour_particles,geom,E,dt);
-    push_B_p<1>(local_particles,geom,B,dt);
-    push_V_p<1>(ParticleC,local_particles,dt);
+    push_E_p<Y>(local_particles,neighbour_particles,geom,E,dt);
+    push_B_p<Y>(local_particles,geom,B,dt);
+    push_V_p<Y>(ParticleC,local_particles,dt);
 }
 void Theta_z(CParticleContainer&ParticleC, CParticles&local_particles,const CNParticles&neighbour_particles, const amrex::Geometry geom,amrex::Array4<amrex::Real> const& E, amrex::Array4<amrex::Real> const& B ,double dt){
-    push_E_p<2>(local_particles,neighbour_particles,geom,E,dt);
-    push_B_p<2>(local_particles,geom,B,dt);
-    push_V_p<2>(ParticleC,local_particles,dt);
+    push_E_p<Z>(local_particles,neighbour_particles,geom,E,dt);
+    push_B_p<Z>(local_particles,geom,B,dt);
+    push_V_p<Z>(ParticleC,local_particles,dt);
 }
 
 
@@ -81,7 +81,6 @@ void push_V_E( CParticles&particles, const amrex::Geometry geom,amrex::Array4<am
         double dvy=0;
         double dvz=0;
 
-        double test_res=0;
         for(auto k: idx_list){
             for(auto j: idx_list){
                 for(auto i: idx_list){
