@@ -99,7 +99,7 @@ void push_B_pos(CParticles&particles, const amrex::Geometry geom, const amrex::A
 
     for(auto& p : particles){
         const auto p_segments = get_segment_list<comp>(geom, p.pos(comp) , p.pos(comp)+dt*p.rdata(comp+2));
-        auto coord =get_point_cell(geom,{p.pos(Z),p.pos(Y),p.pos(Z)}) ;
+        auto coord =get_point_cell(geom,{p.pos(X),p.pos(Y),p.pos(Z)}) ;
         amrex::Real res_c1=0;
         amrex::Real res_c2=0;
 
@@ -126,7 +126,7 @@ void push_B_pos(CParticles&particles, const amrex::Geometry geom, const amrex::A
                         *W1(  (p.pos(comp_u)-low[comp_u])*Ics[comp_u]-cl[comp_u])
                         *W12( (p.pos(comp_l)-low[comp_l])*Ics[comp_l]-cl[comp_l]);
                         
-                        res_c2+=-B(cl[X],cl[Y],cl[Z],comp_l)
+                        res_c2-=B(cl[X],cl[Y],cl[Z],comp_l)
                         *I_W12((i_s-low[comp])*Ics[comp]- cl[comp] ,(i_e-low[comp])*Ics[comp]- cl[comp])
                         *W12( (p.pos(comp_u)-low[comp_u])*Ics[comp_u]-cl[comp_u])
                         *W1(  (p.pos(comp_l)-low[comp_l])*Ics[comp_l]-cl[comp_l]);
@@ -138,6 +138,10 @@ void push_B_pos(CParticles&particles, const amrex::Geometry geom, const amrex::A
 
         p.rdata( (comp +2 )% 3 +2   )+=coef*res_c1;
         p.rdata( (comp+1) % 3 +2  )+=coef*res_c2; 
+
+//        p.rdata(VX) = sgn(p.rdata(VX))*std::min(fabs(p.rdata(VX)),0.9);
+//        p.rdata(VY) = sgn(p.rdata(VY))*std::min(fabs(p.rdata(VY)),0.9);
+//        p.rdata(VZ) = sgn(p.rdata(VZ))*std::min(fabs(p.rdata(VZ)),0.9);
     } // over particles
 } // function end
 
@@ -145,7 +149,7 @@ void push_B_pos(CParticles&particles, const amrex::Geometry geom, const amrex::A
 template <int coord>
 void Theta(CParticleContainer&ParticleC, CParticles&local_particles,const CNParticles&neighbour_particles, const amrex::Geometry geom,amrex::Array4<amrex::Real> const& E, amrex::Array4<amrex::Real> const& B ,double dt)
 {
-    push_E_pos<coord>(local_particles,neighbour_particles,geom,E,dt);
+  //  push_E_pos<coord>(local_particles,neighbour_particles,geom,E,dt);
     push_B_pos<coord>(local_particles,geom,B,dt);
     push_pos_pos<coord>(ParticleC,local_particles,dt);
 }

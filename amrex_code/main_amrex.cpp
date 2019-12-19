@@ -36,9 +36,9 @@ void init_E (amrex::Box const& bx, amrex::Array4<amrex::Real> const& a)
    for     (int k = lo.z; k <= hi.z; ++k) {
      for   (int j = lo.y; j <= hi.y; ++j) {
        for (int i = lo.x; i <= hi.x; ++i) { 
-         a(i,j,k,0) = 0;
-         a(i,j,k,1) = 0;
-         a(i,j,k,2) = 0;
+         a(i,j,k,0) = 0.0;
+         a(i,j,k,1) = 0.0;
+         a(i,j,k,2) = 0.0;
        }
      }
    }
@@ -50,9 +50,9 @@ void init_B (amrex::Box const& bx, amrex::Array4<amrex::Real> const& a)
    for     (int k = lo.z; k <= hi.z; ++k) {
      for   (int j = lo.y; j <= hi.y; ++j) {
        for (int i = lo.x; i <= hi.x; ++i) { 
-         a(i,j,k,0) = 0;
-         a(i,j,k,1) = 0;
-         a(i,j,k,2) = 10;
+         a(i,j,k,0) = 0.0;
+         a(i,j,k,1) = 0.0;
+         a(i,j,k,2) = 0.15; 
        }
      }
    }
@@ -74,9 +74,9 @@ void main_main()
     // Simulation parameters,  these should be read from a file quite soon
     
     const  int n_cell = 64;
-    int max_grid_size=32;
-    int nsteps=1000;
-    double dt=1;
+    int max_grid_size=64;
+    int nsteps=400;
+    double dt=1.0/256;
     // Do a quite even load balancing
     amrex::DistributionMapping::strategy(amrex::DistributionMapping::KNAPSACK);
 
@@ -145,10 +145,10 @@ for(amrex::MFIter mfi= P.MakeMFIter(0) ;mfi.isValid();++mfi){
     auto box=mfi.validbox();
     const auto lo = amrex::lbound(box);
     //const auto hi = amrex::ubound(box);
-    double x = geom.ProbLo(0) + lo.x * geom.CellSize(0)*1.1;
-    double y = geom.ProbLo(1) + lo.y * geom.CellSize(1)*1.1;
-    double z =geom.ProbLo(2) + lo.z * geom.CellSize(2)*1.1;
-    add_single_particle(particles,{x,y,z},{0.1,0,0},0.01,-1);    
+    double x = geom.ProbLo(0)*1.02 + lo.x * geom.CellSize(0)*1.1;
+    double y = geom.ProbLo(1)*1.02 + lo.y * geom.CellSize(1)*1.1;
+    double z =geom.ProbLo(2)*1.02 + lo.z * geom.CellSize(2)*1.1;
+    add_single_particle(particles,{0.1,0.1,0},{0.1,0,0},1,-1);    
 }
 
     P.Redistribute();
@@ -160,35 +160,35 @@ for(amrex::MFIter mfi= P.MakeMFIter(0) ;mfi.isValid();++mfi){
 
     print_Particle_info(geom,P);
 
-for(int step=20; step<nsteps;step++){
-    std::cout << step << std::endl;
-    G_Theta_E(geom,P,E,B,dt/2);
-    G_Theta_x(geom,P,E,B,dt/2);
-    G_Theta_y(geom,P,E,B,dt/2);
-    G_Theta_z(geom,P,E,B,dt/2);
-//    G_Theta_B(geom,P,E,B,dt);
-    G_Theta_z(geom,P,E,B,dt/2);    
-    G_Theta_y(geom,P,E,B,dt/2);
-    G_Theta_x(geom,P,E,B,dt/2);
-    G_Theta_E(geom,P,E,B,dt/2);
 
-}
 
+for(int step=0; step<nsteps;step++){
+    std::cout <<"Step:" <<step << std::endl;
     print_Particle_info(geom,P);
+    G_Theta_E(geom,P,E,B,dt/2);
+    G_Theta<X>(geom,P,E,B,dt/2);
+    G_Theta<Y>(geom,P,E,B,dt/2);
+    G_Theta<Z>(geom,P,E,B,dt/2);
+    G_Theta_B(geom,P,E,B,dt);
+    G_Theta<Z>(geom,P,E,B,dt/2);
+    G_Theta<Y>(geom,P,E,B,dt/2);
+    G_Theta<X>(geom,P,E,B,dt/2);
+    G_Theta_E(geom,P,E,B,dt/2);
 
 
-    int n=0;
-    amrex::Real time=0.0;
+    if(step % 20 ==0){
+    int n=step;
+    amrex::Real time=step*dt;
     const std::string& pltfile_E = amrex::Concatenate("plt_E",n,2);
     WriteSingleLevelPlotfile(pltfile_E, E, {"E_x","E_y","E_z"}, geom, time, n);
     const std::string& pltfile_B = amrex::Concatenate("plt_B",n,2);
     WriteSingleLevelPlotfile(pltfile_B, B, {"B_x","B_y","B_z"}, geom, time, n);
-    const std::string& pltfile_P = amrex::Concatenate("plt_P",n,2);
-    
-    const amrex::Vector<std::string> var_names={"Mass","Charge","Vx","Vy","Vz"};
-    const std::string p_name="test_particle";
-    P.WritePlotFile(pltfile_P,p_name,var_names);
+    }
 
+
+}
+
+    print_Particle_info(geom,P);
 
 
 }

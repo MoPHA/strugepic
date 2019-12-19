@@ -77,6 +77,10 @@ void push_V_E( CParticles&particles, const amrex::Geometry geom,amrex::Array4<am
         p.rdata(VX)+=dvx*coef;
         p.rdata(VY)+=dvy*coef;
         p.rdata(VZ)+=dvz*coef;
+        
+//        p.rdata(VX) = sgn(p.rdata(VX))*std::min(fabs(p.rdata(VX)),0.9);
+//        p.rdata(VY) = sgn(p.rdata(VY))*std::min(fabs(p.rdata(VY)),0.9);
+//        p.rdata(VZ) = sgn(p.rdata(VZ))*std::min(fabs(p.rdata(VZ)),0.9);
     }
 }
 
