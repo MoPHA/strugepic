@@ -7,15 +7,15 @@
 
 // These are All local update functions, I.e they operate only on local data 
 
-void push_B_E( amrex::Box const& bx,  amrex::Array4<amrex::Real> const& B, amrex::Array4<amrex::Real> const& E,double dt);
+void push_B_E(const amrex::Geometry geom, amrex::Box const& bx,  amrex::Array4<amrex::Real> const& B, amrex::Array4<amrex::Real> const& E,double dt);
 
-void push_E_B( amrex::Box const& bx,  amrex::Array4<amrex::Real> const& E, amrex::Array4<amrex::Real> const& B,double dt);
+void push_E_B(const amrex::Geometry geom, amrex::Box const& bx,  amrex::Array4<amrex::Real> const& E, amrex::Array4<amrex::Real> const& B,double dt);
 
 void push_V_E( CParticles&particles, const amrex::Geometry geom,amrex::Array4<amrex::Real> const& E ,double dt);
 
 void Theta_E(const amrex::Geometry geom,amrex::Box const& bx,amrex::Array4<amrex::Real> const& E,amrex::Array4<amrex::Real> const& B,CParticles&particles,double dt );
 
-void Theta_B(amrex::Box const& bx,amrex::Array4<amrex::Real> const& E,amrex::Array4<amrex::Real> const& B,double dt );
+void Theta_B(const amrex::Geometry geom,amrex::Box const& bx,amrex::Array4<amrex::Real> const& E,amrex::Array4<amrex::Real> const& B,double dt );
 
 
 // Global update, they also handle triggering global communication
@@ -149,7 +149,7 @@ void push_B_pos(CParticles&particles, const amrex::Geometry geom, const amrex::A
 template <int coord>
 void Theta(CParticleContainer&ParticleC, CParticles&local_particles,const CNParticles&neighbour_particles, const amrex::Geometry geom,amrex::Array4<amrex::Real> const& E, amrex::Array4<amrex::Real> const& B ,double dt)
 {
-  //  push_E_pos<coord>(local_particles,neighbour_particles,geom,E,dt);
+    push_E_pos<coord>(local_particles,neighbour_particles,geom,E,dt);
     push_B_pos<coord>(local_particles,geom,B,dt);
     push_pos_pos<coord>(ParticleC,local_particles,dt);
 }
