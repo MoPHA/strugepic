@@ -62,8 +62,8 @@ void print_Particle_info(const amrex::Geometry geom,CParticleContainer&P ){
         auto&  particles = pti.GetArrayOfStructs();
         for(auto p : particles ){
             amrex::Print() << "(" << p.cpu()<<"," << p.id()<<")" << std::endl;
-            amrex::Print() << "[" << p.pos(0)<<"," << p.pos(1)<<"," << p.pos(2) << "]" << std::endl;
-            amrex::Print() << "[" << p.rdata(2)<<"," << p.rdata(3)<<"," << p.rdata(4) << "]" << std::endl;
+            amrex::Print() << "POS: [" << p.pos(0)<<"," << p.pos(1)<<"," << p.pos(2) << "]" << std::endl;
+            amrex::Print() << "VEL: [" << p.rdata(2)<<"," << p.rdata(3)<<"," << p.rdata(4) << "]" << std::endl;
         }
     }
 
