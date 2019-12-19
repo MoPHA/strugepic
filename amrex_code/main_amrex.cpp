@@ -24,12 +24,13 @@
 #include "amrex_util.hpp"
 #include "propagators.hpp"
 #include "particle_defs.hpp"
+#include "cmath"
 
 void main_main();
 
 
 
-void init_E (amrex::Box const& bx, amrex::Array4<amrex::Real> const& a)
+void init_E (const amrex::Geometry geom ,amrex::Box const& bx, amrex::Array4<amrex::Real> const& a)
 {
    const auto lo = amrex::lbound(bx);
    const auto hi = amrex::ubound(bx);
@@ -37,13 +38,13 @@ void init_E (amrex::Box const& bx, amrex::Array4<amrex::Real> const& a)
      for   (int j = lo.y; j <= hi.y; ++j) {
        for (int i = lo.x; i <= hi.x; ++i) { 
          a(i,j,k,0) = 0.0;
-         a(i,j,k,1) = 0.0;
+         a(i,j,k,1) = 0.0; 
          a(i,j,k,2) = 0.0;
        }
      }
    }
 }
-void init_B (amrex::Box const& bx, amrex::Array4<amrex::Real> const& a)
+void init_B (const amrex::Geometry geom ,amrex::Box const& bx, amrex::Array4<amrex::Real> const& a)
 {
    const auto lo = amrex::lbound(bx);
    const auto hi = amrex::ubound(bx);
@@ -51,8 +52,8 @@ void init_B (amrex::Box const& bx, amrex::Array4<amrex::Real> const& a)
      for   (int j = lo.y; j <= hi.y; ++j) {
        for (int i = lo.x; i <= hi.x; ++i) { 
          a(i,j,k,0) = 0.0;
-         a(i,j,k,1) = 0.0;
-         a(i,j,k,2) = 0.15; 
+         a(i,j,k,1) = sin( (geom.ProbLo(X) + i*geom.CellSize(X) +1)*3.1415962);
+         a(i,j,k,2) = 0.0; 
        }
      }
    }
@@ -73,10 +74,10 @@ void main_main()
 {
     // Simulation parameters,  these should be read from a file quite soon
     
-    const  int n_cell = 64;
+    const  int n_cell = 256;
     int max_grid_size=64;
-    int nsteps=400;
-    double dt=1.0/256;
+    int nsteps=800;
+    double dt=1.0/1000;
     // Do a quite even load balancing
     amrex::DistributionMapping::strategy(amrex::DistributionMapping::KNAPSACK);
 
@@ -87,7 +88,7 @@ void main_main()
 
 
     amrex::IntVect dom_lo(AMREX_D_DECL(       0,        0,        0));
-    amrex::IntVect dom_hi(AMREX_D_DECL(n_cell-1, n_cell-1, n_cell-1));
+    amrex::IntVect dom_hi(AMREX_D_DECL(n_cell-1, n_cell-1, 6));
     amrex::Box domain(dom_lo, dom_hi,typ);
     amrex::BoxArray ba(domain);
 
@@ -131,8 +132,8 @@ void main_main()
     // Note that the whole region of the Fab includes ghost
     // cells (if there are any), and is thus larger than or
     // equal to "box".
-    init_E(box, a);
-    init_B(box, b);
+    init_E(geom,box, a);
+    init_B(geom,box, b);
 }
 
 
@@ -148,7 +149,8 @@ for(amrex::MFIter mfi= P.MakeMFIter(0) ;mfi.isValid();++mfi){
     double x = geom.ProbLo(0)*1.02 + lo.x * geom.CellSize(0)*1.1;
     double y = geom.ProbLo(1)*1.02 + lo.y * geom.CellSize(1)*1.1;
     double z =geom.ProbLo(2)*1.02 + lo.z * geom.CellSize(2)*1.1;
-    add_single_particle(particles,{0.1,0.1,0},{0.1,0,0},1,-1);    
+//    add_single_particle(particles,{0.1,0.1,0},{0,0.1,0},1,-1);    
+//    add_single_particle(particles,{0.7,0.5,0},{0,-0.1,0},1,-1);    
 }
 
     P.Redistribute();
@@ -166,13 +168,13 @@ for(int step=0; step<nsteps;step++){
     std::cout <<"Step:" <<step << std::endl;
     print_Particle_info(geom,P);
     G_Theta_E(geom,P,E,B,dt/2);
-    G_Theta<X>(geom,P,E,B,dt/2);
-    G_Theta<Y>(geom,P,E,B,dt/2);
-    G_Theta<Z>(geom,P,E,B,dt/2);
+  //  G_Theta<X>(geom,P,E,B,dt/2);
+  //  G_Theta<Y>(geom,P,E,B,dt/2);
+  //  G_Theta<Z>(geom,P,E,B,dt/2);
     G_Theta_B(geom,P,E,B,dt);
-    G_Theta<Z>(geom,P,E,B,dt/2);
-    G_Theta<Y>(geom,P,E,B,dt/2);
-    G_Theta<X>(geom,P,E,B,dt/2);
+  //  G_Theta<Z>(geom,P,E,B,dt/2);
+  //  G_Theta<Y>(geom,P,E,B,dt/2);
+  //  G_Theta<X>(geom,P,E,B,dt/2);
     G_Theta_E(geom,P,E,B,dt/2);
 
 
