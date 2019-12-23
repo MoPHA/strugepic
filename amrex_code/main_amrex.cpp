@@ -53,7 +53,7 @@ void init_B (const amrex::Geometry geom ,amrex::Box const& bx, amrex::Array4<amr
        for (int i = lo.x; i <= hi.x; ++i) { 
          a(i,j,k,0) = 0.0;
          a(i,j,k,1) = 0.0;//;sin( (geom.ProbLo(X) + i*geom.CellSize(X) +1)*3.1415962);
-         a(i,j,k,2) = 0.5; 
+         a(i,j,k,2) = 0.0; 
        }
      }
    }
@@ -76,7 +76,7 @@ void main_main()
     
     const  int n_cell = 256;
     int max_grid_size=256;
-    int nsteps=800;
+    int nsteps=100;
     double dt=1.0/1000;
     // Do a quite even load balancing
     amrex::DistributionMapping::strategy(amrex::DistributionMapping::KNAPSACK);
@@ -151,7 +151,7 @@ for(amrex::MFIter mfi= P.MakeMFIter(0) ;mfi.isValid();++mfi){
     double x = geom.ProbLo(0)*1.02 + lo.x * geom.CellSize(0)*1.1;
     double y = geom.ProbLo(1)*1.02 + lo.y * geom.CellSize(1)*1.1;
     double z =geom.ProbLo(2)*1.02 + lo.z * geom.CellSize(2)*1.1;
-    add_single_particle(particles,{0.1,0.1,0},{0,0.1,0},1,-1);    
+    add_single_particle(particles,{0.1,0.1,0},{0.1,0,0},1,-1);    
 //    add_single_particle(particles,{0.7,0.5,0},{0,-0.1,0},1,-1);    
 }
 
@@ -165,7 +165,21 @@ for(amrex::MFIter mfi= P.MakeMFIter(0) ;mfi.isValid();++mfi){
 
 
 for(int step=0; step<nsteps;step++){
+
+
+    
     std::cout <<"Step:" <<step << std::endl;
+    
+
+    if(step % 1 ==0){
+    int n=step;
+    amrex::Real time=step*dt;
+    const std::string& pltfile_E = amrex::Concatenate("plt_E",n,0);
+    WriteSingleLevelPlotfile(pltfile_E, E, {"E_x","E_y","E_z"}, geom, time, n);
+    const std::string& pltfile_B = amrex::Concatenate("plt_B",n,0);
+    WriteSingleLevelPlotfile(pltfile_B, B, {"B_x","B_y","B_z"}, geom, time, n);
+    }
+
     G_Theta_E(geom,P,E,B,dt/2);
     G_Theta<X>(geom,P,E,B,dt/2);
     G_Theta<Y>(geom,P,E,B,dt/2);
@@ -177,21 +191,13 @@ for(int step=0; step<nsteps;step++){
     G_Theta_E(geom,P,E,B,dt/2);
     print_Particle_info(geom,P);
 
-    for (CParIter pti(P, 0); pti.isValid(); ++pti) {
-        auto&  particles = pti.GetArrayOfStructs();
-    for(auto &p:particles){
-        p.id()=-1;
-    }
-}
+//    for (CParIter pti(P, 0); pti.isValid(); ++pti) {
+//       auto&  particles = pti.GetArrayOfStructs();
+//    for(auto &p:particles){
+//        p.id()=-1;
+//    }
+//}
 
-    if(step % 1 ==0){
-    int n=step;
-    amrex::Real time=step*dt;
-    const std::string& pltfile_E = amrex::Concatenate("plt_E",n,0);
-    WriteSingleLevelPlotfile(pltfile_E, E, {"E_x","E_y","E_z"}, geom, time, n);
-    const std::string& pltfile_B = amrex::Concatenate("plt_B",n,0);
-    WriteSingleLevelPlotfile(pltfile_B, B, {"B_x","B_y","B_z"}, geom, time, n);
-    }
 
 
 }
