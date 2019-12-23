@@ -1,0 +1,9 @@
+set size ratio -1
+set yrange [-1:1]
+set xrange [-1:1]
+set ytic 0.007936507936
+set xtic 0.007936507936
+set grid ytics xtics
+set grid
+plot("data.data")
+
