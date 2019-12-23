@@ -93,9 +93,11 @@ void push_pos_pos(CParticleContainer&p_container ,CParticles&local_particles,dou
 template<int comp>
 void push_B_pos(CParticles&particles, const amrex::Geometry geom, const amrex::Array4<amrex::Real> & B ,double dt){ 
     const int idx_list[4]={-1,0,1,2};
-    const  double coef = particles[0].rdata(Q)/particles[0].rdata(M);
     const auto low = geom.ProbLo();
     const auto Ics = geom.InvCellSize();
+    // A scaling factor is needed here if dx,dy,dz are not equal!
+    // We choose to scale to units of dx
+    const  double coef = particles[0].rdata(Q)/particles[0].rdata(M)*Ics[0]*geom.CellSize(comp);
 
     for(auto& p : particles){
         const auto p_segments = get_segment_list<comp>(geom, p.pos(comp) , p.pos(comp)+dt*p.rdata(comp+2));
