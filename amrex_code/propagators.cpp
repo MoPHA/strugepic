@@ -5,8 +5,33 @@
 #include "amrex_util.hpp"
 
 
-void Theta_B(const amrex::Geometry geom, amrex::Box const& bx,amrex::Array4<amrex::Real> const& E,amrex::Array4<amrex::Real> const& B,double dt ){
-    push_E_B(geom,bx,E,B,dt);
+
+// Central difference first order
+std::array<amrex::Real,3> curl_cdiff_1(amrex::Array4<amrex::Real> const& a ,int i , int j ,int k, const double* ics){
+    return {
+        ((a(i,j+1,k,Z)-a(i,j-1,k,Z))*ics[Y]*0.5-( a(i,j,k+1,Y)-a(i,j,k-1,Y))*ics[Z]*0.5),
+        ((a(i,j,k+1,X)-a(i,j,k-1,X))*ics[Z]*0.5-( a(i+1,j,k,Z)-a(i-1,j,k,Z))*ics[X]*0.5),    
+        ((a(i+1,j,k,Y)-a(i-1,j,k,Y))*ics[X]*0.5-( a(i,j+1,k,X)-a(i,j-1,k,X))*ics[Y]*0.5)
+    };
+}
+
+
+// forward difference, first order
+std::array<amrex::Real,3> curl_fdiff_1(amrex::Array4<amrex::Real> const& a ,int i , int j ,int k, const double* ics){
+    return {
+        ((a(i,j+1,k,Z)-a(i,j,k,Z))*ics[Y]-( a(i,j,k+1,Y)-a(i,j,k,Y))*ics[Z]),
+        ((a(i,j,k+1,X)-a(i,j,k,X))*ics[Z]-( a(i+1,j,k,Z)-a(i,j,k,Z))*ics[X]),
+        ((a(i+1,j,k,Y)-a(i,j,k,Y))*ics[X]-( a(i,j+1,k,X)-a(i,j,k,X))*ics[Y])
+    };
+}
+
+// backward difference, first order
+std::array<amrex::Real,3> curl_bdiff_1(amrex::Array4<amrex::Real> const& a ,int i , int j ,int k, const double* ics){
+    return {
+        ((a(i,j,k,Z)-a(i,j-1,k,Z))*ics[Y]-( a(i,j,k,Y)-a(i,j,k-1,Y))*ics[Z]),
+        ((a(i,j,k,X)-a(i,j,k-1,X))*ics[Z]-( a(i,j,k,Z)-a(i-1,j,k,Z))*ics[X]),
+        ((a(i,j,k,Y)-a(i-1,j,k,Y))*ics[X]-( a(i,j,k,X)-a(i,j-1,k,X))*ics[Y])
+    };
 }
 
 
@@ -17,9 +42,10 @@ void push_B_E(const amrex::Geometry geom, amrex::Box const& bx,  amrex::Array4<a
    for     (int k = lo.z; k <= hi.z; ++k) {
      for   (int j = lo.y; j <= hi.y; ++j) {
        for (int i = lo.x; i <= hi.x; ++i) { 
-         B(i,j,k,X) -=dt*((E(i,j+1,k,Z)-E(i,j,k,Z))*ics[Y]-( E(i,j,k+1,Y)-E(i,j,k,Y))*ics[Z]);  
-         B(i,j,k,Y) -=dt*((E(i,j,k+1,X)-E(i,j,k,X))*ics[Z]-( E(i+1,j,k,Z)-E(i,j,k,Z))*ics[X]);
-         B(i,j,k,Z) -=dt*((E(i+1,j,k,Y)-E(i,j,k,Y))*ics[X]-( E(i,j+1,k,X)-E(i,j,k,X))*ics[Y]);
+        auto curl = curl_cdiff_1(E,i,j,k,ics);
+         B(i,j,k,X) -=dt*curl[0];  
+         B(i,j,k,Y) -=dt*curl[1];
+         B(i,j,k,Z) -=dt*curl[2];
        }
      }
    }
@@ -33,14 +59,22 @@ void push_E_B(const amrex::Geometry geom, amrex::Box const& bx,  amrex::Array4<a
    for     (int k = lo.z; k <= hi.z; ++k) {
      for   (int j = lo.y; j <= hi.y; ++j) {
        for (int i = lo.x; i <= hi.x; ++i) { 
-         E(i,j,k,X) +=dt*((B(i,j+1,k,Z)-B(i,j,k,Z))*ics[Y]-( B(i,j,k+1,Y)-B(i,j,k,Y))*ics[Z]);  
-         E(i,j,k,Y) +=dt*((B(i,j,k+1,X)-B(i,j,k,X))*ics[Z]-( B(i+1,j,k,Z)-B(i,j,k,Z))*ics[X]);
-         E(i,j,k,Z) +=dt*((B(i+1,j,k,Y)-B(i,j,k,Y))*ics[X]-( B(i,j+1,k,X)-B(i,j,k,X))*ics[Y]);
+        auto curl = curl_cdiff_1(B,i,j,k,ics);
+         E(i,j,k,X) +=dt*curl[0];  
+         E(i,j,k,Y) +=dt*curl[1];
+         E(i,j,k,Z) +=dt*curl[2];
        }
      }
    }
 
 }
+
+
+void Theta_B(const amrex::Geometry geom, amrex::Box const& bx,amrex::Array4<amrex::Real> const& E,amrex::Array4<amrex::Real> const& B,double dt ){
+    push_E_B(geom,bx,E,B,dt);
+}
+
+
 
 
 void push_V_E( CParticles&particles, const amrex::Geometry geom,amrex::Array4<amrex::Real> const& E ,double dt){
@@ -94,7 +128,7 @@ void G_Theta_E(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab&
         amrex::FArrayBox& efab = E[pti];
         amrex::Array4<amrex::Real> const& E_loc = efab.array();
          
-      //  push_V_E(particles,geom,E_loc,dt);
+        push_V_E(particles,geom,E_loc,dt);
     }
 
     for (amrex::MFIter mfi(E); mfi.isValid(); ++mfi){

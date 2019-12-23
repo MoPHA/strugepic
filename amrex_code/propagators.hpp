@@ -120,12 +120,15 @@ void push_B_pos(CParticles&particles, const amrex::Geometry geom, const amrex::A
                         auto comp_l = (comp+2)%3;
                         
                         using namespace strugepic;//norm_res+=W( (p.pos(0)-low[0])*Ics[0]-cx  , (p.pos(1)-low[1])*Ics[1]-cy    ,  (p.pos(2)-low[2])*Ics[2]-cz ) ;            
+                        //const double B_pseudo[3]={0,0,0.05};
 
+                        //res_c1+=B_pseudo[comp_u]
                         res_c1+=B(cl[X],cl[Y],cl[Z],comp_u)
                         *I_W12((i_s-low[comp])*Ics[comp]- cl[comp] ,(i_e-low[comp])*Ics[comp]- cl[comp])
                         *W1(  (p.pos(comp_u)-low[comp_u])*Ics[comp_u]-cl[comp_u])
                         *W12( (p.pos(comp_l)-low[comp_l])*Ics[comp_l]-cl[comp_l]);
                         
+                        //res_c2-=B_pseudo[comp_l]
                         res_c2-=B(cl[X],cl[Y],cl[Z],comp_l)
                         *I_W12((i_s-low[comp])*Ics[comp]- cl[comp] ,(i_e-low[comp])*Ics[comp]- cl[comp])
                         *W12( (p.pos(comp_u)-low[comp_u])*Ics[comp_u]-cl[comp_u])
