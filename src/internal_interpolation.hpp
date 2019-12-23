@@ -73,7 +73,7 @@ namespace strugepicInternal
             if(x >= 2 || x <= -1   ){
                 return 0;
             }else{
-                return W1d<T,Pdeg>(x)+W1d<T,Pdeg>(x+1)+W1d<T,Pdeg>(x+2);
+                return -1*(W1d<T,Pdeg>(x)+W1d<T,Pdeg>(x+1)+W1d<T,Pdeg>(x+2));
             }
         }
 

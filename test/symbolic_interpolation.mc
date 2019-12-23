@@ -89,7 +89,7 @@ W12(q):=block(
     elseif q < -1 then
         0
     else
-        W1d(q)+W1d(q+1)+W1d(q+2)
+        -1*(W1d(q)+W1d(q+1)+W1d(q+2))
 )$
 
 W(x,y,z):=W1(x)*W1(y)*W1(z)$
