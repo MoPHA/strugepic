@@ -136,6 +136,8 @@ void main_main()
     init_B(geom,box, b);
 }
 
+    E.FillBoundary(geom.periodicity());
+    B.FillBoundary(geom.periodicity());
 
     
 for(amrex::MFIter mfi= P.MakeMFIter(0) ;mfi.isValid();++mfi){
@@ -157,8 +159,6 @@ for(amrex::MFIter mfi= P.MakeMFIter(0) ;mfi.isValid();++mfi){
 //    P.clearNeighbors();
     P.fillNeighbors();
     P.updateNeighbors();
-    E.FillBoundary(geom.periodicity());
-    B.FillBoundary(geom.periodicity());
 
     print_Particle_info(geom,P);
 
