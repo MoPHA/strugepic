@@ -97,7 +97,7 @@ void push_B_pos(CParticles&particles, const amrex::Geometry geom, const amrex::A
     const auto Ics = geom.InvCellSize();
     // A scaling factor is needed here if dx,dy,dz are not equal!
     // We choose to scale to units of dx
-    const  double coef = particles[0].rdata(Q)/particles[0].rdata(M)*Ics[0]*geom.CellSize(comp);
+    const  double coef = particles[0].rdata(Q)/particles[0].rdata(M)*geom.CellSize(comp);
 
     for(auto& p : particles){
         const auto p_segments = get_segment_list<comp>(geom, p.pos(comp) , p.pos(comp)+dt*p.rdata(comp+2));
