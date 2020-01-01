@@ -26,17 +26,17 @@ X, Y = np.meshgrid(X, Y)
 #    plt.savefig("E_y_field"+str(step).zfill(3)) 
 #    plt.close()
 
-val =np.zeros(100)
+val =np.zeros(300)
 i=0
-for step in range(0,100):
+for step in range(0,300):
     B_filename = "plt_B" + str(step)
     E_filename = "plt_E" +str(step)
     dsB=yt.load(B_filename)
     dsE=yt.load(E_filename)
-    #B=dsB.r[[-1,0,0]:[1,0,0]]
-    #E=dsE.r[[-1,0,0]:[1,0,0]]
-    B=dsB.r[:,:,:]
-    E=dsE.r[:,:,:]
+    B=dsB.r[[-1,0,0]:[1,0,0]]
+    E=dsE.r[[-1,0,0]:[1,0,0]]
+    #B=dsB.r[:,:,:]
+    #E=dsE.r[:,:,:]
     Bx = B["B_x"]
     By = B["B_y"]
     Bz = B["B_z"]
@@ -47,14 +47,14 @@ for step in range(0,100):
 
     val[i] =np.sqrt(np.sum(np.square(Bx)  +np.square(By)+np.square(Bz)+np.square(Ex)  +np.square(Ey)+np.square(Ez)  ))
     i=i+1
- #   fig, ax = plt.subplots()
+    fig, ax = plt.subplots()
  #   ax.plot(Bx)
- #   ax.plot(By)
+    ax.plot(By)
  #   ax.plot(Bz)
- #   ax.set_ylim([-1,1])
+    ax.set_ylim([-1,1])
  #   ax.set_title(str(val[i-1]))
- #   plt.savefig("B_pic"+str(step).zfill(3)) 
- #   plt.close()
+    plt.savefig("B_pic"+str(step).zfill(3)) 
+    plt.close()
  #   fig, ax = plt.subplots()
  #   ax.plot(Ex)
  #   ax.plot(Ey)

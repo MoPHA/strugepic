@@ -59,6 +59,7 @@ void push_E_part(const Pcontainter&particles, const amrex::Geometry geom,amrex::
                         
                         using namespace strugepic;
                         if(E.contains(cl[X],cl[Y],cl[Z])){
+
                             res=I_W12((i_s-low[comp])*Ics[comp]- cl[comp] ,(i_e-low[comp])*Ics[comp]- cl[comp])
                                 *W1((p.pos(comp_u)-low[comp_u])*Ics[comp_u]-cl[comp_u])
                                 *W1((p.pos(comp_l)-low[comp_l])*Ics[comp_l]-cl[comp_l]);
@@ -96,8 +97,7 @@ void push_B_pos(CParticles&particles, const amrex::Geometry geom, const amrex::A
     const auto low = geom.ProbLo();
     const auto Ics = geom.InvCellSize();
     // A scaling factor is needed here if dx,dy,dz are not equal!
-    // We choose to scale to units of dx
-    const  double coef = particles[0].rdata(Q)/particles[0].rdata(M)*geom.CellSize(comp);
+    const  double coef = particles[0].rdata(Q)/particles[0].rdata(M);//*geom.CellSize(comp);
 
     for(auto& p : particles){
         const auto p_segments = get_segment_list<comp>(geom, p.pos(comp) , p.pos(comp)+dt*p.rdata(comp+2));

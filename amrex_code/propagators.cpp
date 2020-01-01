@@ -7,7 +7,7 @@
 
 
 // Central difference first order
-std::array<amrex::Real,3> curl_cdiff_1(amrex::Array4<amrex::Real> const& a ,int i , int j ,int k, const double* ics){
+inline std::array<amrex::Real,3> curl_cdiff_1(amrex::Array4<amrex::Real> const& a ,int i , int j ,int k, const double* ics){
     return {
         ((a(i,j+1,k,Z)-a(i,j-1,k,Z))*ics[Y]*0.5-( a(i,j,k+1,Y)-a(i,j,k-1,Y))*ics[Z]*0.5),
         ((a(i,j,k+1,X)-a(i,j,k-1,X))*ics[Z]*0.5-( a(i+1,j,k,Z)-a(i-1,j,k,Z))*ics[X]*0.5),    
@@ -17,7 +17,7 @@ std::array<amrex::Real,3> curl_cdiff_1(amrex::Array4<amrex::Real> const& a ,int 
 
 
 // forward difference, first order
-std::array<amrex::Real,3> curl_fdiff_1(amrex::Array4<amrex::Real> const& a ,int i , int j ,int k, const double* ics){
+inline std::array<amrex::Real,3> curl_fdiff_1(amrex::Array4<amrex::Real> const& a ,int i , int j ,int k, const double* ics){
     return {
         ((a(i,j+1,k,Z)-a(i,j,k,Z))*ics[Y]-( a(i,j,k+1,Y)-a(i,j,k,Y))*ics[Z]),
         ((a(i,j,k+1,X)-a(i,j,k,X))*ics[Z]-( a(i+1,j,k,Z)-a(i,j,k,Z))*ics[X]),
@@ -26,7 +26,7 @@ std::array<amrex::Real,3> curl_fdiff_1(amrex::Array4<amrex::Real> const& a ,int 
 }
 
 // backward difference, first order
-std::array<amrex::Real,3> curl_bdiff_1(amrex::Array4<amrex::Real> const& a ,int i , int j ,int k, const double* ics){
+inline std::array<amrex::Real,3> curl_bdiff_1(amrex::Array4<amrex::Real> const& a ,int i , int j ,int k, const double* ics){
     return {
         ((a(i,j,k,Z)-a(i,j-1,k,Z))*ics[Y]-( a(i,j,k,Y)-a(i,j,k-1,Y))*ics[Z]),
         ((a(i,j,k,X)-a(i,j,k-1,X))*ics[Z]-( a(i,j,k,Z)-a(i-1,j,k,Z))*ics[X]),
@@ -137,7 +137,7 @@ void G_Theta_E(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab&
         amrex::FArrayBox& fabB = B[mfi];
         amrex::Array4<amrex::Real> const& E_loc = fab.array();
         amrex::Array4<amrex::Real> const& B_loc = fabB.array(); 
-        push_B_E(geom,box, B_loc,E_loc,dt);
+    //    push_B_E(geom,box, B_loc,E_loc,dt);
 
     }
 

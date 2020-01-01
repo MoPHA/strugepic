@@ -5,7 +5,7 @@ LIB_NAME=interpol
 LIB_DIR=../lib
 DEPS=propagators.o amrex_util.o main_amrex.o
 HDEPS=amrex_util.hpp
-FLAGS= -std=c++14 -O3#-g -fno-omit-frame-pointer
+FLAGS= -std=c++14 -g -fno-omit-frame-pointer
 MPICXX=mpic++
 LINK_FLAGS=-lamrex -Wl,-rpath=$(LIB_DIR) -L$(LIB_DIR) -l$(LIB_NAME)
 
