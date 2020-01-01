@@ -102,7 +102,7 @@ IHW12(q):=block(
         elseif q< -1 then
             1
         else
-            W1(q)+W1(q+1)+W1(q+2)
+            -1*(W1(q)+W1(q+1)+W1(q+2))
 );
 I_W12(a,b):=IHW12(b)-IHW12(a)$
 

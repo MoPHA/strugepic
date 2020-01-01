@@ -107,7 +107,7 @@ namespace strugepicInternal
                 return 1;
             }
             else{
-                return W1<T,Pdeg>(q)+W1<T,Pdeg>(q+1)+W1<T,Pdeg>(q+2);
+                return -1*(W1<T,Pdeg>(q)+W1<T,Pdeg>(q+1)+W1<T,Pdeg>(q+2));
             }
         }
 
