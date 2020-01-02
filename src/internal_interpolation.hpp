@@ -101,13 +101,13 @@ namespace strugepicInternal
     template <class T,int Pdeg>
       inline  T IH_W12(T q){
             if(q > 2 ){
-                return 0;
-            }
-            else if(q< -1){
                 return 1;
             }
+            else if(q< -1){
+                return 0;
+            }
             else{
-                return -1*(W1<T,Pdeg>(q)+W1<T,Pdeg>(q+1)+W1<T,Pdeg>(q+2));
+                return -1*(W1<T,Pdeg>(q)+W1<T,Pdeg>(q+1)+W1<T,Pdeg>(q+2))+1;
             }
         }
 

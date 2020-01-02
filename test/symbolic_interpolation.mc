@@ -98,11 +98,11 @@ W_basis(id,x,y,z):=W(x-id[1],y-id[2],z-id[3])$
 IW12(a,b):=quad_qag( W12(x),x,a,b,3,'epsrel=1d-6);
 IHW12(q):=block(
         if q>2 then
-            0
-        elseif q< -1 then
             1
+        elseif q< -1 then
+            0
         else
-            -1*(W1(q)+W1(q+1)+W1(q+2))
+            -1*(W1(q)+W1(q+1)+W1(q+2))+1
 );
 I_W12(a,b):=IHW12(b)-IHW12(a)$
 
