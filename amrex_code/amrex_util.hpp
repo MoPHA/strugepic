@@ -68,13 +68,14 @@ std::vector<std::tuple<amrex::Real,amrex::Real,int>> get_segment_list(const amre
     for(int seg=1;seg < num_segments;seg++){ 
             segment_end = (segment_index+ (sig+1)/2)*cellsize + problo; 
             seg_list.push_back(std::make_tuple(segment_start,segment_end,segment_index));
-            segment_index =(((segment_index +sig) % index_mod) +index_mod) %index_mod ;
+            segment_index =segment_index+sig;//(((segment_index +sig) % index_mod) +index_mod) %index_mod ;
         
             segment_start=(segment_index -((sig-1))/2)*cellsize+problo;
 
     }
 
-   segment_end = wrapMinMax(x_end,problo,probhi);
+   segment_end = x_end;// wrapMinMax(x_end,problo,probhi);
+   
    seg_list.push_back(std::make_tuple(segment_start,segment_end,segment_index));
    return seg_list;
 
