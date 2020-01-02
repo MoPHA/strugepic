@@ -2,6 +2,7 @@
 #include "AMReX_Geometry.H"
 #include "AMReX_REAL.H"
 #include <math.h>
+#include <utility>
 #include <vector>
 #include "particle_defs.hpp"
 
@@ -68,6 +69,41 @@ void print_Particle_info(const amrex::Geometry geom,CParticleContainer&P ){
     }
 
 }
+
+std::pair<amrex::Real,amrex::Real> get_total_energy(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &E, amrex::MultiFab &B ){
+    // Kinetic part 
+    amrex::Real E_kin=0;
+    amrex::Real E_field=0;
+    for (CParIter pti(P, 0); pti.isValid(); ++pti) {
+        auto&  particles = pti.GetArrayOfStructs();
+        for(auto p : particles ){
+            E_kin+=p.rdata(M)*0.5*( p.rdata(VX)*p.rdata(VX)+p.rdata(VY)*p.rdata(VY)+p.rdata(VZ)*p.rdata(VZ)  );
+        }
+    }
+    for (amrex::MFIter mfi(E); mfi.isValid(); ++mfi){
+        const amrex::Box& box = mfi.validbox();
+        amrex::FArrayBox& fab = E[mfi];
+        amrex::FArrayBox& fabB = B[mfi];
+        amrex::Array4<amrex::Real> const& E_loc = fab.array();
+        amrex::Array4<amrex::Real> const& B_loc = fabB.array(); 
+
+        const auto lo = amrex::lbound(box);
+        const auto hi = amrex::ubound(box);
+        for     (int k = lo.z; k <= hi.z; ++k) {
+            for   (int j = lo.y; j <= hi.y; ++j) {
+                for (int i = lo.x; i <= hi.x; ++i) { 
+                  E_field+=0.5*( E_loc(i,j,k,X)*E_loc(i,j,k,X)+E_loc(i,j,k,Y)*E_loc(i,j,k,Y)+E_loc(i,j,k,Z)*E_loc(i,j,k,Z));
+                  E_field+=0.5*( B_loc(i,j,k,X)*B_loc(i,j,k,X)+B_loc(i,j,k,Y)*B_loc(i,j,k,Y)+B_loc(i,j,k,Z)*B_loc(i,j,k,Z));
+                }
+            }
+        }
+
+    }
+
+    return std::make_pair(E_field*geom.CellSize(X)*geom.CellSize(Y)*geom.CellSize(Z),E_kin);
+
+}
+
 
 
 //

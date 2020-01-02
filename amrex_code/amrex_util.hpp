@@ -80,4 +80,6 @@ std::vector<std::tuple<amrex::Real,amrex::Real,int>> get_segment_list(const amre
 
 }
 
+std::pair<amrex::Real,amrex::Real> get_total_energy(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &E, amrex::MultiFab &B );
+
 #endif
