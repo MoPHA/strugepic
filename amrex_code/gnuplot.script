@@ -1,9 +1,9 @@
 set size ratio -1
 set yrange [-1:1]
 set xrange [-1:1]
-set ytic 0.125
-set xtic 0.125
+set ytic 0.5
+set xtic 0.5
 set grid ytics xtics
 set grid
-plot("data.data")
+plot "data.data" 
 

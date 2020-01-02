@@ -34,7 +34,7 @@ void G_Theta_B(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab 
 template<int comp,class Pcontainter>
 void push_E_part(const Pcontainter&particles, const amrex::Geometry geom,amrex::Array4<amrex::Real> const& E ,double dt){ 
     const int idx_list[4]={-1,0,1,2};
-    const  double coef = particles[0].rdata(Q)*geom.InvCellSize(X)*geom.InvCellSize(Y)*geom.InvCellSize(Z);
+    const  double coef = particles[0].rdata(Q)*geom.InvCellSize(X)*geom.InvCellSize(Y)*geom.InvCellSize(Z)*geom.CellSize(comp);
     const auto low = geom.ProbLo();
     const auto Ics = geom.InvCellSize();
 
@@ -43,6 +43,8 @@ void push_E_part(const Pcontainter&particles, const amrex::Geometry geom,amrex::
         auto coord =get_point_cell(geom,{p.pos(X),p.pos(Y),p.pos(Z)}) ;
         for(auto seg: p_segments){
             coord[comp] = std::get<2>(seg);
+        //std::cout << coord[comp] << std::endl;
+        //std::cout <<p.pos(comp)<< std::endl;
             auto i_s = std::get<0>(seg); 
             auto i_e = std::get<1>(seg);
 
@@ -56,15 +58,19 @@ void push_E_part(const Pcontainter&particles, const amrex::Geometry geom,amrex::
                         cl[Z] = coord[Z]+k;
                         auto comp_u = (comp+1)%3;
                         auto comp_l = (comp+2)%3;
-                        
                         using namespace strugepic;
                         if(E.contains(cl[X],cl[Y],cl[Z])){
 
                             res=I_W12((i_s-low[comp])*Ics[comp]- cl[comp] ,(i_e-low[comp])*Ics[comp]- cl[comp])
                                 *W1((p.pos(comp_u)-low[comp_u])*Ics[comp_u]-cl[comp_u])
                                 *W1((p.pos(comp_l)-low[comp_l])*Ics[comp_l]-cl[comp_l]);
-
                             E(cl[X],cl[Y],cl[Z],comp)-=coef*res;
+/*                        std::cout <<"E_" << comp <<": "  << E(cl[X],cl[Y],cl[Z],comp) 
+                            <<  " | I_W12: " << I_W12((i_s-low[comp])*Ics[comp]- cl[comp] ,(i_e-low[comp])*Ics[comp]- cl[comp])
+                            <<  " | Segment: " << i_s << " , " << i_e  
+                            <<  " | I_lims: " << (i_s-low[comp])*Ics[comp]- cl[comp] << " , " << (i_e-low[comp])*Ics[comp]- cl[comp] 
+                            << "\n";
+*/                            
                         }
                     }
                 }
@@ -78,6 +84,7 @@ template<int comp>
 void push_E_pos(const CParticles&local_particles,const CNParticles&neighbour_particles, const amrex::Geometry geom,amrex::Array4<amrex::Real> const& E ,double dt){
     push_E_part<comp,CParticles>(local_particles,geom,E,dt); 
     if(neighbour_particles.size()!=0){
+    //    std::cout<< "EEEEE" << std::endl;
     push_E_part<comp,CNParticles>(neighbour_particles,geom,E,dt); 
     }
 }
@@ -144,9 +151,6 @@ void push_B_pos(CParticles&particles, const amrex::Geometry geom, const amrex::A
         p.rdata( (comp +2 )% 3 +2   )+=coef*res_c1;
         p.rdata( (comp+1) % 3 +2  )+=coef*res_c2; 
 
-//        p.rdata(VX) = sgn(p.rdata(VX))*std::min(fabs(p.rdata(VX)),0.9);
-//        p.rdata(VY) = sgn(p.rdata(VY))*std::min(fabs(p.rdata(VY)),0.9);
-//        p.rdata(VZ) = sgn(p.rdata(VZ))*std::min(fabs(p.rdata(VZ)),0.9);
     } // over particles
 } // function end
 
@@ -175,6 +179,8 @@ void G_Theta(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &E
         Theta<coord>(P,particles,n_particles,geom,E_loc,B_loc,dt);
     }
     P.Redistribute();
+//    P.clearNeighbors();
+    P.fillNeighbors();
     P.updateNeighbors();
     E.FillBoundary(geom.periodicity());
     B.FillBoundary(geom.periodicity());
