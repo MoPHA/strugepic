@@ -26,9 +26,7 @@ X, Y = np.meshgrid(X, Y)
 #    plt.savefig("E_y_field"+str(step).zfill(3)) 
 #    plt.close()
 
-val =np.zeros(300)
-i=0
-for step in range(0,300):
+for step in range(0,3000,5):
     B_filename = "plt_B" + str(step)
     E_filename = "plt_E" +str(step)
     dsB=yt.load(B_filename)
@@ -45,8 +43,6 @@ for step in range(0,300):
     Ez = E["E_z"]
 
 
-    val[i] =np.sqrt(np.sum(np.square(Bx)  +np.square(By)+np.square(Bz)+np.square(Ex)  +np.square(Ey)+np.square(Ez)  ))
-    i=i+1
     fig, ax = plt.subplots()
  #   ax.plot(Bx)
     ax.plot(By)
@@ -65,7 +61,3 @@ for step in range(0,300):
  #   plt.close()
 
 
-fig, ax = plt.subplots()
-ax.plot(val[0:]/val[1])
-plt.savefig("E_tot") 
-plt.close()

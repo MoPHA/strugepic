@@ -7,7 +7,7 @@
 
 
 // Central difference first order
-inline std::array<amrex::Real,3> curl_cdiff_1(amrex::Array4<amrex::Real> const& a ,int i , int j ,int k, const double* ics){
+ std::array<amrex::Real,3> curl_cdiff_1(amrex::Array4<amrex::Real const> const& a ,int i , int j ,int k, const double* ics){
     return {
         ((a(i,j+1,k,Z)-a(i,j-1,k,Z))*ics[Y]*0.5-( a(i,j,k+1,Y)-a(i,j,k-1,Y))*ics[Z]*0.5),
         ((a(i,j,k+1,X)-a(i,j,k-1,X))*ics[Z]*0.5-( a(i+1,j,k,Z)-a(i-1,j,k,Z))*ics[X]*0.5),    
@@ -17,7 +17,7 @@ inline std::array<amrex::Real,3> curl_cdiff_1(amrex::Array4<amrex::Real> const& 
 
 
 // forward difference, first order
-inline std::array<amrex::Real,3> curl_fdiff_1(amrex::Array4<amrex::Real> const& a ,int i , int j ,int k, const double* ics){
+ std::array<amrex::Real,3> curl_fdiff_1(amrex::Array4<amrex::Real> const& a ,int i , int j ,int k, const double* ics){
     return {
         ((a(i,j+1,k,Z)-a(i,j,k,Z))*ics[Y]-( a(i,j,k+1,Y)-a(i,j,k,Y))*ics[Z]),
         ((a(i,j,k+1,X)-a(i,j,k,X))*ics[Z]-( a(i+1,j,k,Z)-a(i,j,k,Z))*ics[X]),
@@ -26,7 +26,7 @@ inline std::array<amrex::Real,3> curl_fdiff_1(amrex::Array4<amrex::Real> const& 
 }
 
 // backward difference, first order
-inline std::array<amrex::Real,3> curl_bdiff_1(amrex::Array4<amrex::Real> const& a ,int i , int j ,int k, const double* ics){
+ std::array<amrex::Real,3> curl_bdiff_1(amrex::Array4<amrex::Real> const& a ,int i , int j ,int k, const double* ics){
     return {
         ((a(i,j,k,Z)-a(i,j-1,k,Z))*ics[Y]-( a(i,j,k,Y)-a(i,j,k-1,Y))*ics[Z]),
         ((a(i,j,k,X)-a(i,j,k-1,X))*ics[Z]-( a(i,j,k,Z)-a(i-1,j,k,Z))*ics[X]),
@@ -35,7 +35,7 @@ inline std::array<amrex::Real,3> curl_bdiff_1(amrex::Array4<amrex::Real> const& 
 }
 
 
-void push_B_E(const amrex::Geometry geom, amrex::Box const& bx,  amrex::Array4<amrex::Real> const& B, amrex::Array4<amrex::Real> const& E,double dt){
+void push_B_E(const amrex::Geometry geom, amrex::Box const& bx,  amrex::Array4<amrex::Real> const& B, amrex::Array4<amrex::Real const> const& E,double dt){
    const auto lo = amrex::lbound(bx);
    const auto hi = amrex::ubound(bx);
    const auto ics = geom.InvCellSize() ;
@@ -52,7 +52,7 @@ void push_B_E(const amrex::Geometry geom, amrex::Box const& bx,  amrex::Array4<a
 
 }
 
-void push_E_B(const amrex::Geometry geom, amrex::Box const& bx,  amrex::Array4<amrex::Real> const& E, amrex::Array4<amrex::Real> const& B,double dt){
+void push_E_B(const amrex::Geometry geom, amrex::Box const& bx,  amrex::Array4<amrex::Real> const& E, amrex::Array4<amrex::Real const> const& B,double dt){
    const auto lo = amrex::lbound(bx);
    const auto hi = amrex::ubound(bx);
    const auto ics = geom.InvCellSize() ;
@@ -70,7 +70,7 @@ void push_E_B(const amrex::Geometry geom, amrex::Box const& bx,  amrex::Array4<a
 }
 
 
-void Theta_B(const amrex::Geometry geom, amrex::Box const& bx,amrex::Array4<amrex::Real> const& E,amrex::Array4<amrex::Real> const& B,double dt ){
+void Theta_B(const amrex::Geometry geom, amrex::Box const& bx,amrex::Array4<amrex::Real> const& E,amrex::Array4<amrex::Real const> const& B,double dt ){
     push_E_B(geom,bx,E,B,dt);
 }
 
@@ -122,19 +122,16 @@ void G_Theta_E(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab&
 
     for (CParIter pti(P, 0); pti.isValid(); ++pti) {
         auto&  particles = pti.GetArrayOfStructs();
-        amrex::FArrayBox& efab = E[pti];
-        amrex::Array4<amrex::Real> const& E_loc = efab.array();
+        amrex::Array4<amrex::Real const> const& E_loc = E.const_array(pti);
          
-        push_V_E(particles,geom,E_loc,dt);
+   //     push_V_E(particles,geom,E_loc,dt);
     }
 
     for (amrex::MFIter mfi(E); mfi.isValid(); ++mfi){
         const amrex::Box& box = mfi.validbox();
-        amrex::FArrayBox& fab = E[mfi];
-        amrex::FArrayBox& fabB = B[mfi];
-        amrex::Array4<amrex::Real> const& E_loc = fab.array();
-        amrex::Array4<amrex::Real> const& B_loc = fabB.array(); 
-    //    push_B_E(geom,box, B_loc,E_loc,dt);
+        amrex::Array4<amrex::Real const> const& E_loc = E.const_array(mfi);
+        amrex::Array4<amrex::Real> const& B_loc = B.array(mfi); 
+        push_B_E(geom,box, B_loc,E_loc,dt);
 
     }
 
@@ -150,11 +147,8 @@ void G_Theta_B(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab&
 
     for (amrex::MFIter mfi(E); mfi.isValid(); ++mfi){
         const amrex::Box& box = mfi.validbox();
-        amrex::FArrayBox& fab = E[mfi];
-        amrex::FArrayBox& fabB = B[mfi];
-        amrex::Array4<amrex::Real> const& E_loc = fab.array();
-        amrex::Array4<amrex::Real> const& B_loc = fabB.array();
-    
+        amrex::Array4<amrex::Real> const& E_loc = E.array(mfi);
+        amrex::Array4<amrex::Real const> const& B_loc = B.const_array(mfi); 
         Theta_B(geom,box,E_loc,B_loc,dt);
 
     }

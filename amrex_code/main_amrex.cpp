@@ -53,7 +53,7 @@ void init_B (const amrex::Geometry geom ,amrex::Box const& bx, amrex::Array4<amr
        for (int i = lo.x; i <= hi.x; ++i) { 
          a(i,j,k,0) = 0.0;
          a(i,j,k,1) = 0.0;//sin( 2*(geom.ProbLo(X) + i*geom.CellSize(X) +1)*3.1415962);
-         a(i,j,k,2) = 0.0; 
+         a(i,j,k,2) = 0.5; 
        }
      }
    }
@@ -77,7 +77,7 @@ void main_main()
     const  int n_cell = 32;
     int max_grid_size = 16;
     int nsteps = 3000;
-    double dt = 1.0/300;
+    double dt = 1.0/250;
     // Do a quite even load balancing
     amrex::DistributionMapping::strategy(amrex::DistributionMapping::KNAPSACK);
 
@@ -88,7 +88,7 @@ void main_main()
 
 
     amrex::IntVect dom_lo(AMREX_D_DECL(       0,        0,        0));
-    amrex::IntVect dom_hi(AMREX_D_DECL(n_cell-1, n_cell-1, 8-1));
+    amrex::IntVect dom_hi(AMREX_D_DECL(n_cell-1, n_cell-1, 32-1));
     amrex::Box domain(dom_lo, dom_hi,typ);
     amrex::BoxArray ba(domain);
 
@@ -149,7 +149,7 @@ for(amrex::MFIter mfi= P.MakeMFIter(0) ;mfi.isValid();++mfi){
     const auto lo = amrex::lbound(box);
     //const auto hi = amrex::ubound(box);
     if(mfi.index()==0){
-    add_single_particle(particles,{0.999,0,0},{0.1,0,0},10,-1);
+    add_single_particle(particles,{0.0,-0.2,0},{0.1,0,0},1,-1);
 //    add_single_particle(particles,{-0.9,-0.9,-0.9},{0.1,1,1},10,-1);
 //    add_single_particle(particles,{-0.95,-0.95,-0.95},{0.1,1,1},10,-1);
     }
@@ -172,36 +172,29 @@ for(int step=0; step<nsteps;step++){
     std::cout <<"Step:" <<step << std::endl;
     } 
 
-    if(step % 1 ==0){
     auto E_tot = get_total_energy(geom,P,E,B); 
-    amrex::Print() <<"ENERGY: "<<E_tot.first <<" "<< E_tot.second << std::endl;
-/*
+   amrex::Print() <<"ENERGY: "<<E_tot.first <<" "<< E_tot.second << std::endl;
+/*    if(step % 5 ==0){
+
     int n=step;
     amrex::Real time=step*dt;
     const std::string& pltfile_E = amrex::Concatenate("plt_E",n,0);
     WriteSingleLevelPlotfile(pltfile_E, E, {"E_x","E_y","E_z"}, geom, time, n);
     const std::string& pltfile_B = amrex::Concatenate("plt_B",n,0);
     WriteSingleLevelPlotfile(pltfile_B, B, {"B_x","B_y","B_z"}, geom, time, n);
-  */
+  
     }
-
+*/
     G_Theta_E(geom,P,E,B,dt/2);
     G_Theta<X>(geom,P,E,B,dt/2);
-    //G_Theta<Y>(geom,P,E,B,dt/2);
-    //G_Theta<Z>(geom,P,E,B,dt/2);
-    //G_Theta_B(geom,P,E,B,dt); 
-    //G_Theta<Z>(geom,P,E,B,dt/2);
-    //G_Theta<Y>(geom,P,E,B,dt/2);
+    G_Theta<Y>(geom,P,E,B,dt/2);
+    G_Theta<Z>(geom,P,E,B,dt/2);
+//    G_Theta_B(geom,P,E,B,dt); 
+    G_Theta<Z>(geom,P,E,B,dt/2);
+    G_Theta<Y>(geom,P,E,B,dt/2);
     G_Theta<X>(geom,P,E,B,dt/2);
     G_Theta_E(geom,P,E,B,dt/2);
     print_Particle_info(geom,P);
-
-//    for (CParIter pti(P, 0); pti.isValid(); ++pti) {
-//       auto&  particles = pti.GetArrayOfStructs();
-//    for(auto &p:particles){
-//        p.id()=-1;
-//    }
-//}
 
 
 

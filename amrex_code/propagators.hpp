@@ -105,7 +105,7 @@ void push_B_pos(CParticles&particles, const amrex::Geometry geom, const amrex::A
     const auto low = geom.ProbLo();
     const auto Ics = geom.InvCellSize();
     // A scaling factor is needed here if dx,dy,dz are not equal!
-    const  double coef = particles[0].rdata(Q)/particles[0].rdata(M);//*geom.CellSize(comp);
+    const  double coef = particles[0].rdata(Q)/particles[0].rdata(M)*geom.CellSize(comp);
 
     for(auto& p : particles){
         const auto p_segments = get_segment_list<comp>(geom, p.pos(comp) , p.pos(comp)+dt*p.rdata(comp+2));
@@ -159,7 +159,7 @@ void push_B_pos(CParticles&particles, const amrex::Geometry geom, const amrex::A
 template <int coord>
 void Theta(CParticleContainer&ParticleC, CParticles&local_particles,const CNParticles&neighbour_particles, const amrex::Geometry geom,amrex::Array4<amrex::Real> const& E, amrex::Array4<amrex::Real> const& B ,double dt)
 {
-    push_E_pos<coord>(local_particles,neighbour_particles,geom,E,dt);
+//    push_E_pos<coord>(local_particles,neighbour_particles,geom,E,dt);
     if(local_particles.numParticles() >0){
     push_B_pos<coord>(local_particles,geom,B,dt);
     push_pos_pos<coord>(ParticleC,local_particles,dt);

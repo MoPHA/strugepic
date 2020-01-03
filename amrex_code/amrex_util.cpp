@@ -109,7 +109,9 @@ std::pair<amrex::Real,amrex::Real> get_total_energy(const amrex::Geometry geom,C
 
 }
 
+std::pair<amrex::Real,amrex::Real> get_total_momentum(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &E, amrex::MultiFab &B){
 
+}
 
 //
 // From
