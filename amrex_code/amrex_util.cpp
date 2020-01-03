@@ -1,6 +1,9 @@
 #include "AMReX_Array.H"
 #include "AMReX_Geometry.H"
+#include "AMReX_ParallelDescriptor.H"
+#include "AMReX_ParallelReduce.H"
 #include "AMReX_REAL.H"
+#include <iostream>
 #include <math.h>
 #include <utility>
 #include <vector>
@@ -62,9 +65,9 @@ void print_Particle_info(const amrex::Geometry geom,CParticleContainer&P ){
     for (CParIter pti(P, 0); pti.isValid(); ++pti) {
         auto&  particles = pti.GetArrayOfStructs();
         for(auto p : particles ){
-            amrex::Print() << "(" << p.cpu()<<"," << p.id()<<")" << std::endl;
-            amrex::Print() << "POS: [" << p.pos(0)<<"," << p.pos(1)<<"," << p.pos(2) << "]" << std::endl;
-            amrex::Print() << "VEL: [" << p.rdata(2)<<"," << p.rdata(3)<<"," << p.rdata(4) << "]" << std::endl;
+            std::cout << "(" << p.cpu()<<"," << p.id()<<")" << std::endl;
+            std::cout << "POS: [" << p.pos(0)<<"," << p.pos(1)<<"," << p.pos(2) << "]" << std::endl;
+            std::cout << "VEL: [" << p.rdata(2)<<"," << p.rdata(3)<<"," << p.rdata(4) << "]" << std::endl;
         }
     }
 
@@ -100,6 +103,8 @@ std::pair<amrex::Real,amrex::Real> get_total_energy(const amrex::Geometry geom,C
 
     }
 
+    amrex::ParallelAllReduce::Sum(E_kin,amrex::ParallelDescriptor::Communicator());
+    amrex::ParallelAllReduce::Sum(E_field,amrex::ParallelDescriptor::Communicator());
     return std::make_pair(E_field*geom.CellSize(X)*geom.CellSize(Y)*geom.CellSize(Z),E_kin);
 
 }

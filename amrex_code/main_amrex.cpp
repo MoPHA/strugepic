@@ -74,21 +74,21 @@ void main_main()
 {
     // Simulation parameters,  these should be read from a file quite soon
     
-    const  int n_cell = 16;
+    const  int n_cell = 32;
     int max_grid_size = 16;
-    int nsteps = 10000;
-    double dt = 1.0/1000;
+    int nsteps = 3000;
+    double dt = 1.0/300;
     // Do a quite even load balancing
     amrex::DistributionMapping::strategy(amrex::DistributionMapping::KNAPSACK);
 
     // Periodic
     amrex::Vector<int> is_periodic(AMREX_SPACEDIM,1);     
     // Nodal indexing
-    amrex::IndexType typ({AMREX_D_DECL(1,1,1)});
+    amrex::IndexType typ({AMREX_D_DECL(0,0,0)});
 
 
     amrex::IntVect dom_lo(AMREX_D_DECL(       0,        0,        0));
-    amrex::IntVect dom_hi(AMREX_D_DECL(n_cell-1, n_cell-1, 16-1));
+    amrex::IntVect dom_hi(AMREX_D_DECL(n_cell-1, n_cell-1, 8-1));
     amrex::Box domain(dom_lo, dom_hi,typ);
     amrex::BoxArray ba(domain);
 
@@ -148,36 +148,33 @@ for(amrex::MFIter mfi= P.MakeMFIter(0) ;mfi.isValid();++mfi){
     auto box=mfi.validbox();
     const auto lo = amrex::lbound(box);
     //const auto hi = amrex::ubound(box);
-    double x = geom.ProbLo(0)*1.02 + lo.x * geom.CellSize(0)*1.1;
-    double y = geom.ProbLo(1)*1.02 + lo.y * geom.CellSize(1)*1.1;
-    double z =geom.ProbLo(2)*1.02 + lo.z * geom.CellSize(2)*1.1;
     if(mfi.index()==0){
-//    add_single_particle(particles,{-1+0.05084-0.045-0.00075-0.0001,0.0,0.0},{-0.1,0.0,0.0},0.005,-1);    
-      add_single_particle(particles,{0.99-0.5,0,0},{0.1,0,0},1,-1);
-//0.0621
+    add_single_particle(particles,{0.999,0,0},{0.1,0,0},10,-1);
+//    add_single_particle(particles,{-0.9,-0.9,-0.9},{0.1,1,1},10,-1);
+//    add_single_particle(particles,{-0.95,-0.95,-0.95},{0.1,1,1},10,-1);
     }
-
-//    add_single_particle(particles,{0.7,0.5,0},{0,-0.1,0},1,-1);    
+    //  add_single_particle(particles,{0.001,0,0},{0.1,0,0},10,-1);
 }
 
     P.Redistribute();
     P.fillNeighbors();
     P.updateNeighbors();
 
+    int id = amrex::ParallelDescriptor::MyProc();
     print_Particle_info(geom,P);
-
 
 
 for(int step=0; step<nsteps;step++){
 
 
+    if(id == 0){
     
     std::cout <<"Step:" <<step << std::endl;
-    
+    } 
 
     if(step % 1 ==0){
-        auto E_tot = get_total_energy(geom,P,E,B); 
-    std::cout <<"ENERGY: "<<E_tot.first <<" "<< E_tot.second << std::endl;
+    auto E_tot = get_total_energy(geom,P,E,B); 
+    amrex::Print() <<"ENERGY: "<<E_tot.first <<" "<< E_tot.second << std::endl;
 /*
     int n=step;
     amrex::Real time=step*dt;
@@ -185,8 +182,9 @@ for(int step=0; step<nsteps;step++){
     WriteSingleLevelPlotfile(pltfile_E, E, {"E_x","E_y","E_z"}, geom, time, n);
     const std::string& pltfile_B = amrex::Concatenate("plt_B",n,0);
     WriteSingleLevelPlotfile(pltfile_B, B, {"B_x","B_y","B_z"}, geom, time, n);
-    */
+  */
     }
+
     G_Theta_E(geom,P,E,B,dt/2);
     G_Theta<X>(geom,P,E,B,dt/2);
     //G_Theta<Y>(geom,P,E,B,dt/2);
@@ -209,9 +207,9 @@ for(int step=0; step<nsteps;step++){
 
 }
 
-    print_Particle_info(geom,P);
-    auto E_tot = get_total_energy(geom,P,E,B); 
-    std::cout <<"ENERGY: "<<E_tot.first <<" "<< E_tot.second << std::endl;
+//    print_Particle_info(geom,P);
+//    auto E_tot = get_total_energy(geom,P,E,B); 
+//    std::cout <<"ENERGY: "<<E_tot.first <<" "<< E_tot.second << std::endl;
 
 
 }

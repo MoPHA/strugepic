@@ -43,8 +43,8 @@ void push_E_part(const Pcontainter&particles, const amrex::Geometry geom,amrex::
         auto coord =get_point_cell(geom,{p.pos(X),p.pos(Y),p.pos(Z)}) ;
         for(auto seg: p_segments){
             coord[comp] = std::get<2>(seg);
-        //std::cout << coord[comp] << std::endl;
-        //std::cout <<p.pos(comp)<< std::endl;
+        //    std::cout << coord[comp] << std::endl;
+        //    std::cout <<p.pos(comp)<< std::endl;
             auto i_s = std::get<0>(seg); 
             auto i_e = std::get<1>(seg);
 
@@ -82,9 +82,10 @@ void push_E_part(const Pcontainter&particles, const amrex::Geometry geom,amrex::
 
 template<int comp>
 void push_E_pos(const CParticles&local_particles,const CNParticles&neighbour_particles, const amrex::Geometry geom,amrex::Array4<amrex::Real> const& E ,double dt){
-    push_E_part<comp,CParticles>(local_particles,geom,E,dt); 
-    if(neighbour_particles.size()!=0){
-    //    std::cout<< "EEEEE" << std::endl;
+   if(local_particles.size()!=0){
+    push_E_part<comp,CParticles>(local_particles,geom,E,dt);
+   }
+   if(neighbour_particles.size()!=0){
     push_E_part<comp,CNParticles>(neighbour_particles,geom,E,dt); 
     }
 }
@@ -159,8 +160,10 @@ template <int coord>
 void Theta(CParticleContainer&ParticleC, CParticles&local_particles,const CNParticles&neighbour_particles, const amrex::Geometry geom,amrex::Array4<amrex::Real> const& E, amrex::Array4<amrex::Real> const& B ,double dt)
 {
     push_E_pos<coord>(local_particles,neighbour_particles,geom,E,dt);
+    if(local_particles.numParticles() >0){
     push_B_pos<coord>(local_particles,geom,B,dt);
     push_pos_pos<coord>(ParticleC,local_particles,dt);
+    }
 }
 
 
@@ -168,20 +171,26 @@ void Theta(CParticleContainer&ParticleC, CParticles&local_particles,const CNPart
 template <int coord>
 void G_Theta(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &E, amrex::MultiFab &B,double dt ){
 
-    for (CParIter pti(P, 0); pti.isValid(); ++pti) {
-        auto&  particles = pti.GetArrayOfStructs();
-        const auto& n_particles = P.GetNeighbors(0,pti.index(),pti.LocalTileIndex());
-        amrex::FArrayBox& efab = E[pti];
-        amrex::FArrayBox& bfab =B[pti];
+
+    for(amrex::MFIter mfi= P.MakeMFIter(0,false) ;mfi.isValid();++mfi){
+    
+        // Each grid,tile has a their own local particle container
+        auto& Part = P.GetParticles(0)[std::make_pair(mfi.index(),mfi.LocalTileIndex())];
+        auto&  particles = Part.GetArrayOfStructs();
+        const auto& n_particles = P.GetNeighbors(0,mfi.index(),mfi.LocalTileIndex());
+        amrex::FArrayBox& efab = E[mfi];
+        amrex::FArrayBox& bfab =B[mfi];
         amrex::Array4<amrex::Real> const& E_loc = efab.array();
         amrex::Array4<amrex::Real> const& B_loc = bfab.array(); 
-
+        int num_neighbors=0;
+        if(n_particles.size()!=0){
+        num_neighbors = n_particles.end()-n_particles.begin();
+        }
+    //    std::cout << "GRID: "<< mfi.index() << " Num part: " <<particles.numParticles()<<" NEIGH: "<< num_neighbors << std::endl;
         Theta<coord>(P,particles,n_particles,geom,E_loc,B_loc,dt);
     }
     P.Redistribute();
-//    P.clearNeighbors();
     P.fillNeighbors();
-    P.updateNeighbors();
     E.FillBoundary(geom.periodicity());
     B.FillBoundary(geom.periodicity());
     
