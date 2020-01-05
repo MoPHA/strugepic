@@ -77,7 +77,7 @@ void Theta_B(const amrex::Geometry geom, amrex::Box const& bx,amrex::Array4<amre
 
 
 
-void push_V_E( CParticles&particles, const amrex::Geometry geom,amrex::Array4<amrex::Real> const& E ,double dt){
+void push_V_E( CParticles&particles, const amrex::Geometry geom,amrex::Array4<amrex::Real const> const& E ,double dt){
 
     // Basis functions are supported over two cells in each direction
     const int idx_list[4]={-1,0,1,2};
@@ -124,7 +124,7 @@ void G_Theta_E(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab&
         auto&  particles = pti.GetArrayOfStructs();
         amrex::Array4<amrex::Real const> const& E_loc = E.const_array(pti);
          
-   //     push_V_E(particles,geom,E_loc,dt);
+        push_V_E(particles,geom,E_loc,dt);
     }
 
     for (amrex::MFIter mfi(E); mfi.isValid(); ++mfi){
@@ -143,12 +143,12 @@ void G_Theta_E(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab&
 
 
 
-void G_Theta_B(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab&E, amrex::MultiFab&B,double dt ){
-
+ void G_Theta_B(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &E, amrex::MultiFab &B,double dt ){
+    
     for (amrex::MFIter mfi(E); mfi.isValid(); ++mfi){
         const amrex::Box& box = mfi.validbox();
-        amrex::Array4<amrex::Real> const& E_loc = E.array(mfi);
-        amrex::Array4<amrex::Real const> const& B_loc = B.const_array(mfi); 
+        auto const& E_loc = E.array(mfi);
+        auto const& B_loc = B.const_array(mfi); 
         Theta_B(geom,box,E_loc,B_loc,dt);
 
     }

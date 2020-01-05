@@ -109,7 +109,16 @@ std::pair<amrex::Real,amrex::Real> get_total_energy(const amrex::Geometry geom,C
 
 }
 
-std::pair<amrex::Real,amrex::Real> get_total_momentum(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &E, amrex::MultiFab &B){
+std::pair<std::array<amrex::Real,3>,std::array<amrex::Real,3>> get_total_momentum(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &E, amrex::MultiFab &B){
+    
+    amrex::Real E_kin=0;
+    amrex::Real E_field=0;
+    for (CParIter pti(P, 0); pti.isValid(); ++pti) {
+        auto&  particles = pti.GetArrayOfStructs();
+        for(auto p : particles ){
+            E_kin+=p.rdata(M)*0.5*( p.rdata(VX)*p.rdata(VX)+p.rdata(VY)*p.rdata(VY)+p.rdata(VZ)*p.rdata(VZ)  );
+        }
+    }
 
 }
 

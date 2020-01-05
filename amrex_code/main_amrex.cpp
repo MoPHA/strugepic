@@ -53,7 +53,7 @@ void init_B (const amrex::Geometry geom ,amrex::Box const& bx, amrex::Array4<amr
        for (int i = lo.x; i <= hi.x; ++i) { 
          a(i,j,k,0) = 0.0;
          a(i,j,k,1) = 0.0;//sin( 2*(geom.ProbLo(X) + i*geom.CellSize(X) +1)*3.1415962);
-         a(i,j,k,2) = 0.5; 
+         a(i,j,k,2) = 50; 
        }
      }
    }
@@ -77,7 +77,7 @@ void main_main()
     const  int n_cell = 32;
     int max_grid_size = 16;
     int nsteps = 3000;
-    double dt = 1.0/250;
+    double dt = 1.0/100;
     // Do a quite even load balancing
     amrex::DistributionMapping::strategy(amrex::DistributionMapping::KNAPSACK);
 
@@ -88,7 +88,7 @@ void main_main()
 
 
     amrex::IntVect dom_lo(AMREX_D_DECL(       0,        0,        0));
-    amrex::IntVect dom_hi(AMREX_D_DECL(n_cell-1, n_cell-1, 32-1));
+    amrex::IntVect dom_hi(AMREX_D_DECL(n_cell-1, n_cell-1, 8-1));
     amrex::Box domain(dom_lo, dom_hi,typ);
     amrex::BoxArray ba(domain);
 
@@ -189,7 +189,7 @@ for(int step=0; step<nsteps;step++){
     G_Theta<X>(geom,P,E,B,dt/2);
     G_Theta<Y>(geom,P,E,B,dt/2);
     G_Theta<Z>(geom,P,E,B,dt/2);
-//    G_Theta_B(geom,P,E,B,dt); 
+    G_Theta_B(geom,P,E,B,dt);
     G_Theta<Z>(geom,P,E,B,dt/2);
     G_Theta<Y>(geom,P,E,B,dt/2);
     G_Theta<X>(geom,P,E,B,dt/2);
