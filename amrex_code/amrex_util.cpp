@@ -42,8 +42,7 @@ std::array<int,3> get_num_segments(const amrex::Geometry geom,const amrex::RealA
 
 
 
-// Create a single particle in the simulation (about in the middle)
-// This is just used for debugging and some cyclotron stuff
+// Create a single particle in the simulation
 
  void add_single_particle( CParticleTile&particlet ,amrex::RealArray pos , amrex::RealArray vel, double m,double q){ 
     CParticle p;
@@ -59,6 +58,11 @@ std::array<int,3> get_num_segments(const amrex::Geometry geom,const amrex::RealA
     p.rdata(4)=vel[2];
     particlet.push_back(p);
 }
+
+void add_particle_one_per_cell(const amrex::Geometry geom, CParticleContainer&P){
+
+}
+
 
 void print_Particle_info(const amrex::Geometry geom,CParticleContainer&P ){
 
@@ -111,14 +115,40 @@ std::pair<amrex::Real,amrex::Real> get_total_energy(const amrex::Geometry geom,C
 
 std::pair<std::array<amrex::Real,3>,std::array<amrex::Real,3>> get_total_momentum(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &E, amrex::MultiFab &B){
     
-    amrex::Real E_kin=0;
-    amrex::Real E_field=0;
+    std::array<amrex::Real,3> P_part={0,0,0};
+    std::array<amrex::Real,3> P_field={0,0,0};
     for (CParIter pti(P, 0); pti.isValid(); ++pti) {
         auto&  particles = pti.GetArrayOfStructs();
         for(auto p : particles ){
-            E_kin+=p.rdata(M)*0.5*( p.rdata(VX)*p.rdata(VX)+p.rdata(VY)*p.rdata(VY)+p.rdata(VZ)*p.rdata(VZ)  );
+            P_part[X]+=p.rdata(M)*p.rdata(VX);
+            P_part[Y]+=p.rdata(M)*p.rdata(VY);
+            P_part[Z]+=p.rdata(M)*p.rdata(VZ);
         }
     }
+    for (amrex::MFIter mfi(E); mfi.isValid(); ++mfi){
+        const amrex::Box& box = mfi.validbox();
+        amrex::FArrayBox& fab = E[mfi];
+        amrex::FArrayBox& fabB = B[mfi];
+        amrex::Array4<amrex::Real> const& E_loc = fab.array();
+        amrex::Array4<amrex::Real> const& B_loc = fabB.array(); 
+
+        const auto lo = amrex::lbound(box);
+        const auto hi = amrex::ubound(box);
+        for     (int k = lo.z; k <= hi.z; ++k) {
+            for   (int j = lo.y; j <= hi.y; ++j) {
+                for (int i = lo.x; i <= hi.x; ++i) { 
+                P_field[X]+=E_loc(i,j,k,Y)*B_loc(i,j,k,Z)-E_loc(i,j,k,Z)*B_loc(i,j,k,Y);
+                P_field[Y]+=E_loc(i,j,k,Z)*B_loc(i,j,k,X)-E_loc(i,j,k,X)*B_loc(i,j,k,Z);
+                P_field[Z]+=E_loc(i,j,k,X)*B_loc(i,j,k,Y)-E_loc(i,j,k,Y)*B_loc(i,j,k,X);
+                }
+            }
+        }
+
+    }
+    P_field[X]*=geom.CellSize(X)*geom.CellSize(Y)*geom.CellSize(Z);
+    P_field[Y]*=geom.CellSize(X)*geom.CellSize(Y)*geom.CellSize(Z);
+    P_field[Z]*=geom.CellSize(X)*geom.CellSize(Y)*geom.CellSize(Z);
+    return std::make_pair(P_field,P_part);
 
 }
 
