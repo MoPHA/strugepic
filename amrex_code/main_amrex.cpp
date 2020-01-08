@@ -74,12 +74,12 @@ void main_main()
 {
     // Simulation parameters,  these should be read from a file quite soon
     
-    const  int n_cell = 96;
-    int max_grid_size = 96;
+    const  int n_cell = 52;
+    int max_grid_size = 52;
     int nsteps = 600;
     double dt = 1.0/600;
-    double q=-0.5;
-    double m=16;
+    double q=-3;
+    double m=100;
     // Do a quite even load balancing
     amrex::DistributionMapping::strategy(amrex::DistributionMapping::KNAPSACK);
 
@@ -90,7 +90,7 @@ void main_main()
 
 
     amrex::IntVect dom_lo(AMREX_D_DECL(       0,        0,        0));
-    amrex::IntVect dom_hi(AMREX_D_DECL(n_cell-1, 6-1, 6-1));
+    amrex::IntVect dom_hi(AMREX_D_DECL(n_cell-1, 18-1, 12-1));
     amrex::Box domain(dom_lo, dom_hi,typ);
     amrex::BoxArray ba(domain);
 
