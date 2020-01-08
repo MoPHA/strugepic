@@ -59,8 +59,74 @@ std::array<int,3> get_num_segments(const amrex::Geometry geom,const amrex::RealA
     particlet.push_back(p);
 }
 
-void add_particle_one_per_cell(const amrex::Geometry geom, CParticleContainer&P){
 
+int x2_dist(const amrex::Geometry geom,std::array<double,3> coord){
+
+    return (int) -(coord[X]-geom.ProbLo(X))*(coord[X]-geom.ProbHi(X))*50;
+
+}
+
+void add_particle_density(const amrex::Geometry geom , CParticleContainer&P, int (*dist_func)(const amrex::Geometry,double,double,double) ,double m, double q ){
+
+    std::random_device rd;
+    std::mt19937 mt(rd());
+    std::uniform_real_distribution<double> distx(0,geom.CellSize(X));
+    std::uniform_real_distribution<double> disty(0,geom.CellSize(Y));
+    std::uniform_real_distribution<double> distz(0,geom.CellSize(Z));
+
+
+for(amrex::MFIter mfi= P.MakeMFIter(0) ;mfi.isValid();++mfi){
+    
+    // Each grid,tile has a their own local particle container
+    auto& particles = P.GetParticles(0)[std::make_pair(mfi.index(),
+                                        mfi.LocalTileIndex())];
+    auto box=mfi.validbox();
+
+
+   const auto lo = amrex::lbound(box);
+   const auto hi = amrex::ubound(box);
+   for     (int k = lo.z; k <= hi.z; ++k) {
+     for   (int j = lo.y; j <= hi.y; ++j) {
+       for (int i = lo.x; i <= hi.x; ++i) { 
+           double x = geom.ProbLo(X) + i*geom.CellSize(X);
+           double y = geom.ProbLo(Y) + j*geom.CellSize(Y);
+           double z = geom.ProbLo(Z) + k*geom.CellSize(Z);
+            add_single_particle(particles,{x,y,z},{distx(mt),disty(mt),distz(mt) },m,q);
+       }
+     }
+   }
+    }
+
+}
+
+
+void add_particle_one_per_cell(const amrex::Geometry geom, CParticleContainer&P,double m,double q){
+    std::random_device rd;
+    std::mt19937 mt(rd());
+    std::uniform_real_distribution<double> dist(-0.01,0.01);
+
+
+for(amrex::MFIter mfi= P.MakeMFIter(0) ;mfi.isValid();++mfi){
+    
+    // Each grid,tile has a their own local particle container
+    auto& particles = P.GetParticles(0)[std::make_pair(mfi.index(),
+                                        mfi.LocalTileIndex())];
+    auto box=mfi.validbox();
+
+
+   const auto lo = amrex::lbound(box);
+   const auto hi = amrex::ubound(box);
+   for     (int k = lo.z; k <= hi.z; ++k) {
+     for   (int j = lo.y; j <= hi.y; ++j) {
+       for (int i = lo.x; i <= hi.x; ++i) { 
+           double x = geom.ProbLo(X) + (i+0.5)*geom.CellSize(X);
+           double y = geom.ProbLo(Y) + (j+0.5)*geom.CellSize(Y);
+           double z = geom.ProbLo(Z) + (k+0.5)*geom.CellSize(Z);
+            add_single_particle(particles,{x,y,z},{dist(mt),dist(mt),dist(mt) },m,q);
+       }
+     }
+   }
+    }
 }
 
 

@@ -39,7 +39,7 @@ void init_E (const amrex::Geometry geom ,amrex::Box const& bx, amrex::Array4<amr
        for (int i = lo.x; i <= hi.x; ++i) { 
          a(i,j,k,0) = 0;
          a(i,j,k,1) = 0; 
-         a(i,j,k,2) = sin( 2*(geom.ProbLo(X) + i*geom.CellSize(X) +1)*3.1415962);
+         a(i,j,k,2) = 0;//sin( 2*(geom.ProbLo(X) + i*geom.CellSize(X) +1)*3.1415962);
        }
      }
    }
@@ -52,7 +52,7 @@ void init_B (const amrex::Geometry geom ,amrex::Box const& bx, amrex::Array4<amr
      for   (int j = lo.y; j <= hi.y; ++j) {
        for (int i = lo.x; i <= hi.x; ++i) { 
          a(i,j,k,0) = 0.0;
-         a(i,j,k,1) = sin( 2*(geom.ProbLo(X) + i*geom.CellSize(X) +1)*3.1415962);
+         a(i,j,k,1) = 0.0;//sin( 2*(geom.ProbLo(X) + i*geom.CellSize(X) +1)*3.1415962);
          a(i,j,k,2) = 0.0; 
        }
      }
@@ -74,10 +74,12 @@ void main_main()
 {
     // Simulation parameters,  these should be read from a file quite soon
     
-    const  int n_cell = 64;
-    int max_grid_size = 16;
-    int nsteps = 3000;
-    double dt = 1.0/300;
+    const  int n_cell = 96;
+    int max_grid_size = 96;
+    int nsteps = 600;
+    double dt = 1.0/600;
+    double q=-0.5;
+    double m=16;
     // Do a quite even load balancing
     amrex::DistributionMapping::strategy(amrex::DistributionMapping::KNAPSACK);
 
@@ -88,7 +90,7 @@ void main_main()
 
 
     amrex::IntVect dom_lo(AMREX_D_DECL(       0,        0,        0));
-    amrex::IntVect dom_hi(AMREX_D_DECL(n_cell-1, n_cell-1, 8-1));
+    amrex::IntVect dom_hi(AMREX_D_DECL(n_cell-1, 6-1, 6-1));
     amrex::Box domain(dom_lo, dom_hi,typ);
     amrex::BoxArray ba(domain);
 
@@ -97,8 +99,8 @@ void main_main()
     ba.maxSize(max_grid_size);
 
     // This defines the physical box, [-1,1] in each direction.
-    amrex::RealBox real_box({AMREX_D_DECL(-1,-1,-1)},
-                     {AMREX_D_DECL(1,1,1)});
+    amrex::RealBox real_box({AMREX_D_DECL(-1,-0.1,-0.1)},
+                     {AMREX_D_DECL(1,0.1,0.1)});
 
     // This defines a Geometry object
     amrex::Geometry geom(domain,&real_box,amrex::CoordSys::cartesian,is_periodic.data());
@@ -149,19 +151,24 @@ for(amrex::MFIter mfi= P.MakeMFIter(0) ;mfi.isValid();++mfi){
     const auto lo = amrex::lbound(box);
     //const auto hi = amrex::ubound(box);
     if(mfi.index()==0){
-    add_single_particle(particles,{0.0,-0.2,0},{0.1,0,0},100,-10);
+    add_single_particle(particles,{0.0,-0.2,0},{0.01,0,0},m,q);
 //    add_single_particle(particles,{-0.9,-0.9,-0.9},{0.1,1,1},10,-1);
 //    add_single_particle(particles,{-0.95,-0.95,-0.95},{0.1,1,1},10,-1);
     }
     //  add_single_particle(particles,{0.001,0,0},{0.1,0,0},10,-1);
 }
 
+//    double m=1;
+//    double q=-1;
+//    add_particle_one_per_cell(geom,P,m,q);
+
+
     P.Redistribute();
     P.fillNeighbors();
     P.updateNeighbors();
 
     int id = amrex::ParallelDescriptor::MyProc();
-    print_Particle_info(geom,P);
+//    print_Particle_info(geom,P);
 
 
 for(int step=0; step<nsteps;step++){
@@ -173,33 +180,33 @@ for(int step=0; step<nsteps;step++){
     } 
 
     auto E_tot = get_total_energy(geom,P,E,B); 
-    auto P_tot = get_total_momentum(geom,P,E,B);
-    auto P_part = P_tot.second;
-    auto P_field= P_tot.first;
-    auto P_sum_x =P_field[X];
-    auto P_sum_y =P_field[Y];
-    auto P_sum_z =P_field[Z];
+ //   auto P_tot = get_total_momentum(geom,P,E,B);
+ //   auto P_part = P_tot.second;
+ //   auto P_field= P_tot.first;
+ //   auto P_sum_x =P_field[X];
+ //   auto P_sum_y =P_field[Y];
+ //   auto P_sum_z =P_field[Z];
     amrex::Print() <<"ENERGY: "<<E_tot.first <<" "<< E_tot.second << std::endl;
-    amrex::Print() <<"MOMENTUM:" << P_sum_x << " " << P_sum_y << " "<< P_sum_z << std::endl;
+  //  amrex::Print() <<"MOMENTUM:" << P_sum_x << " " << P_sum_y << " "<< P_sum_z << std::endl;
     if(step % 5 ==0){
 
-    int n=step;
-    amrex::Real time=step*dt;
-    const std::string& pltfile_E = amrex::Concatenate("plt_E",n,0);
-    WriteSingleLevelPlotfile(pltfile_E, E, {"E_x","E_y","E_z"}, geom, time, n);
-    const std::string& pltfile_B = amrex::Concatenate("plt_B",n,0);
-    WriteSingleLevelPlotfile(pltfile_B, B, {"B_x","B_y","B_z"}, geom, time, n);
-  
+   // int n=step;
+   // amrex::Real time=step*dt;
+   // const std::string& pltfile_E = amrex::Concatenate("plt_E",n,0);
+   // WriteSingleLevelPlotfile(pltfile_E, E, {"E_x","E_y","E_z"}, geom, time, n);
+   // const std::string& pltfile_B = amrex::Concatenate("plt_B",n,0);
+   // WriteSingleLevelPlotfile(pltfile_B, B, {"B_x","B_y","B_z"}, geom, time, n);
+    //P.WriteBinaryParticleData(amrex::Concatenate("plt",step,0),"Particle0",{1,1,1,1,1},{},{"Mass","Charge","VX","VY","VZ"},{});
     }
 
     G_Theta_E(geom,P,E,B,dt/2);
-  //  G_Theta<X>(geom,P,E,B,dt/2);
-  //  G_Theta<Y>(geom,P,E,B,dt/2);
-  //  G_Theta<Z>(geom,P,E,B,dt/2);
-    G_Theta_B(geom,P,E,B,dt);
-  //  G_Theta<Z>(geom,P,E,B,dt/2);
-  //  G_Theta<Y>(geom,P,E,B,dt/2);
-  //  G_Theta<X>(geom,P,E,B,dt/2);
+    G_Theta<X>(geom,P,E,B,dt/2);
+    G_Theta<Y>(geom,P,E,B,dt/2);
+    G_Theta<Z>(geom,P,E,B,dt/2);
+ //   G_Theta_B(geom,P,E,B,dt);
+    G_Theta<Z>(geom,P,E,B,dt/2);
+    G_Theta<Y>(geom,P,E,B,dt/2);
+    G_Theta<X>(geom,P,E,B,dt/2);
     G_Theta_E(geom,P,E,B,dt/2);
     print_Particle_info(geom,P);
 
@@ -207,9 +214,7 @@ for(int step=0; step<nsteps;step++){
 
 }
 
-//    print_Particle_info(geom,P);
-//    auto E_tot = get_total_energy(geom,P,E,B); 
-//    std::cout <<"ENERGY: "<<E_tot.first <<" "<< E_tot.second << std::endl;
+std::cout << "SCALE: " <<sqrt(q*q/(m*geom.CellSize(X)*geom.CellSize(Y)*geom.CellSize(Z)*8)) << std::endl;
 
 
 }

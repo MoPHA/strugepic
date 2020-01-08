@@ -131,7 +131,7 @@ void G_Theta_E(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab&
         const amrex::Box& box = mfi.validbox();
         amrex::Array4<amrex::Real const> const& E_loc = E.const_array(mfi);
         amrex::Array4<amrex::Real> const& B_loc = B.array(mfi); 
-        push_B_E(geom,box, B_loc,E_loc,dt);
+   //     push_B_E(geom,box, B_loc,E_loc,dt);
 
     }
 
