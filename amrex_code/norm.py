@@ -8,7 +8,7 @@ B=0.55
 ## Particle velocity
 v=6e6
 ## Particle density
-n=2e19
+n=1
 ## Time step
 dt=9.24e-14
 ## Number of time steps
@@ -50,10 +50,11 @@ print("Time steps around: " + str(int( (2*3.1415962)/(q_e*B/m_e*dt) )))
 print("Scaled radius: " +str(s_v*s_m/(s_q*s_B)))
 
 
-print("\n Input parameters: ")
+print("Input parameters: ")
 print("Simulation length X: ",s_L)
 print("Simulation length Y: ",s_L)
 print("Magnetic field: " ,s_B)
-print("Initial velocity: " ,s_V)
-print()
+print("Initial velocity: " ,s_v)
+print("Charge: " ,s_q)
+print("Mass: " ,s_m)
 
