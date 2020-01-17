@@ -86,7 +86,7 @@ void main_main()
 
     // Periodic
     amrex::Vector<int> is_periodic(AMREX_SPACEDIM,1);     
-    // Nodal indexing
+    // cell centered indexing
     amrex::IndexType typ({AMREX_D_DECL(0,0,0)});
 
 
@@ -169,7 +169,6 @@ for(amrex::MFIter mfi= P.MakeMFIter(0) ;mfi.isValid();++mfi){
     P.updateNeighbors();
 
     int id = amrex::ParallelDescriptor::MyProc();
-//    print_Particle_info(geom,P);
 
 
 for(int step=0; step<nsteps;step++){
@@ -215,7 +214,6 @@ for(int step=0; step<nsteps;step++){
 
 }
 
-std::cout << "SCALE: " <<sqrt(q*q/(m*geom.CellSize(X)*geom.CellSize(Y)*geom.CellSize(Z)*8)) << std::endl;
 
 
 }
