@@ -37,7 +37,7 @@ namespace strugepicInternal
     // Function to evaluate  piecewise compact polynominal over -2,2 consisting of 4 parts  
     template <class T,int Pdeg>
     inline T P4_eval(T x,const T* coeffs){
-            int start_idx = ( (int )(x+2))*(Pdeg+1);
+            int start_idx = ( (int )(x)+2)*(Pdeg+1);
             T sum =coeffs[start_idx];
             for(int i=1; i<(Pdeg+1);i++){
                 sum = coeffs[start_idx +i]+x*sum;
