@@ -153,28 +153,14 @@ std::pair<amrex::Real,amrex::Real> get_total_energy(const amrex::Geometry geom,C
             E_kin+=p.rdata(M)*0.5*( p.rdata(VX)*p.rdata(VX)+p.rdata(VY)*p.rdata(VY)+p.rdata(VZ)*p.rdata(VZ)  );
         }
     }
-    for (amrex::MFIter mfi(E); mfi.isValid(); ++mfi){
-        const amrex::Box& box = mfi.validbox();
-        amrex::FArrayBox& fab = E[mfi];
-        amrex::FArrayBox& fabB = B[mfi];
-        amrex::Array4<amrex::Real> const& E_loc = fab.array();
-        amrex::Array4<amrex::Real> const& B_loc = fabB.array(); 
 
-        const auto lo = amrex::lbound(box);
-        const auto hi = amrex::ubound(box);
-        for     (int k = lo.z; k <= hi.z; ++k) {
-            for   (int j = lo.y; j <= hi.y; ++j) {
-                for (int i = lo.x; i <= hi.x; ++i) { 
-                  E_field+=0.5*( E_loc(i,j,k,X)*E_loc(i,j,k,X)+E_loc(i,j,k,Y)*E_loc(i,j,k,Y)+E_loc(i,j,k,Z)*E_loc(i,j,k,Z));
-                  E_field+=0.5*( B_loc(i,j,k,X)*B_loc(i,j,k,X)+B_loc(i,j,k,Y)*B_loc(i,j,k,Y)+B_loc(i,j,k,Z)*B_loc(i,j,k,Z));
-                }
-            }
-        }
-
-    }
+    auto E_L2_norm=E.norm2({X,Y,Z});
+    auto B_L2_norm=B.norm2({X,Y,Z});
+    E_field+=E_L2_norm[X]*E_L2_norm[X]+E_L2_norm[Y]*E_L2_norm[Y]+E_L2_norm[Z]*E_L2_norm[Z];
+    E_field+=B_L2_norm[X]*B_L2_norm[X]+B_L2_norm[Y]*B_L2_norm[Y]+B_L2_norm[Z]*B_L2_norm[Z];
+    E_field*=0.5;
 
     amrex::ParallelAllReduce::Sum(E_kin,amrex::ParallelDescriptor::Communicator());
-    amrex::ParallelAllReduce::Sum(E_field,amrex::ParallelDescriptor::Communicator());
     return std::make_pair(E_field*geom.CellSize(X)*geom.CellSize(Y)*geom.CellSize(Z),E_kin);
 
 }
