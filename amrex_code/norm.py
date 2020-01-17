@@ -50,9 +50,11 @@ print("Time steps around: " + str(int( (2*3.1415962)/(q_e*B/m_e*dt) )))
 print("Scaled radius: " +str(s_v*s_m/(s_q*s_B)))
 
 
-print("Input parameters: ")
+print("\nInput parameters: ")
 print("Simulation length X: ",s_L)
 print("Simulation length Y: ",s_L)
+print("Time step: ",s_dt)
+print("Num time steps: ",int((2*3.1415962)/(s_q*s_B/s_m*s_dt)))
 print("Magnetic field: " ,s_B)
 print("Initial velocity: " ,s_v)
 print("Charge: " ,s_q)
