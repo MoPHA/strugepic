@@ -39,7 +39,7 @@ void init_E (const amrex::Geometry geom ,amrex::Box const& bx, amrex::Array4<amr
        for (int i = lo.x; i <= hi.x; ++i) { 
          a(i,j,k,0) = 0;
          a(i,j,k,1) = 0; 
-         a(i,j,k,2) = 0;//sin( 2*(geom.ProbLo(X) + i*geom.CellSize(X) +1)*3.1415962);
+         a(i,j,k,2) =sin( 2*((2.0*i)/(hi.x))*3.1415962);
        }
      }
    }
@@ -50,10 +50,10 @@ void init_B (const amrex::Geometry geom ,amrex::Box const& bx, amrex::Array4<amr
    const auto hi = amrex::ubound(bx);
    for     (int k = lo.z; k <= hi.z; ++k) {
      for   (int j = lo.y; j <= hi.y; ++j) {
-       for (int i = lo.x; i <= hi.x; ++i) { 
+       for (int i = lo.x; i <= hi.x; ++i) {
          a(i,j,k,0) = 0.0;
-         a(i,j,k,1) = 0.0;//sin( 2*(geom.ProbLo(X) + i*geom.CellSize(X) +1)*3.1415962);
-         a(i,j,k,2) = 353.9224976628251; 
+         a(i,j,k,1) =sin( 2*((2.0*i)/(hi.x))*3.1415962);
+         a(i,j,k,2) = 0.0; 
        }
      }
    }
@@ -74,9 +74,9 @@ void main_main()
 {
     // Simulation parameters,  these should be read from a file quite soon
     
-    const  int n_cell = 4;
-    int max_grid_size = 4;
-    int nsteps = 30000;
+    const  int n_cell = 64;
+    int max_grid_size = 64;
+    int nsteps = 400;
     double dt = 1.0;
     double q=-4.80320467059932e-11;
     double m=1.5453871347313696e-07;
@@ -85,13 +85,13 @@ void main_main()
     amrex::DistributionMapping::strategy(amrex::DistributionMapping::KNAPSACK);
 
     // Periodic
-    amrex::Vector<int> is_periodic(AMREX_SPACEDIM,1);     
+    amrex::Vector<int> is_periodic({0,1,1});     
     // cell centered indexing
     amrex::IndexType typ({AMREX_D_DECL(0,0,0)});
 
 
     amrex::IntVect dom_lo(AMREX_D_DECL(       0,        0,        0));
-    amrex::IntVect dom_hi(AMREX_D_DECL(n_cell-1, n_cell-1, 4-1));
+    amrex::IntVect dom_hi(AMREX_D_DECL(n_cell-1, 4-1, 4-1));
     amrex::Box domain(dom_lo, dom_hi,typ);
     amrex::BoxArray ba(domain);
 
@@ -101,7 +101,7 @@ void main_main()
 
     // This defines the physical box, [-1,1] in each direction.
     amrex::RealBox real_box({AMREX_D_DECL(0,0,0)},
-                     {AMREX_D_DECL(4,4,4)});
+                     {AMREX_D_DECL(64,4,4)});
 
     // This defines a Geometry object
     amrex::Geometry geom(domain,&real_box,amrex::CoordSys::cartesian,is_periodic.data());
@@ -141,6 +141,7 @@ void main_main()
 
     E.FillBoundary(geom.periodicity());
     B.FillBoundary(geom.periodicity());
+    FillDirichletBoundary(geom,B);
 
     
 for(amrex::MFIter mfi= P.MakeMFIter(0) ;mfi.isValid();++mfi){
@@ -152,7 +153,7 @@ for(amrex::MFIter mfi= P.MakeMFIter(0) ;mfi.isValid();++mfi){
     const auto lo = amrex::lbound(box);
     //const auto hi = amrex::ubound(box);
     if(mfi.index()==0){
-    add_single_particle(particles,{0.18194016191876186,0.01,0.01},{v,0,0},m,q);
+//    add_single_particle(particles,{0.18194016191876186,0.01,0.01},{v,0,0},m,q);
 //    add_single_particle(particles,{-0.9,-0.9,-0.9},{0.1,1,1},10,-1);
 //    add_single_particle(particles,{-0.95,-0.95,-0.95},{0.1,1,1},10,-1);
     }
@@ -169,7 +170,6 @@ for(amrex::MFIter mfi= P.MakeMFIter(0) ;mfi.isValid();++mfi){
     P.updateNeighbors();
 
     int id = amrex::ParallelDescriptor::MyProc();
-
 
 for(int step=0; step<nsteps;step++){
 
@@ -188,7 +188,7 @@ for(int step=0; step<nsteps;step++){
  //   auto P_sum_z =P_field[Z];
     amrex::Print() <<"ENERGY: "<<E_tot.first <<" "<< E_tot.second << std::endl;
   //  amrex::Print() <<"MOMENTUM:" << P_sum_x << " " << P_sum_y << " "<< P_sum_z << std::endl;
- /*   if(step % 1000 ==0){
+    if(step % 1 ==0){
 
     int n=step;
     amrex::Real time=step*dt;
@@ -198,7 +198,7 @@ for(int step=0; step<nsteps;step++){
     WriteSingleLevelPlotfile(pltfile_B, B, {"B_x","B_y","B_z"}, geom, time, n);
     P.WriteBinaryParticleData(amrex::Concatenate("plt",step,0),"Particle0",{1,1,1,1,1},{},{"Mass","Charge","VX","VY","VZ"},{});
     }
-*/
+
     G_Theta_E(geom,P,E,B,dt/2);
     G_Theta<X>(geom,P,E,B,dt/2);
     G_Theta<Y>(geom,P,E,B,dt/2);
