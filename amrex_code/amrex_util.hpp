@@ -10,7 +10,7 @@
 amrex::IntArray get_point_cell(const amrex::Geometry geom,const amrex::RealArray pos); 
 void add_single_particle( CParticleTile&particlet ,amrex::RealArray pos , amrex::RealArray vel, double m,double q);
 std::array<int,3> get_num_segments(const amrex::Geometry geom,const amrex::RealArray x_start,const amrex::RealArray  x_end);
-
+void FillDirichletBoundary(const amrex::Geometry geom, amrex::MultiFab &A );
 
 double wrapMax(double x, double max);
 double wrapMinMax(double x , double min ,double max);

@@ -1,4 +1,5 @@
 #include "AMReX_Array.H"
+#include "AMReX_CudaContainers.H"
 #include "AMReX_Geometry.H"
 #include "AMReX_ParallelDescriptor.H"
 #include "AMReX_ParallelReduce.H"
@@ -8,6 +9,42 @@
 #include <utility>
 #include <vector>
 #include "particle_defs.hpp"
+
+
+// Init external dirichle boundary condition
+
+// Either periodic or dirichle
+
+void FillDirichletBoundary(const amrex::Geometry geom, amrex::MultiFab &A){
+   
+   const auto domain=geom.Domain();
+   const auto lo = amrex::lbound(domain);
+   const auto hi = amrex::ubound(domain);
+   const auto periodic=geom.isPeriodic();
+    for (amrex::MFIter mfi(A); mfi.isValid(); ++mfi){
+        const amrex::Box& box = mfi.fabbox();
+        amrex::Array4<amrex::Real> const& a = A.array(mfi); 
+
+    amrex::ParallelFor(box,  [=] AMREX_GPU_DEVICE (int i,int j,int k ){
+            if(
+              (i < lo.x && !periodic[X] ) ||
+              (i > hi.x && !periodic[X] ) ||
+              (j < lo.y && !periodic[Y] ) ||
+              (j > hi.y && !periodic[Y] ) ||
+              (k < lo.z && !periodic[Z] ) ||
+              (k > hi.z && !periodic[Z] )  
+              ){
+
+                a(i,j,k,X)=0;
+                a(i,j,k,Y)=0;
+                a(i,j,k,Z)=0;
+
+            }
+         });
+
+    }
+}
+
 
 
 // What cell index is a given point in?
