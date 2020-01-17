@@ -1,5 +1,6 @@
 #include "AMReX_Array.H"
 #include "AMReX_Geometry.H"
+#include "AMReX_Loop.H"
 #include "particle_defs.hpp"
 #include "propagators.hpp"
 #include "amrex_util.hpp"
@@ -36,37 +37,24 @@
 
 
 void push_B_E(const amrex::Geometry geom, amrex::Box const& bx,  amrex::Array4<amrex::Real> const& B, amrex::Array4<amrex::Real const> const& E,double dt){
-   const auto lo = amrex::lbound(bx);
-   const auto hi = amrex::ubound(bx);
    const auto ics = geom.InvCellSize() ;
-   for     (int k = lo.z; k <= hi.z; ++k) {
-     for   (int j = lo.y; j <= hi.y; ++j) {
-       for (int i = lo.x; i <= hi.x; ++i) { 
-        auto curl = curl_cdiff_1(E,i,j,k,ics);
+   amrex::ParallelFor(bx,  [=] AMREX_GPU_DEVICE (int i,int j,int k ){
+         auto curl = curl_cdiff_1(E,i,j,k,ics);
          B(i,j,k,X) -=dt*curl[0];  
          B(i,j,k,Y) -=dt*curl[1];
          B(i,j,k,Z) -=dt*curl[2];
-       }
-     }
-   }
+         });
 
 }
 
 void push_E_B(const amrex::Geometry geom, amrex::Box const& bx,  amrex::Array4<amrex::Real> const& E, amrex::Array4<amrex::Real const> const& B,double dt){
-   const auto lo = amrex::lbound(bx);
-   const auto hi = amrex::ubound(bx);
    const auto ics = geom.InvCellSize() ;
-   for     (int k = lo.z; k <= hi.z; ++k) {
-     for   (int j = lo.y; j <= hi.y; ++j) {
-       for (int i = lo.x; i <= hi.x; ++i) { 
+   amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i,int j,int k ){
         auto curl = curl_cdiff_1(B,i,j,k,ics);
          E(i,j,k,X) +=dt*curl[0];  
          E(i,j,k,Y) +=dt*curl[1];
          E(i,j,k,Z) +=dt*curl[2];
-       }
-     }
-   }
-
+         });
 }
 
 
