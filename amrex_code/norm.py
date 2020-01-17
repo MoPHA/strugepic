@@ -2,9 +2,9 @@
 ## Length in X direction
 L=1.5e-4
 ## Number of cells in X direction
-N=64
+N=4
 ## Magnetic field strength
-B=0.55
+B=5
 ## Particle velocity
 v=6e6
 ## Particle density
@@ -37,9 +37,9 @@ mc_e= m_e*epc
 
 s_dx=1
 s_L=N
-s_dt=dt*c/dx
 s_B=B/(c*dx*mu0)
 s_v=v/c
+
 s_q=qc_e*c/(dx**3)
 s_m=mc_e*c**3*eps0/(dx**5)
 
