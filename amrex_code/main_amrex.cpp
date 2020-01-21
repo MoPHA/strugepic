@@ -36,8 +36,8 @@ void E_source(amrex::MultiFab &E,double t){
         amrex::Array4<amrex::Real> const& b = E.array(mfi); 
         const auto box= mfi.validbox();
    amrex::ParallelFor(box, [=] AMREX_GPU_DEVICE (int i,int j,int k ){
-           if(i == 384){
-            b(i,k,j,Y) =sin(2*3.14159265359*0.05*t);
+           if(i == 4){
+            b(i,k,j,Y) =0.39843845190000005*sin(0.011612033282038069*t);
             }
          });
     }
@@ -114,10 +114,10 @@ void main_main()
 {
     // Simulation parameters,  these should be read from a file quite soon
     
-    const  int n_cell = 512;
-    int max_grid_size = 512;
+    const  int n_cell = 1800;
+    int max_grid_size = 1800;
     int nsteps = 1000;
-    double dt = 0.5;
+    double dt = 1;
     double q=-4.80320467059932e-11;
     double m=1.5453871347313696e-07;
     double v=0.020013845711889123;
