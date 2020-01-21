@@ -52,8 +52,9 @@ void push_B_E(const amrex::Geometry geom, amrex::Box const& bx,  amrex::Array4<a
 
 void push_E_B(const amrex::Geometry geom, amrex::Box const& bx,  amrex::Array4<amrex::Real> const& E, amrex::Array4<amrex::Real const> const& B,double dt){
    const auto ics = geom.InvCellSize() ;
-   const auto lo = amrex::lbound(bx);
-   const auto hi = amrex::ubound(bx);
+   const auto domain =geom.Domain();
+   const auto lo = amrex::lbound(domain);
+   const auto hi = amrex::ubound(domain);
    amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i,int j,int k ){
          if( (i == lo.x || i==hi.x ) && !geom.isPeriodic(X) ){
          return;
