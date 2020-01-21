@@ -1,10 +1,12 @@
 ## Inputs in SI units
 ## Length in X direction
-L=1.5e-4
+L=4e-2
 ## Number of cells in X direction
-N=4
+N=1800
 ## Magnetic field strength
-B=5
+B=0.5
+## Electric field strength
+E=1e6
 ## Particle velocity
 v=6e6
 ## Particle density
@@ -24,6 +26,9 @@ eps0 = 8.85418782e-12
 ##
 mu0 = 1.25663706e-6
 
+## 
+E_omega=1.62*9.67e10
+
 ## Derived values
 ## s_ means simulation value
 
@@ -34,26 +39,26 @@ epc = n*dx**3
 qc_e= q_e*epc
 mc_e= m_e*epc
 
-
+s_dt=dt*c/dx
 s_dx=1
 s_L=N
 s_B=B/(c*dx*mu0)
+s_E=E*eps0/dx
 s_v=v/c
 
+s_l = (c/E_omega)/dx
+s_omega = dx*E_omega/c
 s_q=qc_e*c/(dx**3)
 s_m=mc_e*c**3*eps0/(dx**5)
-
-print("Real radius: " + str(v*m_e/(q_e*B)))
-print("Real omega: " +str(q_e*B/m_e))
-print("Time around: " + str( (2*3.1415962)/(q_e*B/m_e) ))
-print("Scaled time around: " + str( (2*3.1415962)/(q_e*B/m_e)*c/dx ) )
-print("Scaled radius: " +str(s_v*s_m/(s_q*s_B)))
 
 
 print("\nInput parameters: ")
 print("Simulation length X: ",s_L)
 print("Simulation length Y: ",s_L)
+print("Time step: " , s_dt)
 print("Magnetic field: " ,s_B)
+print("Electric field: " ,s_E)
+print("Wave freq: " ,s_omega)
 print("Initial velocity: " ,s_v)
 print("Charge: " ,s_q)
 print("Mass: " ,s_m)

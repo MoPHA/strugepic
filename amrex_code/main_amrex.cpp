@@ -16,6 +16,9 @@
 #include <AMReX_ParticleUtil.H>
 #include <AMReX_NeighborParticles.H>
 #include "AMReX_Array4.H"
+#include <AMReX_BC_TYPES.H>
+#include <AMReX_BCRec.H>
+#include <AMReX_BCUtil.H>
 
 
 // std c++
@@ -28,6 +31,17 @@
 
 void main_main();
 
+void E_source(amrex::MultiFab &E,double t){
+    for (amrex::MFIter mfi(E); mfi.isValid(); ++mfi){
+        amrex::Array4<amrex::Real> const& b = E.array(mfi); 
+        const auto box= mfi.validbox();
+   amrex::ParallelFor(box, [=] AMREX_GPU_DEVICE (int i,int j,int k ){
+           if(i == 384){
+            b(i,k,j,Y) =sin(2*3.14159265359*0.05*t);
+            }
+         });
+    }
+}
 
 
 void init_E (const amrex::Geometry geom ,amrex::Box const& bx, amrex::Array4<amrex::Real> const& a)
@@ -38,8 +52,8 @@ void init_E (const amrex::Geometry geom ,amrex::Box const& bx, amrex::Array4<amr
      for   (int j = lo.y; j <= hi.y; ++j) {
        for (int i = lo.x; i <= hi.x; ++i) { 
          a(i,j,k,0) = 0;
-         a(i,j,k,1) = 0; 
-         a(i,j,k,2) =sin( 2*((2.0*i)/(hi.x))*3.1415962);
+         a(i,j,k,1) = 0;//sin( 2*((8.0*i)/(hi.x))*3.14159265359); 
+         a(i,j,k,2) = 0; 
        }
      }
    }
@@ -50,15 +64,41 @@ void init_B (const amrex::Geometry geom ,amrex::Box const& bx, amrex::Array4<amr
    const auto hi = amrex::ubound(bx);
    for     (int k = lo.z; k <= hi.z; ++k) {
      for   (int j = lo.y; j <= hi.y; ++j) {
-       for (int i = lo.x; i <= hi.x; ++i) {
-         a(i,j,k,0) = 0.0;
-         a(i,j,k,1) =sin( 2*((2.0*i)/(hi.x))*3.1415962);
-         a(i,j,k,2) = 0.0; 
+       for (int i = lo.x; i <= hi.x; ++i) { 
+         a(i,j,k,0) = 0;
+         a(i,j,k,1) = 0;
+         a(i,j,k,2) = 0;//sin( 2*((8.0*i)/(hi.x))*3.14159265359); 
        }
      }
    }
 }
 
+void DebugPrint(const amrex::Geometry geom, amrex::MultiFab &A){
+   
+   const auto domain=geom.Domain();
+   const auto lo = amrex::lbound(domain);
+   const auto hi = amrex::ubound(domain);
+   const auto periodic=geom.isPeriodic();
+    for (amrex::MFIter mfi(A); mfi.isValid(); ++mfi){
+        const amrex::Box& box = mfi.fabbox();
+        amrex::Array4<amrex::Real> const& a = A.array(mfi); 
+
+    amrex::ParallelFor(box,  [=] AMREX_GPU_DEVICE (int i,int j,int k ){
+            if(
+              (i < lo.x && !periodic[X] ) ||
+              (i > hi.x && !periodic[X] ) ||
+              (j < lo.y && !periodic[Y] ) ||
+              (j > hi.y && !periodic[Y] ) ||
+              (k < lo.z && !periodic[Z] ) ||
+              (k > hi.z && !periodic[Z] )  
+              ){
+
+                std::cout << a(i,j,k,Y) << std::endl;
+            }
+         });
+
+    }
+}
 
 
 
@@ -74,10 +114,10 @@ void main_main()
 {
     // Simulation parameters,  these should be read from a file quite soon
     
-    const  int n_cell = 64;
-    int max_grid_size = 64;
-    int nsteps = 400;
-    double dt = 1.0;
+    const  int n_cell = 512;
+    int max_grid_size = 512;
+    int nsteps = 1000;
+    double dt = 0.5;
     double q=-4.80320467059932e-11;
     double m=1.5453871347313696e-07;
     double v=0.020013845711889123;
@@ -86,12 +126,16 @@ void main_main()
 
     // Periodic
     amrex::Vector<int> is_periodic({0,1,1});     
+
+
+    
     // cell centered indexing
+    // We acctually calculate as if the fields are centered at the nodes
     amrex::IndexType typ({AMREX_D_DECL(0,0,0)});
 
 
     amrex::IntVect dom_lo(AMREX_D_DECL(       0,        0,        0));
-    amrex::IntVect dom_hi(AMREX_D_DECL(n_cell-1, 4-1, 4-1));
+    amrex::IntVect dom_hi(AMREX_D_DECL(n_cell-1, 5-1, 5-1));
     amrex::Box domain(dom_lo, dom_hi,typ);
     amrex::BoxArray ba(domain);
 
@@ -101,7 +145,7 @@ void main_main()
 
     // This defines the physical box, [-1,1] in each direction.
     amrex::RealBox real_box({AMREX_D_DECL(0,0,0)},
-                     {AMREX_D_DECL(64,4,4)});
+                     {AMREX_D_DECL(n_cell,5,5)});
 
     // This defines a Geometry object
     amrex::Geometry geom(domain,&real_box,amrex::CoordSys::cartesian,is_periodic.data());
@@ -141,7 +185,7 @@ void main_main()
 
     E.FillBoundary(geom.periodicity());
     B.FillBoundary(geom.periodicity());
-    FillDirichletBoundary(geom,B);
+    FillDirichletBoundary(geom,E);
 
     
 for(amrex::MFIter mfi= P.MakeMFIter(0) ;mfi.isValid();++mfi){
@@ -169,10 +213,9 @@ for(amrex::MFIter mfi= P.MakeMFIter(0) ;mfi.isValid();++mfi){
     P.fillNeighbors();
     P.updateNeighbors();
 
-    int id = amrex::ParallelDescriptor::MyProc();
-
+   int id = amrex::ParallelDescriptor::MyProc();
 for(int step=0; step<nsteps;step++){
-
+   // wave_source(geom,E,B,step*dt);
 
     if(id == 0){
     
@@ -199,14 +242,17 @@ for(int step=0; step<nsteps;step++){
     P.WriteBinaryParticleData(amrex::Concatenate("plt",step,0),"Particle0",{1,1,1,1,1},{},{"Mass","Charge","VX","VY","VZ"},{});
     }
 
+    E_source(E,step*dt);
     G_Theta_E(geom,P,E,B,dt/2);
     G_Theta<X>(geom,P,E,B,dt/2);
     G_Theta<Y>(geom,P,E,B,dt/2);
     G_Theta<Z>(geom,P,E,B,dt/2);
+//    B_source(B,step*dt);
     G_Theta_B(geom,P,E,B,dt);
     G_Theta<Z>(geom,P,E,B,dt/2);
     G_Theta<Y>(geom,P,E,B,dt/2);
     G_Theta<X>(geom,P,E,B,dt/2);
+    E_source(E,(step+0.5)*dt);
     G_Theta_E(geom,P,E,B,dt/2);
     print_Particle_info(geom,P);
 

@@ -26,13 +26,13 @@ X, Y = np.meshgrid(X, Y)
 #    plt.savefig("E_y_field"+str(step).zfill(3)) 
 #    plt.close()
 
-for step in range(0,3000,5):
+for step in range(0,1000,1):
     B_filename = "plt_B" + str(step)
     E_filename = "plt_E" +str(step)
     dsB=yt.load(B_filename)
     dsE=yt.load(E_filename)
-    B=dsB.r[[-1,0,0]:[1,0,0]]
-    E=dsE.r[[-1,0,0]:[1,0,0]]
+    B=dsB.r[[0,2,2]:[512,2,2]]
+    E=dsE.r[[0,2,2]:[512,2,2]]
     #B=dsB.r[:,:,:]
     #E=dsE.r[:,:,:]
     Bx = B["B_x"]
@@ -44,10 +44,9 @@ for step in range(0,3000,5):
 
 
     fig, ax = plt.subplots()
- #   ax.plot(Bx)
-    ax.plot(By)
-    ax.plot(Ez-2.25)
-    ax.set_ylim([-3.25,1])
+    ax.plot(Bz)
+    ax.plot(Ey)
+    ax.set_ylim([-1,1])
  #   ax.set_title(str(val[i-1]))
     plt.savefig("B_pic"+str(step).zfill(3)) 
     plt.close()

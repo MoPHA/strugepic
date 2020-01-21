@@ -24,5 +24,5 @@ clean: co
 	rm -f *.o
 .PHONY: co
 co:	
-	rm -f plt_* -r
+	rm -f plt* -r
 	rm -f Backtrace*
