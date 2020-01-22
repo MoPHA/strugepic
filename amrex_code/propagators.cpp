@@ -41,8 +41,17 @@
 
 void push_B_E(const amrex::Geometry geom, amrex::Box const& bx,  amrex::Array4<amrex::Real> const& B, amrex::Array4<amrex::Real const> const& E,double dt){
    const auto ics = geom.InvCellSize() ;
+   const auto domain =geom.Domain();
+   const auto lo = amrex::lbound(domain);
+   const auto hi = amrex::ubound(domain);
    amrex::ParallelFor(bx,  [=] AMREX_GPU_DEVICE (int i,int j,int k ){
-         auto curl = curl_fdiff_1(E,i,j,k,ics);
+           std::array<double,3> curl;
+        if(i==hi.x){
+        curl = curl_bdiff_1(E,i,j,k,ics);
+        }
+        else{
+         curl = curl_fdiff_1(E,i,j,k,ics);
+         }
          B(i,j,k,X) -=dt*curl[0];  
          B(i,j,k,Y) -=dt*curl[1];
          B(i,j,k,Z) -=dt*curl[2];
