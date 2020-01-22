@@ -45,7 +45,7 @@ void push_B_E(const amrex::Geometry geom, amrex::Box const& bx,  amrex::Array4<a
    const auto lo = amrex::lbound(domain);
    const auto hi = amrex::ubound(domain);
    amrex::ParallelFor(bx,  [=] AMREX_GPU_DEVICE (int i,int j,int k ){
-           std::array<double,3> curl;
+        std::array<double,3> curl;
         if(i==hi.x){
         curl = curl_bdiff_1(E,i,j,k,ics);
         }
@@ -65,13 +65,12 @@ void push_E_B(const amrex::Geometry geom, amrex::Box const& bx,  amrex::Array4<a
    const auto lo = amrex::lbound(domain);
    const auto hi = amrex::ubound(domain);
    amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i,int j,int k ){
-         if( (i == lo.x || i==hi.x ) && !geom.isPeriodic(X) ){
-         return;
-         }
-        auto curl = curl_bdiff_1(B,i,j,k,ics);
+         if(!( (i == lo.x || i==hi.x ) && !geom.isPeriodic(X)) ){
+         auto curl = curl_bdiff_1(B,i,j,k,ics);
          E(i,j,k,X) +=dt*curl[0];  
          E(i,j,k,Y) +=dt*curl[1];
          E(i,j,k,Z) +=dt*curl[2];
+         }
          });
 }
 
