@@ -32,13 +32,24 @@
 
 void main_main();
 
-void E_source(amrex::MultiFab &E,double t){
+void E_source_hard(amrex::MultiFab &E,double t){
     for (amrex::MFIter mfi(E); mfi.isValid(); ++mfi){
         amrex::Array4<amrex::Real> const& b = E.array(mfi); 
         const auto box= mfi.validbox();
    amrex::ParallelFor(box, [=] AMREX_GPU_DEVICE (int i,int j,int k ){
-           if(i == 120 ){
-            b(i,k,j,Y) =0.39843845190000005*sin(2*3.14159265359*t/120);
+           if(i == 4 ){
+            b(i,k,j,Y) =sin(2*M_PI*t/240);
+            }
+         });
+    }
+}
+void E_source_soft(amrex::MultiFab &E,double t,double dt){
+    for (amrex::MFIter mfi(E); mfi.isValid(); ++mfi){
+        amrex::Array4<amrex::Real> const& b = E.array(mfi); 
+        const auto box= mfi.validbox();
+   amrex::ParallelFor(box, [=] AMREX_GPU_DEVICE (int i,int j,int k ){
+           if(i == 4 ){
+            b(i,k,j,Y) +=2*sin(2*M_PI*t/120)*dt;
             }
          });
     }
@@ -52,9 +63,11 @@ void init_E (const amrex::Geometry geom ,amrex::Box const& bx, amrex::Array4<amr
    for     (int k = lo.z; k <= hi.z; ++k) {
      for   (int j = lo.y; j <= hi.y; ++j) {
        for (int i = lo.x; i <= hi.x; ++i) { 
+        if(i > 199 &&i < 251){
          a(i,j,k,0) = 0;
-         a(i,j,k,1) = 0;//sin( 2*((2.0*i)/(hi.x))*3.14159265359); 
+         a(i,j,k,1) = 0.25*sin( 2*((1.0*i)/50)*M_PI); 
          a(i,j,k,2) = 0; 
+        }
        }
      }
    }
@@ -66,9 +79,11 @@ void init_B (const amrex::Geometry geom ,amrex::Box const& bx, amrex::Array4<amr
    for     (int k = lo.z; k <= hi.z; ++k) {
      for   (int j = lo.y; j <= hi.y; ++j) {
        for (int i = lo.x; i <= hi.x; ++i) { 
+        if(i > 199 &&i < 251){
          a(i,j,k,0) = 0;
          a(i,j,k,1) = 0;
-         a(i,j,k,2) = 0;//sin( 2*((8.0*i)/(hi.x))*3.14159265359); 
+         a(i,j,k,2) = -0.25*sin( 2*((1.0*i)/50)*M_PI); 
+        }
        }
      }
    }
@@ -115,10 +130,10 @@ void main_main()
 {
     // Simulation parameters,  these should be read from a file quite soon
     
-    const  int n_cell = 304;
-    int max_grid_size = 304;
-    int nsteps = 3000;
-    double dt = 0.7;
+    const  int n_cell = 300;
+    int max_grid_size = 300;
+    int nsteps = 1000;
+    double dt = 0.5;
     double q=-4.80320467059932e-11;
     double m=1.5453871347313696e-07;
     double v=0.020013845711889123;
@@ -160,10 +175,6 @@ void main_main()
   
     amrex::MultiFab E(ba,dm,Ncomp,Nghost);
     amrex::MultiFab B(ba,dm,Ncomp,Nghost);
-    double* dataB= (double*)  malloc(2*5*3*5*sizeof(double));
-    double* dataE= (double*)  malloc(2*5*3*5*sizeof(double));
-    auto B_b_old=amrex::Array4<double>(dataB,{0,0,0},{n_cell,2,2},3);
-    auto E_b_old=amrex::Array4<double>(dataE,{0,0,0},{n_cell,2,2},3);
 
 
     CParticleContainer P(geom,dm,ba,3);
@@ -241,18 +252,16 @@ for(int step=0; step<nsteps;step++){
     P.WriteBinaryParticleData(amrex::Concatenate("plt_P",step,0),"Particle0",{1,1,1,1,1},{},{"Mass","Charge","VX","VY","VZ"},{});
     }
 
-   E_source(E,step*dt);
-   E.FillBoundary(geom.periodicity());
     G_Theta_E(geom,P,E,B,dt/2);
     G_Theta<X>(geom,P,E,B,dt/2);
     G_Theta<Y>(geom,P,E,B,dt/2);
     G_Theta<Z>(geom,P,E,B,dt/2);
+    E_source_soft(E,(step)*dt,dt);
+    E.FillBoundary(geom.periodicity());
     G_Theta_B(geom,P,E,B,dt);
     G_Theta<Z>(geom,P,E,B,dt/2);
     G_Theta<Y>(geom,P,E,B,dt/2);
     G_Theta<X>(geom,P,E,B,dt/2);
-   E_source(E,(step+0.5)*dt);
-   E.FillBoundary(geom.periodicity());
     G_Theta_E(geom,P,E,B,dt/2);
     print_Particle_info(geom,P);
 
@@ -260,8 +269,6 @@ for(int step=0; step<nsteps;step++){
 
 }
 
-free(dataB);
-free(dataE);
 
 }
 
