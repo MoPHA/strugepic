@@ -23,6 +23,7 @@
 
 // std c++
 #include <iostream>
+#include <malloc.h>
 // Own
 #include "amrex_util.hpp"
 #include "propagators.hpp"
@@ -36,8 +37,8 @@ void E_source(amrex::MultiFab &E,double t){
         amrex::Array4<amrex::Real> const& b = E.array(mfi); 
         const auto box= mfi.validbox();
    amrex::ParallelFor(box, [=] AMREX_GPU_DEVICE (int i,int j,int k ){
-           if(i == 4){
-            b(i,k,j,Y) =0.39843845190000005*sin(0.011612033282038069*t);
+           if(i == 120 ){
+            b(i,k,j,Y) =0.39843845190000005*sin(2*3.14159265359*t/120);
             }
          });
     }
@@ -52,7 +53,7 @@ void init_E (const amrex::Geometry geom ,amrex::Box const& bx, amrex::Array4<amr
      for   (int j = lo.y; j <= hi.y; ++j) {
        for (int i = lo.x; i <= hi.x; ++i) { 
          a(i,j,k,0) = 0;
-         a(i,j,k,1) = 0;//sin( 2*((8.0*i)/(hi.x))*3.14159265359); 
+         a(i,j,k,1) = 0;//sin( 2*((2.0*i)/(hi.x))*3.14159265359); 
          a(i,j,k,2) = 0; 
        }
      }
@@ -114,10 +115,10 @@ void main_main()
 {
     // Simulation parameters,  these should be read from a file quite soon
     
-    const  int n_cell = 1800;
-    int max_grid_size = 1800;
-    int nsteps = 1000;
-    double dt = 1;
+    const  int n_cell = 304;
+    int max_grid_size = 304;
+    int nsteps = 3000;
+    double dt = 0.7;
     double q=-4.80320467059932e-11;
     double m=1.5453871347313696e-07;
     double v=0.020013845711889123;
@@ -159,6 +160,12 @@ void main_main()
   
     amrex::MultiFab E(ba,dm,Ncomp,Nghost);
     amrex::MultiFab B(ba,dm,Ncomp,Nghost);
+    double* dataB= (double*)  malloc(2*5*3*5*sizeof(double));
+    double* dataE= (double*)  malloc(2*5*3*5*sizeof(double));
+    auto B_b_old=amrex::Array4<double>(dataB,{0,0,0},{n_cell,2,2},3);
+    auto E_b_old=amrex::Array4<double>(dataE,{0,0,0},{n_cell,2,2},3);
+
+
     CParticleContainer P(geom,dm,ba,3);
 
     for (amrex::MFIter mfi(E); mfi.isValid(); ++mfi) // Loop over grids
@@ -185,7 +192,6 @@ void main_main()
 
     E.FillBoundary(geom.periodicity());
     B.FillBoundary(geom.periodicity());
-    FillDirichletBoundary(geom,E);
 
     
 for(amrex::MFIter mfi= P.MakeMFIter(0) ;mfi.isValid();++mfi){
@@ -223,14 +229,7 @@ for(int step=0; step<nsteps;step++){
     } 
 
     auto E_tot = get_total_energy(geom,P,E,B); 
- //   auto P_tot = get_total_momentum(geom,P,E,B);
- //   auto P_part = P_tot.second;
- //   auto P_field= P_tot.first;
- //   auto P_sum_x =P_field[X];
- //   auto P_sum_y =P_field[Y];
- //   auto P_sum_z =P_field[Z];
     amrex::Print() <<"ENERGY: "<<E_tot.first <<" "<< E_tot.second << std::endl;
-  //  amrex::Print() <<"MOMENTUM:" << P_sum_x << " " << P_sum_y << " "<< P_sum_z << std::endl;
     if(step % 1 ==0){
 
     int n=step;
@@ -239,20 +238,21 @@ for(int step=0; step<nsteps;step++){
     WriteSingleLevelPlotfile(pltfile_E, E, {"E_x","E_y","E_z"}, geom, time, n);
     const std::string& pltfile_B = amrex::Concatenate("plt_B",n,0);
     WriteSingleLevelPlotfile(pltfile_B, B, {"B_x","B_y","B_z"}, geom, time, n);
-    P.WriteBinaryParticleData(amrex::Concatenate("plt",step,0),"Particle0",{1,1,1,1,1},{},{"Mass","Charge","VX","VY","VZ"},{});
+    P.WriteBinaryParticleData(amrex::Concatenate("plt_P",step,0),"Particle0",{1,1,1,1,1},{},{"Mass","Charge","VX","VY","VZ"},{});
     }
 
-    E_source(E,step*dt);
+   E_source(E,step*dt);
+   E.FillBoundary(geom.periodicity());
     G_Theta_E(geom,P,E,B,dt/2);
     G_Theta<X>(geom,P,E,B,dt/2);
     G_Theta<Y>(geom,P,E,B,dt/2);
     G_Theta<Z>(geom,P,E,B,dt/2);
-//    B_source(B,step*dt);
     G_Theta_B(geom,P,E,B,dt);
     G_Theta<Z>(geom,P,E,B,dt/2);
     G_Theta<Y>(geom,P,E,B,dt/2);
     G_Theta<X>(geom,P,E,B,dt/2);
-    E_source(E,(step+0.5)*dt);
+   E_source(E,(step+0.5)*dt);
+   E.FillBoundary(geom.periodicity());
     G_Theta_E(geom,P,E,B,dt/2);
     print_Particle_info(geom,P);
 
@@ -260,7 +260,8 @@ for(int step=0; step<nsteps;step++){
 
 }
 
-
+free(dataB);
+free(dataE);
 
 }
 

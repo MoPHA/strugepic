@@ -26,7 +26,7 @@ X, Y = np.meshgrid(X, Y)
 #    plt.savefig("E_y_field"+str(step).zfill(3)) 
 #    plt.close()
 
-for step in range(0,1000,1):
+for step in range(0,1200,10):
     B_filename = "plt_B" + str(step)
     E_filename = "plt_E" +str(step)
     dsB=yt.load(B_filename)

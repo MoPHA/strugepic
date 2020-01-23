@@ -1,12 +1,10 @@
 #include "AMReX_Array.H"
 #include "AMReX_Geometry.H"
 #include "AMReX_Loop.H"
+#include "AMReX_MultiFab.H"
 #include "particle_defs.hpp"
 #include "propagators.hpp"
 #include "amrex_util.hpp"
-
-
-// Testing another thing 
 
 
 
@@ -45,17 +43,24 @@ void push_B_E(const amrex::Geometry geom, amrex::Box const& bx,  amrex::Array4<a
    const auto lo = amrex::lbound(domain);
    const auto hi = amrex::ubound(domain);
    amrex::ParallelFor(bx,  [=] AMREX_GPU_DEVICE (int i,int j,int k ){
-        std::array<double,3> curl;
-        if(i==hi.x){
-        curl = curl_bdiff_1(E,i,j,k,ics);
-        }
-        else{
-         curl = curl_fdiff_1(E,i,j,k,ics);
+         if(!( (i == lo.x || i==hi.x ) && !geom.isPeriodic(X)) ){
+         double B_old =0;
+         if(i == lo.x+1 || i==hi.x-1){
+           B_old=B(i,j,k,Z); 
          }
+         auto curl = curl_fdiff_1(E,i,j,k,ics);
          B(i,j,k,X) -=dt*curl[0];  
          B(i,j,k,Y) -=dt*curl[1];
          B(i,j,k,Z) -=dt*curl[2];
-         });
+
+         if(i== lo.x+1){
+         B(i-1,j,k,Z) = (1-dt)*B(i-1,j,k,Z)+B_old*dt;
+         }
+         else if( i== hi.x-1){
+         B(i+1,j,k,Z) = (1-dt)*B(i+1,j,k,Z)+B_old*dt;
+         }
+         }
+   });
 
 }
 
@@ -67,10 +72,20 @@ void push_E_B(const amrex::Geometry geom, amrex::Box const& bx,  amrex::Array4<a
    amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i,int j,int k ){
          if(!( (i == lo.x || i==hi.x ) && !geom.isPeriodic(X)) ){
          auto curl = curl_bdiff_1(B,i,j,k,ics);
+         double E_old=0;
+         if( i== lo.x+1 || i== hi.x -1){
+            E_old = E(i,j,k,Y);
+         }
          E(i,j,k,X) +=dt*curl[0];  
          E(i,j,k,Y) +=dt*curl[1];
          E(i,j,k,Z) +=dt*curl[2];
+         if(i== lo.x+1){
+         E(i-1,j,k,Y) = (1-dt)*E(i-1,j,k,Y)+E_old*dt;
          }
+         else if( i== hi.x-1){
+         E(i+1,j,k,Y) = (1-dt)*E(i+1,j,k,Y)+E_old*dt;
+         }
+        } 
          });
 }
 
