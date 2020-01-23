@@ -119,7 +119,7 @@ void main_main()
     double omega = 2*M_PI/120;
     double source_pos=4;
     
-    auto Es = E_source(source_pos,omega,dt);
+    auto Es = E_source(source_pos,Y,omega,dt);
 
     // Do a quite even load balancing
     amrex::DistributionMapping::strategy(amrex::DistributionMapping::KNAPSACK);

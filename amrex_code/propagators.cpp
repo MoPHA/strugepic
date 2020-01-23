@@ -8,10 +8,12 @@
 
 
 // Soft sine plane wave source in x-direction
-E_source::E_source(int pos,double omega ,double dt) : 
+E_source::E_source(int pos,int comp,double omega ,double dt) : 
      dt(dt),
      omega(omega),
-     pos(pos){ }
+     comp(comp),
+     pos(pos)
+     {}
 // Why sin and factor two ?? and not derivative
 void E_source::operator()(amrex::Geometry geom, amrex::MultiFab &E,double t){ 
     for (amrex::MFIter mfi(E); mfi.isValid(); ++mfi){
@@ -19,7 +21,7 @@ void E_source::operator()(amrex::Geometry geom, amrex::MultiFab &E,double t){
         const auto box= mfi.validbox();
         amrex::ParallelFor(box, [=] AMREX_GPU_DEVICE (int i,int j,int k ){
             if(i == pos ){
-                b(i,k,j,Y) +=2*sin(omega*t)*dt;
+                b(i,k,j,comp) +=2*sin(omega*t)*dt;
             }
         });
     }
@@ -80,9 +82,13 @@ void push_B_E(const amrex::Geometry geom, amrex::Box const& bx,  amrex::Array4<a
    if (!geom.isPeriodic(X)){
    amrex::ParallelFor(bx,  [=] AMREX_GPU_DEVICE (int i,int j,int k ){
          if(!( (i == lo.x || i==hi.x ) ) ){
-         double B_old =0;
+         double B_old_x =0;
+         double B_old_y =0;
+         double B_old_z =0;
          if(i == lo.x+1 || i==hi.x-1){
-           B_old=B(i,j,k,Z); 
+           B_old_x=B(i,j,k,X); 
+           B_old_y=B(i,j,k,Y); 
+           B_old_z=B(i,j,k,Z); 
          }
          auto curl = curl_fdiff_1(E,i,j,k,ics);
          B(i,j,k,X) -=dt*curl[0];  
@@ -90,10 +96,14 @@ void push_B_E(const amrex::Geometry geom, amrex::Box const& bx,  amrex::Array4<a
          B(i,j,k,Z) -=dt*curl[2];
 
          if(i== lo.x+1){
-         B(i-1,j,k,Z) = (1-dt)*B(i-1,j,k,Z)+B_old*dt;
+         B(i-1,j,k,X) = (1-dt)*B(i-1,j,k,X)+B_old_x*dt;
+         B(i-1,j,k,Y) = (1-dt)*B(i-1,j,k,Y)+B_old_y*dt;
+         B(i-1,j,k,Z) = (1-dt)*B(i-1,j,k,Z)+B_old_z*dt;
          }
          else if( i== hi.x-1){
-         B(i+1,j,k,Z) = (1-dt)*B(i+1,j,k,Z)+B_old*dt;
+         B(i+1,j,k,X) = (1-dt)*B(i+1,j,k,X)+B_old_x*dt;
+         B(i+1,j,k,Y) = (1-dt)*B(i+1,j,k,Y)+B_old_y*dt;
+         B(i+1,j,k,Z) = (1-dt)*B(i+1,j,k,Z)+B_old_z*dt;
          }
          }
    });
@@ -117,18 +127,26 @@ void push_E_B(const amrex::Geometry geom, amrex::Box const& bx,  amrex::Array4<a
    amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i,int j,int k ){
          if(!( (i == lo.x || i==hi.x ) && !geom.isPeriodic(X)) ){
          auto curl = curl_bdiff_1(B,i,j,k,ics);
-         double E_old=0;
+         double E_old_x=0;
+         double E_old_y=0;
+         double E_old_z=0;
          if( i== lo.x+1 || i== hi.x -1){
-            E_old = E(i,j,k,Y);
+            E_old_x = E(i,j,k,X);
+            E_old_y = E(i,j,k,Y);
+            E_old_z = E(i,j,k,Z);
          }
          E(i,j,k,X) +=dt*curl[0];  
          E(i,j,k,Y) +=dt*curl[1];
          E(i,j,k,Z) +=dt*curl[2];
          if(i== lo.x+1){
-         E(i-1,j,k,Y) = (1-dt)*E(i-1,j,k,Y)+E_old*dt;
+         E(i-1,j,k,X) = (1-dt)*E(i-1,j,k,X)+E_old_x*dt;
+         E(i-1,j,k,Y) = (1-dt)*E(i-1,j,k,Y)+E_old_y*dt;
+         E(i-1,j,k,Z) = (1-dt)*E(i-1,j,k,Z)+E_old_z*dt;
          }
          else if( i== hi.x-1){
-         E(i+1,j,k,Y) = (1-dt)*E(i+1,j,k,Y)+E_old*dt;
+         E(i+1,j,k,X) = (1-dt)*E(i+1,j,k,X)+E_old_x*dt;
+         E(i+1,j,k,Y) = (1-dt)*E(i+1,j,k,Y)+E_old_y*dt;
+         E(i+1,j,k,Z) = (1-dt)*E(i+1,j,k,Z)+E_old_z*dt;
          }
         } 
          });
