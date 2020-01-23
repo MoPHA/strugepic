@@ -5,6 +5,23 @@
 #include "particle_defs.hpp"
 #include "amrex_util.hpp"
 
+
+
+class E_source
+{
+    public:
+        E_source(int pos,double omega ,double dt); 
+        void operator()(amrex::Geometry geom, amrex::MultiFab &E,double t);
+    private:
+        const double dt;
+        const double omega;
+        const int pos;
+};
+
+
+
+
+
 // These are All local update functions, I.e they operate only on local data 
 
 void push_B_E(const amrex::Geometry geom, amrex::Box const& bx,  amrex::Array4<amrex::Real> const& B, amrex::Array4<amrex::Real const> const& E,double dt);

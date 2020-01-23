@@ -7,6 +7,41 @@
 #include "amrex_util.hpp"
 
 
+// Soft sine plane wave source in x-direction
+E_source::E_source(int pos,double omega ,double dt) : 
+     dt(dt),
+     omega(omega),
+     pos(pos){ }
+// Why sin and factor two ?? and not derivative
+void E_source::operator()(amrex::Geometry geom, amrex::MultiFab &E,double t){ 
+    for (amrex::MFIter mfi(E); mfi.isValid(); ++mfi){
+        amrex::Array4<amrex::Real> const& b = E.array(mfi); 
+        const auto box= mfi.validbox();
+        amrex::ParallelFor(box, [=] AMREX_GPU_DEVICE (int i,int j,int k ){
+            if(i == pos ){
+                b(i,k,j,Y) +=2*sin(omega*t)*dt;
+            }
+        });
+    }
+    E.FillBoundary(geom.periodicity());
+ }
+
+
+// Compact hard source sin(wt)
+// Keept here for debugging purpouse
+void E_source_hard(amrex::Geometry geom,amrex::MultiFab &E,int pos,double omega,double t){
+    for (amrex::MFIter mfi(E); mfi.isValid(); ++mfi){
+        amrex::Array4<amrex::Real> const& b = E.array(mfi); 
+        const auto box= mfi.validbox();
+   amrex::ParallelFor(box, [=] AMREX_GPU_DEVICE (int i,int j,int k ){
+           if(i == pos ){
+            b(i,k,j,Y) =sin(omega*t);
+            }
+         });
+    }
+    E.FillBoundary(geom.periodicity());
+}
+
 
 // Central difference first order
  std::array<amrex::Real,3> curl_cdiff_1(amrex::Array4<amrex::Real const> const& a ,int i , int j ,int k, const double* ics){

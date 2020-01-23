@@ -32,29 +32,6 @@
 
 void main_main();
 
-void E_source_hard(amrex::MultiFab &E,double t){
-    for (amrex::MFIter mfi(E); mfi.isValid(); ++mfi){
-        amrex::Array4<amrex::Real> const& b = E.array(mfi); 
-        const auto box= mfi.validbox();
-   amrex::ParallelFor(box, [=] AMREX_GPU_DEVICE (int i,int j,int k ){
-           if(i == 4 ){
-            b(i,k,j,Y) =sin(2*M_PI*t/240);
-            }
-         });
-    }
-}
-void E_source_soft(amrex::MultiFab &E,double t,double dt){
-    for (amrex::MFIter mfi(E); mfi.isValid(); ++mfi){
-        amrex::Array4<amrex::Real> const& b = E.array(mfi); 
-        const auto box= mfi.validbox();
-   amrex::ParallelFor(box, [=] AMREX_GPU_DEVICE (int i,int j,int k ){
-           if(i == 4 ){
-            b(i,k,j,Y) +=2*sin(2*M_PI*t/120)*dt;
-            }
-         });
-    }
-}
-
 
 void init_E (const amrex::Geometry geom ,amrex::Box const& bx, amrex::Array4<amrex::Real> const& a)
 {
@@ -137,6 +114,13 @@ void main_main()
     double q=-4.80320467059932e-11;
     double m=1.5453871347313696e-07;
     double v=0.020013845711889123;
+    
+   
+    double omega = 2*M_PI/120;
+    double source_pos=4;
+    
+    auto Es = E_source(source_pos,omega,dt);
+
     // Do a quite even load balancing
     amrex::DistributionMapping::strategy(amrex::DistributionMapping::KNAPSACK);
 
@@ -241,7 +225,7 @@ for(int step=0; step<nsteps;step++){
 
     auto E_tot = get_total_energy(geom,P,E,B); 
     amrex::Print() <<"ENERGY: "<<E_tot.first <<" "<< E_tot.second << std::endl;
-    if(step % 1 ==0){
+    if(step % 10 ==0){
 
     int n=step;
     amrex::Real time=step*dt;
@@ -256,8 +240,7 @@ for(int step=0; step<nsteps;step++){
     G_Theta<X>(geom,P,E,B,dt/2);
     G_Theta<Y>(geom,P,E,B,dt/2);
     G_Theta<Z>(geom,P,E,B,dt/2);
-    E_source_soft(E,(step)*dt,dt);
-    E.FillBoundary(geom.periodicity());
+    Es(geom,E,step*dt);
     G_Theta_B(geom,P,E,B,dt);
     G_Theta<Z>(geom,P,E,B,dt/2);
     G_Theta<Y>(geom,P,E,B,dt/2);
