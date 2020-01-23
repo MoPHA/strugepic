@@ -15,7 +15,7 @@
 
 // Either periodic or dirichle
 
-void FillDirichletBoundary(const amrex::Geometry geom, amrex::MultiFab &A){
+void FillDirichletBoundary(const amrex::Geometry geom, amrex::MultiFab &A,const amrex::Real b_val){
    
    const auto domain=geom.Domain();
    const auto lo = amrex::lbound(domain);
@@ -35,15 +35,16 @@ void FillDirichletBoundary(const amrex::Geometry geom, amrex::MultiFab &A){
               (k > hi.z && !periodic[Z] )  
               ){
 
-                a(i,j,k,X)=0;
-                a(i,j,k,Y)=0;
-                a(i,j,k,Z)=0;
+                a(i,j,k,X)=b_val;
+                a(i,j,k,Y)=b_val;
+                a(i,j,k,Z)=b_val;
 
             }
          });
 
     }
 }
+
 
 
 
