@@ -42,8 +42,9 @@ void push_B_E(const amrex::Geometry geom, amrex::Box const& bx,  amrex::Array4<a
    const auto domain =geom.Domain();
    const auto lo = amrex::lbound(domain);
    const auto hi = amrex::ubound(domain);
+   if (!geom.isPeriodic(X)){
    amrex::ParallelFor(bx,  [=] AMREX_GPU_DEVICE (int i,int j,int k ){
-         if(!( (i == lo.x || i==hi.x ) && !geom.isPeriodic(X)) ){
+         if(!( (i == lo.x || i==hi.x ) ) ){
          double B_old =0;
          if(i == lo.x+1 || i==hi.x-1){
            B_old=B(i,j,k,Z); 
@@ -61,7 +62,15 @@ void push_B_E(const amrex::Geometry geom, amrex::Box const& bx,  amrex::Array4<a
          }
          }
    });
-
+   }
+   else{
+   amrex::ParallelFor(bx,  [=] AMREX_GPU_DEVICE (int i,int j,int k ){
+         auto curl = curl_fdiff_1(E,i,j,k,ics);
+         B(i,j,k,X) -=dt*curl[0];  
+         B(i,j,k,Y) -=dt*curl[1];
+         B(i,j,k,Z) -=dt*curl[2];
+   });
+   }
 }
 
 void push_E_B(const amrex::Geometry geom, amrex::Box const& bx,  amrex::Array4<amrex::Real> const& E, amrex::Array4<amrex::Real const> const& B,double dt){
@@ -69,6 +78,7 @@ void push_E_B(const amrex::Geometry geom, amrex::Box const& bx,  amrex::Array4<a
    const auto domain =geom.Domain();
    const auto lo = amrex::lbound(domain);
    const auto hi = amrex::ubound(domain);
+   if (!geom.isPeriodic(X)){
    amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i,int j,int k ){
          if(!( (i == lo.x || i==hi.x ) && !geom.isPeriodic(X)) ){
          auto curl = curl_bdiff_1(B,i,j,k,ics);
@@ -87,6 +97,16 @@ void push_E_B(const amrex::Geometry geom, amrex::Box const& bx,  amrex::Array4<a
          }
         } 
          });
+   }
+   else{
+   amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i,int j,int k ){
+         auto curl = curl_bdiff_1(B,i,j,k,ics);
+         E(i,j,k,X) +=dt*curl[0];  
+         E(i,j,k,Y) +=dt*curl[1];
+         E(i,j,k,Z) +=dt*curl[2];
+         });
+
+   }
 }
 
 
