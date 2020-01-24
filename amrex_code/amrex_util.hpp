@@ -37,6 +37,18 @@ int get_num_segments(const amrex::Geometry geom, amrex::Real x_start,amrex::Real
 }
 
 
+template<int comp> 
+std::pair<amrex::Real,int> reflect_boundary(const amrex::Geometry geom,amrex::Real pos ){
+    if(pos < geom.ProbLo(comp) +PART_BOUND*geom.CellSize(comp)){
+            return {-pos + 2*(geom.ProbLo(comp) + PART_BOUND*geom.CellSize(comp) ),-1}; 
+    }else if(pos > geom.ProbHi(comp) - PART_BOUND*geom.CellSize(comp) )
+    {
+            return {-pos + 2*(geom.ProbHi(comp) - PART_BOUND*geom.CellSize(comp) ),-1};
+    }
+    else{
+        return {pos,1}; 
+    }
+}
 
 
 
@@ -49,14 +61,10 @@ std::vector<std::tuple<amrex::Real,amrex::Real,int>> get_segment_list(const amre
     const auto cellsize=geom.CellSize(comp);
     const auto problo = geom.ProbLo(comp);
     const auto probhi = geom.ProbHi(comp);
-    // Periodic index
-    const int index_mod = geom.Domain().hiVect()[comp]+1;
     const auto num_segments = get_num_segments<comp>(geom,x_start,x_end);
-    
-
-     double segment_start = x_start;
-     double segment_end;
-     int segment_index=get_point_line<comp>(geom,segment_start);
+    double segment_start = x_start;
+    double segment_end;
+    int segment_index=get_point_line<comp>(geom,segment_start);
         int sig;
     if(x_start > x_end ){
         sig=-1; 
@@ -71,6 +79,11 @@ std::vector<std::tuple<amrex::Real,amrex::Real,int>> get_segment_list(const amre
             segment_index =segment_index+sig;//(((segment_index +sig) % index_mod) +index_mod) %index_mod ;
         
             segment_start=(segment_index -((sig-1))/2)*cellsize+problo;
+            if(!geom.isPeriodic(comp) && ((segment_index == geom.Domain().smallEnd(comp)+PART_BOUND ) || (segment_index == geom.Domain().bigEnd(comp)-PART_BOUND) )){
+              auto res=reflect_boundary<comp>(geom,x_end);
+              x_end=res.first;
+              sig*=-1;
+            }
 
     }
 

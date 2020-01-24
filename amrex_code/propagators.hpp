@@ -109,10 +109,17 @@ void push_E_pos(const CParticles&local_particles,const CNParticles&neighbour_par
 }
 
 template<int comp>
-void push_pos_pos(CParticleContainer&p_container ,CParticles&local_particles,double dt){
+void push_pos_pos(CParticleContainer&p_container ,CParticles&local_particles,const amrex::Geometry geom,double dt){
         for(auto &p: local_particles){
+            if(!geom.isPeriodic(comp)){
+                auto res = reflect_boundary<comp>(geom,p.pos(comp)+dt*p.rdata(2+comp));
+                p.pos(comp) =res.first;
+                p.rdata(comp+2)*=res.second;   
+            }
+            else{
             p.pos(comp)+=dt*p.rdata(2+comp);
             p_container.Reset(p,true);
+            }
         }
 }
 
@@ -177,10 +184,10 @@ void push_B_pos(CParticles&particles, const amrex::Geometry geom, const amrex::A
 template <int coord>
 void Theta(CParticleContainer&ParticleC, CParticles&local_particles,const CNParticles&neighbour_particles, const amrex::Geometry geom,amrex::Array4<amrex::Real> const& E, amrex::Array4<amrex::Real> const& B ,double dt)
 {
-    push_E_pos<coord>(local_particles,neighbour_particles,geom,E,dt);
+    //push_E_pos<coord>(local_particles,neighbour_particles,geom,E,dt);
     if(local_particles.numParticles() >0){
-    push_B_pos<coord>(local_particles,geom,B,dt);
-    push_pos_pos<coord>(ParticleC,local_particles,dt);
+    //push_B_pos<coord>(local_particles,geom,B,dt);
+    push_pos_pos<coord>(ParticleC,local_particles,geom,dt);
     }
 }
 
