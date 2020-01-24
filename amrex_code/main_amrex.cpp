@@ -6,7 +6,6 @@
 #include <AMReX_RealBox.H>
 #include <AMReX_CoordSys.H>
 #include <AMReX_MultiFab.H>
-#include <AMReX_DistributionMapping.H>
 #include <AMReX_PlotFileUtil.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_ParmParse.H>
@@ -19,6 +18,7 @@
 #include <AMReX_BC_TYPES.H>
 #include <AMReX_BCRec.H>
 #include <AMReX_BCUtil.H>
+#include <AMReX_DistributionMapping.H>
 
 
 // std c++
@@ -78,7 +78,7 @@ void main_main()
     // Simulation parameters,  these should be read from a file quite soon
     
     const  int n_cell = 1800;
-    int max_grid_size = 1800;
+    int max_grid_size = 180;
     int nsteps = 1;
     double dt = 0.5;
     double q=-4376;
@@ -121,7 +121,11 @@ void main_main()
     amrex::Geometry geom(domain,&real_box,amrex::CoordSys::cartesian,is_periodic.data());
     // How Boxes are distrubuted among MPI processes
     amrex::DistributionMapping dm(ba);
+    std::vector<long int> B_weights(ba.boxList().size());
+    set_weights(geom,ba,B_weights,bernstein_density);
 
+    dm.SFCProcessorMap(ba,B_weights,5);
+    dm.KnapSackProcessorMap(B_weights,5);
     int Nghost = 2;
     
     // Ncomp = number of components for each array
@@ -158,8 +162,10 @@ void main_main()
     E.FillBoundary(geom.periodicity());
     B.FillBoundary(geom.periodicity());
   //  add_particle_one_per_cell(geom,P,m,q);
-    add_particle_density(geom,P,bernstein_density,60,219478,m,q);
-    
+  //  add_particle_density(geom,P,bernstein_density,60,219478,m,q);
+   
+    // Just to avoid segfaults
+    P.fillNeighbors();
 
 
    int id = amrex::ParallelDescriptor::MyProc();

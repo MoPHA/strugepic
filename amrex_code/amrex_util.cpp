@@ -1,4 +1,6 @@
 #include "AMReX_Array.H"
+#include "AMReX_Box.H"
+#include "AMReX_BoxArray.H"
 #include "AMReX_CudaContainers.H"
 #include "AMReX_Geometry.H"
 #include "AMReX_ParallelDescriptor.H"
@@ -116,10 +118,29 @@ double bernstein_density(const amrex::Geometry geom, int i , int j, int k){
 
 }
 
-double simple_line(const amrex::Geometry geom ,int i , int j , int k){
+double simple_line_density(const amrex::Geometry geom ,int i , int j , int k){
       return (1.0*i/20);  
+}
+
+// This could be distributed??
+void set_weights(const amrex::Geometry geom,amrex::BoxArray &Ba ,std::vector<long int> &I,double (*dist_func)(const amrex::Geometry,int,int,int)){
+        int idx=0;
+    for(auto b:Ba.boxList()){
+        auto lo=amrex::lbound(b);
+        auto hi=amrex::ubound(b);
+        for(int k= lo.z ;k<hi.z; k++){
+        for(int j= lo.y ;j<hi.y; j++){
+        for(int i= lo.x ;i<hi.x ; i++){
+                I[idx]+=dist_func(geom,i,j,k)*10000;
+        }
+        }
+        }
+
+    idx+=1;
+    }
 
 }
+
 
 void add_particle_density(const amrex::Geometry geom , CParticleContainer&P, double (*dist_func)(const amrex::Geometry,int,int,int),int ppc_max,double dens_cell ,double m, double q ){
 
