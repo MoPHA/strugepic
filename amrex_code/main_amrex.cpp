@@ -121,11 +121,8 @@ void main_main()
     amrex::Geometry geom(domain,&real_box,amrex::CoordSys::cartesian,is_periodic.data());
     // How Boxes are distrubuted among MPI processes
     amrex::DistributionMapping dm(ba);
-    std::vector<long int> B_weights(ba.boxList().size());
-    set_weights(geom,ba,B_weights,bernstein_density);
-
-    dm.SFCProcessorMap(ba,B_weights,5);
-    dm.KnapSackProcessorMap(B_weights,5);
+    // Set dm weights based on the number of particles.
+    set_weights(dm,geom,ba,bernstein_density);
     int Nghost = 2;
     
     // Ncomp = number of components for each array

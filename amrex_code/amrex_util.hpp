@@ -14,7 +14,7 @@ void FillDirichletBoundary(const amrex::Geometry geom, amrex::MultiFab &A );
 double bernstein_density(const amrex::Geometry geom, int i , int j, int k);
 double simple_line_density(const amrex::Geometry geom ,int i , int j , int k);
 void add_particle_density(const amrex::Geometry geom , CParticleContainer&P, double (*dist_func)(const amrex::Geometry,int,int,int),int ppc_max,double dens_cell ,double m, double q );
-void set_weights(const amrex::Geometry geom,amrex::BoxArray &Ba, std::vector<long int> &I,double (*dist_func)(const amrex::Geometry,int,int,int));
+void set_weights(amrex::DistributionMapping dm,const amrex::Geometry geom,amrex::BoxArray &Ba,double (*dist_func)(const amrex::Geometry,int,int,int));
 
 
 double wrapMax(double x, double max);

@@ -2,6 +2,7 @@
 #include "AMReX_Box.H"
 #include "AMReX_BoxArray.H"
 #include "AMReX_CudaContainers.H"
+#include "AMReX_DistributionMapping.H"
 #include "AMReX_Geometry.H"
 #include "AMReX_ParallelDescriptor.H"
 #include "AMReX_ParallelReduce.H"
@@ -123,8 +124,9 @@ double simple_line_density(const amrex::Geometry geom ,int i , int j , int k){
 }
 
 // This could be distributed??
-void set_weights(const amrex::Geometry geom,amrex::BoxArray &Ba ,std::vector<long int> &I,double (*dist_func)(const amrex::Geometry,int,int,int)){
+void set_weights(amrex::DistributionMapping dm,const amrex::Geometry geom,amrex::BoxArray &Ba,double (*dist_func)(const amrex::Geometry,int,int,int)){
         int idx=0;
+        std::vector<long int> I(Ba.boxList().size());
     for(auto b:Ba.boxList()){
         auto lo=amrex::lbound(b);
         auto hi=amrex::ubound(b);
@@ -138,6 +140,9 @@ void set_weights(const amrex::Geometry geom,amrex::BoxArray &Ba ,std::vector<lon
 
     idx+=1;
     }
+
+    dm.SFCProcessorMap(Ba,I,amrex::ParallelDescriptor::NProcs());
+    //dm.KnapSackProcessorMap(I,5);
 
 }
 
