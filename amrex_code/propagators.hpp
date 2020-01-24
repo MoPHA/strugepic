@@ -184,9 +184,9 @@ void push_B_pos(CParticles&particles, const amrex::Geometry geom, const amrex::A
 template <int coord>
 void Theta(CParticleContainer&ParticleC, CParticles&local_particles,const CNParticles&neighbour_particles, const amrex::Geometry geom,amrex::Array4<amrex::Real> const& E, amrex::Array4<amrex::Real> const& B ,double dt)
 {
-    //push_E_pos<coord>(local_particles,neighbour_particles,geom,E,dt);
+    push_E_pos<coord>(local_particles,neighbour_particles,geom,E,dt);
     if(local_particles.numParticles() >0){
-    //push_B_pos<coord>(local_particles,geom,B,dt);
+    push_B_pos<coord>(local_particles,geom,B,dt);
     push_pos_pos<coord>(ParticleC,local_particles,geom,dt);
     }
 }
