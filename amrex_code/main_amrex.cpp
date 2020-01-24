@@ -40,11 +40,9 @@ void init_E (const amrex::Geometry geom ,amrex::Box const& bx, amrex::Array4<amr
    for     (int k = lo.z; k <= hi.z; ++k) {
      for   (int j = lo.y; j <= hi.y; ++j) {
        for (int i = lo.x; i <= hi.x; ++i) { 
-        if(i > 199 &&i < 251){
          a(i,j,k,0) = 0;
-         a(i,j,k,1) = 0.25*sin( 2*((1.0*i)/50)*M_PI); 
+         a(i,j,k,1) = 0;//0.25*sin( 2*((1.0*i)/50)*M_PI); 
          a(i,j,k,2) = 0; 
-        }
        }
      }
    }
@@ -56,42 +54,14 @@ void init_B (const amrex::Geometry geom ,amrex::Box const& bx, amrex::Array4<amr
    for     (int k = lo.z; k <= hi.z; ++k) {
      for   (int j = lo.y; j <= hi.y; ++j) {
        for (int i = lo.x; i <= hi.x; ++i) { 
-        if(i > 199 &&i < 251){
          a(i,j,k,0) = 0;
          a(i,j,k,1) = 0;
-         a(i,j,k,2) = -0.25*sin( 2*((1.0*i)/50)*M_PI); 
-        }
+         a(i,j,k,2) = 0;//-0.25*sin( 2*((1.0*i)/50)*M_PI); 
        }
      }
    }
 }
 
-void DebugPrint(const amrex::Geometry geom, amrex::MultiFab &A){
-   
-   const auto domain=geom.Domain();
-   const auto lo = amrex::lbound(domain);
-   const auto hi = amrex::ubound(domain);
-   const auto periodic=geom.isPeriodic();
-    for (amrex::MFIter mfi(A); mfi.isValid(); ++mfi){
-        const amrex::Box& box = mfi.fabbox();
-        amrex::Array4<amrex::Real> const& a = A.array(mfi); 
-
-    amrex::ParallelFor(box,  [=] AMREX_GPU_DEVICE (int i,int j,int k ){
-            if(
-              (i < lo.x && !periodic[X] ) ||
-              (i > hi.x && !periodic[X] ) ||
-              (j < lo.y && !periodic[Y] ) ||
-              (j > hi.y && !periodic[Y] ) ||
-              (k < lo.z && !periodic[Z] ) ||
-              (k > hi.z && !periodic[Z] )  
-              ){
-
-                std::cout << a(i,j,k,Y) << std::endl;
-            }
-         });
-
-    }
-}
 
 
 
@@ -107,19 +77,19 @@ void main_main()
 {
     // Simulation parameters,  these should be read from a file quite soon
     
-    const  int n_cell = 300;
-    int max_grid_size = 300;
-    int nsteps = 1000;
+    const  int n_cell = 1800;
+    int max_grid_size = 1800;
+    int nsteps = 1;
     double dt = 0.5;
-    double q=-4.80320467059932e-11;
-    double m=1.5453871347313696e-07;
+    double q=-4376;
+    double m=40101664;
     double v=0.020013845711889123;
     
    
-    double omega = 2*M_PI/120;
+//    double omega = 2*M_PI/120;
     double source_pos=4;
     
-    auto Es = E_source(source_pos,Y,omega,dt);
+ //   auto Es = E_source(source_pos,Y,omega,dt);
 
     // Do a quite even load balancing
     amrex::DistributionMapping::strategy(amrex::DistributionMapping::KNAPSACK);
@@ -184,35 +154,13 @@ void main_main()
     init_E(geom,box, a);
     init_B(geom,box, b);
 }
-
+    
     E.FillBoundary(geom.periodicity());
     B.FillBoundary(geom.periodicity());
-
+  //  add_particle_one_per_cell(geom,P,m,q);
+    add_particle_density(geom,P,bernstein_density,60,219478,m,q);
     
-for(amrex::MFIter mfi= P.MakeMFIter(0) ;mfi.isValid();++mfi){
-    
-    // Each grid,tile has a their own local particle container
-    auto& particles = P.GetParticles(0)[std::make_pair(mfi.index(),
-                                        mfi.LocalTileIndex())];
-    auto box=mfi.validbox();
-    const auto lo = amrex::lbound(box);
-    //const auto hi = amrex::ubound(box);
-    if(mfi.index()==0){
-//    add_single_particle(particles,{0.18194016191876186,0.01,0.01},{v,0,0},m,q);
-//    add_single_particle(particles,{-0.9,-0.9,-0.9},{0.1,1,1},10,-1);
-//    add_single_particle(particles,{-0.95,-0.95,-0.95},{0.1,1,1},10,-1);
-    }
-    //  add_single_particle(particles,{0.001,0,0},{0.1,0,0},10,-1);
-}
 
-//    double m=1;
-//    double q=-1;
-//    add_particle_one_per_cell(geom,P,m,q);
-
-
-    P.Redistribute();
-    P.fillNeighbors();
-    P.updateNeighbors();
 
    int id = amrex::ParallelDescriptor::MyProc();
 for(int step=0; step<nsteps;step++){
@@ -240,13 +188,13 @@ for(int step=0; step<nsteps;step++){
     G_Theta<X>(geom,P,E,B,dt/2);
     G_Theta<Y>(geom,P,E,B,dt/2);
     G_Theta<Z>(geom,P,E,B,dt/2);
-    Es(geom,E,step*dt);
+//    Es(geom,E,step*dt);
     G_Theta_B(geom,P,E,B,dt);
     G_Theta<Z>(geom,P,E,B,dt/2);
     G_Theta<Y>(geom,P,E,B,dt/2);
     G_Theta<X>(geom,P,E,B,dt/2);
     G_Theta_E(geom,P,E,B,dt/2);
-    print_Particle_info(geom,P);
+    //print_Particle_info(geom,P);
 
 
 

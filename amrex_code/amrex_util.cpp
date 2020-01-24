@@ -98,20 +98,38 @@ std::array<int,3> get_num_segments(const amrex::Geometry geom,const amrex::RealA
 }
 
 
-int x2_dist(const amrex::Geometry geom,std::array<double,3> coord){
+// The dist function should return [0,1]
+// m and q are the normalized mass and charge for the "real" particle
+// These are then scaled according to the number of computational particles 
 
-    return (int) -(coord[X]-geom.ProbLo(X))*(coord[X]-geom.ProbHi(X))*50;
+double bernstein_density(const amrex::Geometry geom, int i , int j, int k){
+    int nr=380;
+    if(i < nr+320){
+        return exp( -(i-(nr+320))*(i-(nr+320))/( 2*(nr/3.5)*(nr/3.5) ) ); 
+    }
+    else if(i >= 1300){
+          return exp(-(i-1300)*(i-1300)/26122.0);
+    }
+    else{
+    return 1;
+    }
 
 }
 
-void add_particle_density(const amrex::Geometry geom , CParticleContainer&P, int (*dist_func)(const amrex::Geometry,double,double,double) ,double m, double q ){
+double simple_line(const amrex::Geometry geom ,int i , int j , int k){
+      return (1.0*i/20);  
+
+}
+
+void add_particle_density(const amrex::Geometry geom , CParticleContainer&P, double (*dist_func)(const amrex::Geometry,int,int,int),int ppc_max,double dens_cell ,double m, double q ){
 
     std::random_device rd;
     std::mt19937 mt(rd());
     std::uniform_real_distribution<double> distx(0,geom.CellSize(X));
     std::uniform_real_distribution<double> disty(0,geom.CellSize(Y));
     std::uniform_real_distribution<double> distz(0,geom.CellSize(Z));
-
+    double q_c = q*dens_cell/ppc_max;
+    double m_c = m*dens_cell/ppc_max;
 
 for(amrex::MFIter mfi= P.MakeMFIter(0) ;mfi.isValid();++mfi){
     
@@ -121,19 +139,27 @@ for(amrex::MFIter mfi= P.MakeMFIter(0) ;mfi.isValid();++mfi){
     auto box=mfi.validbox();
 
 
+
    const auto lo = amrex::lbound(box);
    const auto hi = amrex::ubound(box);
    for     (int k = lo.z; k <= hi.z; ++k) {
      for   (int j = lo.y; j <= hi.y; ++j) {
        for (int i = lo.x; i <= hi.x; ++i) { 
+            
            double x = geom.ProbLo(X) + i*geom.CellSize(X);
            double y = geom.ProbLo(Y) + j*geom.CellSize(Y);
            double z = geom.ProbLo(Z) + k*geom.CellSize(Z);
-            add_single_particle(particles,{x,y,z},{distx(mt),disty(mt),distz(mt) },m,q);
+           int num_particles = dist_func(geom,i,j,k)*ppc_max;  
+            for(int i =0; i < num_particles ; i++){ 
+                add_single_particle(particles,{x+distx(mt),y+disty(mt),z+distz(mt)},{0,0,0},m_c,q_c);
+            }
        }
      }
    }
-    }
+ }
+P.Redistribute();
+P.fillNeighbors();
+P.updateNeighbors();
 
 }
 
@@ -165,6 +191,10 @@ for(amrex::MFIter mfi= P.MakeMFIter(0) ;mfi.isValid();++mfi){
      }
    }
     }
+
+P.Redistribute();
+P.fillNeighbors();
+P.updateNeighbors();
 }
 
 

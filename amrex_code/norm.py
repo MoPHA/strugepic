@@ -10,7 +10,7 @@ E=1e6
 ## Particle velocity
 v=6e6
 ## Particle density
-n=1
+n=2e19
 ## Time step
 dt=9.24e-14
 ## Number of time steps
@@ -36,8 +36,6 @@ dx = L/N
 dy = dx
 dz = dx
 epc = n*dx**3
-qc_e= q_e*epc
-mc_e= m_e*epc
 
 s_dt=dt*c/dx
 s_dx=1
@@ -48,14 +46,14 @@ s_v=v/c
 
 s_l = (c/E_omega)/dx
 s_omega = dx*E_omega/c
-s_q=qc_e*c/(dx**3)
-s_m=mc_e*c**3*eps0/(dx**5)
+s_q=q_e*c/(dx**3)
+s_m=m_e*c**3*eps0/(dx**5)
 
 
 print("\nInput parameters: ")
 print("Simulation length X: ",s_L)
 print("Simulation length Y: ",s_L)
-print("Time step: " , s_dt)
+print("Particle per cell: " , epc)
 print("Magnetic field: " ,s_B)
 print("Electric field: " ,s_E)
 print("Wave freq: " ,s_omega)
