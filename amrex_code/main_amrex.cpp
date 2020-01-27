@@ -78,7 +78,7 @@ void main_main()
     // Simulation parameters,  these should be read from a file quite soon
     
     const  int n_cell = 1800;
-    int max_grid_size = 180;
+    int max_grid_size = 45;
     int nsteps = 1;
     double dt = 0.5;
     double q=-4376;
@@ -122,7 +122,8 @@ void main_main()
     // How Boxes are distrubuted among MPI processes
     amrex::DistributionMapping dm(ba);
     // Set dm weights based on the number of particles.
-    set_weights(dm,geom,ba,bernstein_density);
+    distribute_processes_pdens(dm,geom,ba,bernstein_density,"SFC");
+    amrex::Print() << dm << std::endl;
     int Nghost = 2;
     
     // Ncomp = number of components for each array
@@ -159,7 +160,7 @@ void main_main()
     E.FillBoundary(geom.periodicity());
     B.FillBoundary(geom.periodicity());
   //  add_particle_one_per_cell(geom,P,m,q);
-  //  add_particle_density(geom,P,bernstein_density,60,219478,m,q);
+    add_particle_density(geom,P,bernstein_density,3,219478,m,q,0.0106169);
    
     // Just to avoid segfaults
     P.fillNeighbors();

@@ -124,7 +124,7 @@ double simple_line_density(const amrex::Geometry geom ,int i , int j , int k){
 }
 
 // This could be distributed??
-void set_weights(amrex::DistributionMapping dm,const amrex::Geometry geom,amrex::BoxArray &Ba,double (*dist_func)(const amrex::Geometry,int,int,int)){
+void distribute_processes_pdens(amrex::DistributionMapping dm,const amrex::Geometry geom,amrex::BoxArray &Ba,double (*dist_func)(const amrex::Geometry,int,int,int),std::string strat){
         int idx=0;
         std::vector<long int> I(Ba.boxList().size());
     for(auto b:Ba.boxList()){
@@ -140,22 +140,31 @@ void set_weights(amrex::DistributionMapping dm,const amrex::Geometry geom,amrex:
 
     idx+=1;
     }
-
+    if(strat=="SFC"){
     dm.SFCProcessorMap(Ba,I,amrex::ParallelDescriptor::NProcs());
-    //dm.KnapSackProcessorMap(I,5);
+    }
+    else if(strat=="KnapSack"){
+    dm.KnapSackProcessorMap(I,amrex::ParallelDescriptor::NProcs());
+    }
+    else{
+    amrex::Print() << "Unknown strategy!!, supported are SFC and KnapSack";
+    exit(1);
+    }
 
 }
 
 
-void add_particle_density(const amrex::Geometry geom , CParticleContainer&P, double (*dist_func)(const amrex::Geometry,int,int,int),int ppc_max,double dens_cell ,double m, double q ){
+void add_particle_density(const amrex::Geometry geom , CParticleContainer&P, double (*dist_func)(const amrex::Geometry,int,int,int),int ppc_max,double dens_cell ,double m, double q, double v){
 
     std::random_device rd;
     std::mt19937 mt(rd());
-    std::uniform_real_distribution<double> distx(0,geom.CellSize(X));
-    std::uniform_real_distribution<double> disty(0,geom.CellSize(Y));
-    std::uniform_real_distribution<double> distz(0,geom.CellSize(Z));
+    std::uniform_real_distribution<double> dist(0,1);
+    std::normal_distribution<double> vel(0,v); 
     double q_c = q*dens_cell/ppc_max;
     double m_c = m*dens_cell/ppc_max;
+
+// For simplicity, particles are initialized with Maxwell–Boltzmann distribution
+
 
 for(amrex::MFIter mfi= P.MakeMFIter(0) ;mfi.isValid();++mfi){
     
@@ -177,7 +186,7 @@ for(amrex::MFIter mfi= P.MakeMFIter(0) ;mfi.isValid();++mfi){
            double z = geom.ProbLo(Z) + k*geom.CellSize(Z);
            int num_particles = dist_func(geom,i,j,k)*ppc_max;  
             for(int i =0; i < num_particles ; i++){ 
-                add_single_particle(particles,{x+distx(mt),y+disty(mt),z+distz(mt)},{0,0,0},m_c,q_c);
+                add_single_particle(particles,{x+dist(mt)*geom.CellSize(X),y+dist(mt)*geom.CellSize(Y),z+dist(mt)*geom.CellSize(Z)},{vel(mt),vel(mt),vel(mt)},m_c,q_c);
             }
        }
      }
