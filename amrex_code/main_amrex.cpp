@@ -78,7 +78,7 @@ void main_main()
     // Simulation parameters,  these should be read from a file quite soon
     
     const  int n_cell = 1800;
-    int max_grid_size = 45;
+    int max_grid_size = 900;
     int nsteps = 1;
     double dt = 0.5;
     double q=-4376;
@@ -105,17 +105,17 @@ void main_main()
 
 
     amrex::IntVect dom_lo(AMREX_D_DECL(       0,        0,        0));
-    amrex::IntVect dom_hi(AMREX_D_DECL(n_cell-1, 5-1, 5-1));
+    amrex::IntVect dom_hi(AMREX_D_DECL(n_cell-1, 6-1, 6-1));
     amrex::Box domain(dom_lo, dom_hi,typ);
     amrex::BoxArray ba(domain);
 
     // Initialize the boxarray "ba" from the single box "bx"
     // Break up boxarray "ba" into chunks no larger than "max_grid_size" along a direction
-    ba.maxSize(max_grid_size);
+    ba.maxSize({max_grid_size,3,3});
 
     // This defines the physical box, [-1,1] in each direction.
     amrex::RealBox real_box({AMREX_D_DECL(0,0,0)},
-                     {AMREX_D_DECL(n_cell,5,5)});
+                     {AMREX_D_DECL(n_cell,6,6)});
 
     // This defines a Geometry object
     amrex::Geometry geom(domain,&real_box,amrex::CoordSys::cartesian,is_periodic.data());
@@ -124,7 +124,7 @@ void main_main()
     // Set dm weights based on the number of particles.
     distribute_processes_pdens(dm,geom,ba,bernstein_density,"SFC");
     amrex::Print() << dm << std::endl;
-    int Nghost = 2;
+    int Nghost = 3;
     
     // Ncomp = number of components for each array
     int Ncomp  = 3;
@@ -134,6 +134,7 @@ void main_main()
 
 
     CParticleContainer P(geom,dm,ba,3);
+    
 
     for (amrex::MFIter mfi(E); mfi.isValid(); ++mfi) // Loop over grids
 {
@@ -159,12 +160,11 @@ void main_main()
     
     E.FillBoundary(geom.periodicity());
     B.FillBoundary(geom.periodicity());
-  //  add_particle_one_per_cell(geom,P,m,q);
-    add_particle_density(geom,P,bernstein_density,3,219478,m,q,0.0106169);
+    //add_particle_one_per_cell(geom,P,m,q);
+    add_particle_density(geom,P,bernstein_density,2,219478,m,q,0.0106169);
    
     // Just to avoid segfaults
     P.fillNeighbors();
-
 
    int id = amrex::ParallelDescriptor::MyProc();
 for(int step=0; step<nsteps;step++){
@@ -187,16 +187,24 @@ for(int step=0; step<nsteps;step++){
     WriteSingleLevelPlotfile(pltfile_B, B, {"B_x","B_y","B_z"}, geom, time, n);
     P.WriteBinaryParticleData(amrex::Concatenate("plt_P",step,0),"Particle0",{1,1,1,1,1},{},{"Mass","Charge","VX","VY","VZ"},{});
     }
-
+    std::cout << "E" << std::endl;
     G_Theta_E(geom,P,E,B,dt/2);
+    std::cout << "X" << std::endl;
     G_Theta<X>(geom,P,E,B,dt/2);
+    std::cout << "Y" << std::endl;
     G_Theta<Y>(geom,P,E,B,dt/2);
+    std::cout << "Z" << std::endl;
     G_Theta<Z>(geom,P,E,B,dt/2);
+    std::cout << "B" << std::endl;
 //    Es(geom,E,step*dt);
     G_Theta_B(geom,P,E,B,dt);
+    std::cout << "Z" << std::endl;
     G_Theta<Z>(geom,P,E,B,dt/2);
+    std::cout << "Y" << std::endl;
     G_Theta<Y>(geom,P,E,B,dt/2);
+    std::cout << "X" << std::endl;
     G_Theta<X>(geom,P,E,B,dt/2);
+    std::cout << "E" << std::endl;
     G_Theta_E(geom,P,E,B,dt/2);
     //print_Particle_info(geom,P);
 
