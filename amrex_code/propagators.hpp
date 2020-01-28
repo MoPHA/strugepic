@@ -10,13 +10,14 @@
 class E_source
 {
     public:
-        E_source(int pos,int comp,double omega ,double dt); 
+        E_source(int pos,int comp,double E0,double omega ,double dt); 
         void operator()(amrex::Geometry geom, amrex::MultiFab &E,double t);
     private:
         const int comp;
         const double dt;
         const double omega;
         const int pos;
+        const double E0;
 };
 
 

@@ -8,9 +8,10 @@
 
 
 // Soft sine plane wave source in x-direction
-E_source::E_source(int pos,int comp,double omega ,double dt) : 
+E_source::E_source(int pos,int comp,double E0 ,double omega ,double dt) : 
      dt(dt),
      omega(omega),
+     E0(E0),
      comp(comp),
      pos(pos)
      {}
@@ -21,7 +22,7 @@ void E_source::operator()(amrex::Geometry geom, amrex::MultiFab &E,double t){
         const auto box= mfi.validbox();
         amrex::ParallelFor(box, [=] AMREX_GPU_DEVICE (int i,int j,int k ){
             if(i == pos ){
-                b(i,k,j,comp) +=2*sin(omega*t)*dt;
+                b(i,k,j,comp) +=2*E0*sin(omega*t)*dt;
             }
         });
     }
