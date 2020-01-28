@@ -43,7 +43,7 @@
 // =2 would mean that particles are reflected 2 cells before the
 // actual boundary
 // This would affect the segment calculation and the position calculations
-#define PART_BOUND 2 
+#define PART_BOUND 5 
 
 // 
 

@@ -199,6 +199,47 @@ P.updateNeighbors();
 }
 
 
+void add_particle_n_per_cell(amrex::Geometry geom, CParticleContainer&P,double m,double q,double v,int n){
+    std::random_device rd;
+    std::mt19937 mt(rd());
+    std::uniform_real_distribution<double> dist(0,1);
+    std::normal_distribution<double> vel(0,v); 
+for(amrex::MFIter mfi= P.MakeMFIter(0) ;mfi.isValid();++mfi){
+    
+    // Each grid,tile has a their own local particle container
+    auto& particles = P.GetParticles(0)[std::make_pair(mfi.index(),
+                                        mfi.LocalTileIndex())];
+    auto box=mfi.validbox();
+
+   auto domain=geom.Domain();
+   auto lod=amrex::lbound(domain);
+   auto hid=amrex::ubound(domain);
+
+   const auto lo = amrex::lbound(box);
+   const auto hi = amrex::ubound(box);
+   for     (int k = lo.z; k <= hi.z; ++k) {
+     for   (int j = lo.y; j <= hi.y; ++j) {
+       for (int i = lo.x; i <= hi.x; ++i) { 
+            
+           double x = geom.ProbLo(X) + i*geom.CellSize(X);
+           double y = geom.ProbLo(Y) + j*geom.CellSize(Y);
+           double z = geom.ProbLo(Z) + k*geom.CellSize(Z);
+            for(int i =0; i < n ; i++){ 
+           if((i <= PART_BOUND+lod.x  || i >= hid.x-PART_BOUND) && !geom.isPeriodic(X)){
+            continue;
+           }
+                add_single_particle(particles,{x+dist(mt)*geom.CellSize(X),y+dist(mt)*geom.CellSize(Y),z+dist(mt)*geom.CellSize(Z)},{vel(mt),vel(mt),vel(mt)},m,q);
+            }
+       }
+     }
+   }
+ }
+P.Redistribute();
+P.fillNeighbors();
+P.updateNeighbors();
+
+}
+
 void add_particle_one_per_cell(const amrex::Geometry geom, CParticleContainer&P,double m,double q){
     std::random_device rd;
     std::mt19937 mt(rd());
@@ -212,12 +253,17 @@ for(amrex::MFIter mfi= P.MakeMFIter(0) ;mfi.isValid();++mfi){
                                         mfi.LocalTileIndex())];
     auto box=mfi.validbox();
 
-
+   auto domain = geom.Domain();
+   auto lod=amrex::lbound(domain);
+   auto hid=amrex::ubound(domain);
    const auto lo = amrex::lbound(box);
    const auto hi = amrex::ubound(box);
    for     (int k = lo.z; k <= hi.z; ++k) {
      for   (int j = lo.y; j <= hi.y; ++j) {
        for (int i = lo.x; i <= hi.x; ++i) { 
+           if((i <= PART_BOUND+lod.x  || i >= hid.x-PART_BOUND) && !geom.isPeriodic(X)){
+            continue;
+           }
            double x = geom.ProbLo(X) + (i+0.5)*geom.CellSize(X);
            double y = geom.ProbLo(Y) + (j+0.5)*geom.CellSize(Y);
            double z = geom.ProbLo(Z) + (k+0.5)*geom.CellSize(Z);
