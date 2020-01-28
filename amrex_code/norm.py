@@ -46,8 +46,8 @@ s_v=v/c
 
 s_l = (c/E_omega)/dx
 s_omega = dx*E_omega/c
-s_q=q_e*c/(dx**3)
-s_m=m_e*c**3*eps0/(dx**5)
+s_q=q_e/(dx**3)*epc
+s_m=m_e/(mu0*dx**5)*epc
 
 
 print("\nInput parameters: ")
@@ -58,6 +58,6 @@ print("Magnetic field: " ,s_B)
 print("Electric field: " ,s_E)
 print("Wave freq: " ,s_omega)
 print("Initial velocity: " ,s_v)
-print("Charge: " ,s_q)
-print("Mass: " ,s_m)
+print("Charge per cell: " ,s_q)
+print("Mass per cell: " ,s_m)
 

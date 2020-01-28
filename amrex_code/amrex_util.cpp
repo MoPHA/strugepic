@@ -228,7 +228,7 @@ for(amrex::MFIter mfi= P.MakeMFIter(0) ;mfi.isValid();++mfi){
            if((i <= PART_BOUND+lod.x  || i >= hid.x-PART_BOUND) && !geom.isPeriodic(X)){
             continue;
            }
-                add_single_particle(particles,{x+dist(mt)*geom.CellSize(X),y+dist(mt)*geom.CellSize(Y),z+dist(mt)*geom.CellSize(Z)},{vel(mt),vel(mt),vel(mt)},m,q);
+                add_single_particle(particles,{x+dist(mt)*geom.CellSize(X),y+dist(mt)*geom.CellSize(Y),z+dist(mt)*geom.CellSize(Z)},{vel(mt),vel(mt),vel(mt)},m/n,q/n);
             }
        }
      }

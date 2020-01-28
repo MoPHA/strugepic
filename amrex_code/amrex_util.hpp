@@ -102,6 +102,7 @@ std::vector<std::tuple<amrex::Real,amrex::Real,int>> get_segment_list(const amre
 std::pair<amrex::Real,amrex::Real> get_total_energy(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &E, amrex::MultiFab &B );
 std::pair<std::array<amrex::Real,3>,std::array<amrex::Real,3>> get_total_momentum(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &E, amrex::MultiFab &B);
 void add_particle_one_per_cell(const amrex::Geometry geom, CParticleContainer&P,double m,double q);
+void add_particle_n_per_cell(const amrex::Geometry geom, CParticleContainer&P,double m,double q,double v,int n);
 
 
 #endif
