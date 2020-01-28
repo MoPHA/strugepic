@@ -57,7 +57,7 @@ void init_B (const amrex::Geometry geom ,amrex::Box const& bx, amrex::Array4<amr
        for (int i = lo.x; i <= hi.x; ++i) { 
          a(i,j,k,0) = 0;
          a(i,j,k,1) = 0;
-         a(i,j,k,2) = 0;//-0.25*sin( 2*((1.0*i)/50)*M_PI); 
+         a(i,j,k,2) = 59.7;//-0.25*sin( 2*((1.0*i)/50)*M_PI); 
        }
      }
    }
@@ -74,23 +74,34 @@ int main(int argc, char* argv[])
     amrex::Finalize();
 
 }
+
+double p_slice(amrex::Geometry geom,int i, int  j ,int k){
+    if(i>= 200 && i<=201 ){
+        return 1;
+    }
+    else{
+        return 0;
+    }
+
+}
 void main_main()
 {
     // Simulation parameters,  these should be read from a file quite soon
     
-    std::array<int,3> n_cell = {1800,6,6};
-    std::array<int,3> max_grid_size = {900,3,3};
-    int nsteps = 1;
+    std::array<int,3> n_cell = {300,6,6};
+    std::array<int,3> max_grid_size = {300,6,6};
+    int nsteps = 1000;
     double dt = 0.5;
-    double q=-4376;
-    double m=40101664;
+    double q=-3.20435324;
+    double m=29358.51933095;
     double v=0.020013845711889123;
     
    
-//    double omega = 2*M_PI/120;
+    double omega = 0.011612033282038069;
+    double E0=0.39843845190000005;
     double source_pos=4;
     
- //   auto Es = E_source(source_pos,Y,omega,dt);
+    auto Es = E_source(source_pos,Y,E0,omega,dt);
 
     // Do a quite even load balancing
     amrex::DistributionMapping::strategy(amrex::DistributionMapping::KNAPSACK);
@@ -123,7 +134,7 @@ void main_main()
     // How Boxes are distrubuted among MPI processes
     amrex::DistributionMapping dm(ba);
     // Set dm weights based on the number of particles.
-    distribute_processes_pdens(dm,geom,ba,bernstein_density,"SFC");
+ //   distribute_processes_pdens(dm,geom,ba,bernstein_density,"SFC");
     amrex::Print() << dm << std::endl;
     int Nghost = 3;
     
@@ -161,8 +172,8 @@ void main_main()
     
     E.FillBoundary(geom.periodicity());
     B.FillBoundary(geom.periodicity());
-    //add_particle_one_per_cell(geom,P,m,q);
-    add_particle_density(geom,P,bernstein_density,2,219478,m,q,0.0106169);
+    //add_particle_n_per_cell(geom,P,m,q,v,2);
+    add_particle_density(geom,P,p_slice,40,m,q,0.0106169);
    
     // Just to avoid segfaults
     P.fillNeighbors();
@@ -188,24 +199,24 @@ for(int step=0; step<nsteps;step++){
     WriteSingleLevelPlotfile(pltfile_B, B, {"B_x","B_y","B_z"}, geom, time, n);
     P.WriteBinaryParticleData(amrex::Concatenate("plt_P",step,0),"Particle0",{1,1,1,1,1},{},{"Mass","Charge","VX","VY","VZ"},{});
     }
-    std::cout << "E" << std::endl;
+    //std::cout << "E" << std::endl;
     G_Theta_E(geom,P,E,B,dt/2);
-    std::cout << "X" << std::endl;
+   // std::cout << "X" << std::endl;
     G_Theta<X>(geom,P,E,B,dt/2);
-    std::cout << "Y" << std::endl;
+   // std::cout << "Y" << std::endl;
     G_Theta<Y>(geom,P,E,B,dt/2);
-    std::cout << "Z" << std::endl;
+   // std::cout << "Z" << std::endl;
     G_Theta<Z>(geom,P,E,B,dt/2);
-    std::cout << "B" << std::endl;
-//    Es(geom,E,step*dt);
+   // std::cout << "B" << std::endl;
+    Es(geom,E,step*dt);
     G_Theta_B(geom,P,E,B,dt);
-    std::cout << "Z" << std::endl;
+   // std::cout << "Z" << std::endl;
     G_Theta<Z>(geom,P,E,B,dt/2);
-    std::cout << "Y" << std::endl;
+   // std::cout << "Y" << std::endl;
     G_Theta<Y>(geom,P,E,B,dt/2);
-    std::cout << "X" << std::endl;
+   // std::cout << "X" << std::endl;
     G_Theta<X>(geom,P,E,B,dt/2);
-    std::cout << "E" << std::endl;
+   // std::cout << "E" << std::endl;
     G_Theta_E(geom,P,E,B,dt/2);
     //print_Particle_info(geom,P);
 
