@@ -13,7 +13,7 @@ std::array<int,3> get_num_segments(const amrex::Geometry geom,const amrex::RealA
 void FillDirichletBoundary(const amrex::Geometry geom, amrex::MultiFab &A );
 double bernstein_density(const amrex::Geometry geom, int i , int j, int k);
 double simple_line_density(const amrex::Geometry geom ,int i , int j , int k);
-void add_particle_density(const amrex::Geometry geom , CParticleContainer&P, double (*dist_func)(const amrex::Geometry,int,int,int),int ppc_max,double dens_cell ,double m, double q ,double v);
+void add_particle_density(const amrex::Geometry geom , CParticleContainer&P, double (*dist_func)(const amrex::Geometry,int,int,int),int ppc_max ,double m, double q ,double v);
 void distribute_processes_pdens(amrex::DistributionMapping dm,const amrex::Geometry geom,amrex::BoxArray &Ba,double (*dist_func)(const amrex::Geometry,int,int,int),std::string strat);
 
 
@@ -101,7 +101,6 @@ std::vector<std::tuple<amrex::Real,amrex::Real,int>> get_segment_list(const amre
 
 std::pair<amrex::Real,amrex::Real> get_total_energy(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &E, amrex::MultiFab &B );
 std::pair<std::array<amrex::Real,3>,std::array<amrex::Real,3>> get_total_momentum(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &E, amrex::MultiFab &B);
-void add_particle_one_per_cell(const amrex::Geometry geom, CParticleContainer&P,double m,double q);
 void add_particle_n_per_cell(const amrex::Geometry geom, CParticleContainer&P,double m,double q,double v,int n);
 
 

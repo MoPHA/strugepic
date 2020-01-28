@@ -154,14 +154,14 @@ void distribute_processes_pdens(amrex::DistributionMapping dm,const amrex::Geome
 }
 
 
-void add_particle_density(const amrex::Geometry geom , CParticleContainer&P, double (*dist_func)(const amrex::Geometry,int,int,int),int ppc_max,double dens_cell ,double m, double q, double v){
+void add_particle_density(const amrex::Geometry geom , CParticleContainer&P, double (*dist_func)(const amrex::Geometry,int,int,int),int ppc_max ,double m, double q, double v){
 
     std::random_device rd;
     std::mt19937 mt(rd());
     std::uniform_real_distribution<double> dist(0,1);
     std::normal_distribution<double> vel(0,v); 
-    double q_c = q*dens_cell/ppc_max;
-    double m_c = m*dens_cell/ppc_max;
+    double q_c = q/ppc_max;
+    double m_c = m/ppc_max;
 
 // For simplicity, particles are initialized with Maxwell–Boltzmann distribution
 
@@ -173,6 +173,10 @@ for(amrex::MFIter mfi= P.MakeMFIter(0) ;mfi.isValid();++mfi){
                                         mfi.LocalTileIndex())];
     auto box=mfi.validbox();
 
+    
+   auto domain=geom.Domain();
+   auto lod=amrex::lbound(domain);
+   auto hid=amrex::ubound(domain);
 
 
    const auto lo = amrex::lbound(box);
@@ -185,6 +189,9 @@ for(amrex::MFIter mfi= P.MakeMFIter(0) ;mfi.isValid();++mfi){
            double y = geom.ProbLo(Y) + j*geom.CellSize(Y);
            double z = geom.ProbLo(Z) + k*geom.CellSize(Z);
            int num_particles = dist_func(geom,i,j,k)*ppc_max;  
+           if((i <= PART_BOUND+lod.x  || i >= hid.x-PART_BOUND) && !geom.isPeriodic(X)){
+            continue;
+           }
             for(int p =0; p < num_particles ; p++){ 
                 add_single_particle(particles,{x+dist(mt)*geom.CellSize(X),y+dist(mt)*geom.CellSize(Y),z+dist(mt)*geom.CellSize(Z)},{vel(mt),vel(mt),vel(mt)},m_c,q_c);
             }
@@ -238,44 +245,6 @@ P.Redistribute();
 P.fillNeighbors();
 P.updateNeighbors();
 
-}
-
-void add_particle_one_per_cell(const amrex::Geometry geom, CParticleContainer&P,double m,double q){
-    std::random_device rd;
-    std::mt19937 mt(rd());
-    std::uniform_real_distribution<double> dist(-0.01,0.01);
-
-
-for(amrex::MFIter mfi= P.MakeMFIter(0) ;mfi.isValid();++mfi){
-    
-    // Each grid,tile has a their own local particle container
-    auto& particles = P.GetParticles(0)[std::make_pair(mfi.index(),
-                                        mfi.LocalTileIndex())];
-    auto box=mfi.validbox();
-
-   auto domain = geom.Domain();
-   auto lod=amrex::lbound(domain);
-   auto hid=amrex::ubound(domain);
-   const auto lo = amrex::lbound(box);
-   const auto hi = amrex::ubound(box);
-   for     (int k = lo.z; k <= hi.z; ++k) {
-     for   (int j = lo.y; j <= hi.y; ++j) {
-       for (int i = lo.x; i <= hi.x; ++i) { 
-           if((i <= PART_BOUND+lod.x  || i >= hid.x-PART_BOUND) && !geom.isPeriodic(X)){
-            continue;
-           }
-           double x = geom.ProbLo(X) + (i+0.5)*geom.CellSize(X);
-           double y = geom.ProbLo(Y) + (j+0.5)*geom.CellSize(Y);
-           double z = geom.ProbLo(Z) + (k+0.5)*geom.CellSize(Z);
-            add_single_particle(particles,{x,y,z},{dist(mt),dist(mt),dist(mt) },m,q);
-       }
-     }
-   }
-    }
-
-P.Redistribute();
-P.fillNeighbors();
-P.updateNeighbors();
 }
 
 
