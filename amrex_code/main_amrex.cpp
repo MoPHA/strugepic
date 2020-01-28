@@ -22,6 +22,7 @@
 
 
 // std c++
+#include <array>
 #include <iostream>
 #include <malloc.h>
 // Own
@@ -77,8 +78,8 @@ void main_main()
 {
     // Simulation parameters,  these should be read from a file quite soon
     
-    const  int n_cell = 1800;
-    int max_grid_size = 900;
+    std::array<int,3> n_cell = {1800,6,6};
+    std::array<int,3> max_grid_size = {900,3,3};
     int nsteps = 1;
     double dt = 0.5;
     double q=-4376;
@@ -105,17 +106,17 @@ void main_main()
 
 
     amrex::IntVect dom_lo(AMREX_D_DECL(       0,        0,        0));
-    amrex::IntVect dom_hi(AMREX_D_DECL(n_cell-1, 6-1, 6-1));
+    amrex::IntVect dom_hi(AMREX_D_DECL(n_cell[X]-1, n_cell[Y]-1, n_cell[Z]-1));
     amrex::Box domain(dom_lo, dom_hi,typ);
     amrex::BoxArray ba(domain);
 
     // Initialize the boxarray "ba" from the single box "bx"
     // Break up boxarray "ba" into chunks no larger than "max_grid_size" along a direction
-    ba.maxSize({max_grid_size,3,3});
+    ba.maxSize({max_grid_size[X],max_grid_size[Y],max_grid_size[Z]});
 
     // This defines the physical box, [-1,1] in each direction.
     amrex::RealBox real_box({AMREX_D_DECL(0,0,0)},
-                     {AMREX_D_DECL(n_cell,6,6)});
+                     {AMREX_D_DECL((double)n_cell[X],(double)n_cell[Y],(double)n_cell[Z])});
 
     // This defines a Geometry object
     amrex::Geometry geom(domain,&real_box,amrex::CoordSys::cartesian,is_periodic.data());
