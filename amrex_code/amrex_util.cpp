@@ -185,7 +185,7 @@ for(amrex::MFIter mfi= P.MakeMFIter(0) ;mfi.isValid();++mfi){
            double y = geom.ProbLo(Y) + j*geom.CellSize(Y);
            double z = geom.ProbLo(Z) + k*geom.CellSize(Z);
            int num_particles = dist_func(geom,i,j,k)*ppc_max;  
-            for(int i =0; i < num_particles ; i++){ 
+            for(int p =0; p < num_particles ; p++){ 
                 add_single_particle(particles,{x+dist(mt)*geom.CellSize(X),y+dist(mt)*geom.CellSize(Y),z+dist(mt)*geom.CellSize(Z)},{vel(mt),vel(mt),vel(mt)},m_c,q_c);
             }
        }
@@ -224,7 +224,7 @@ for(amrex::MFIter mfi= P.MakeMFIter(0) ;mfi.isValid();++mfi){
            double x = geom.ProbLo(X) + i*geom.CellSize(X);
            double y = geom.ProbLo(Y) + j*geom.CellSize(Y);
            double z = geom.ProbLo(Z) + k*geom.CellSize(Z);
-            for(int i =0; i < n ; i++){ 
+            for(int p =0; p < n ; p++){ 
            if((i <= PART_BOUND+lod.x  || i >= hid.x-PART_BOUND) && !geom.isPeriodic(X)){
             continue;
            }
