@@ -190,16 +190,45 @@ void push_V_E( CParticles&particles, const amrex::Geometry geom,amrex::Array4<am
         double dvy=0;
         double dvz=0;
 
+
+        using namespace strugepic;
+        std::array<double,4> W1X={0,0,0,0};
+        std::array<double,4> W1Y={0,0,0,0};
+        std::array<double,4> W1Z={0,0,0,0};
+        std::array<double,4> W12X={0,0,0,0};
+        std::array<double,4> W12Y={0,0,0,0};
+        std::array<double,4> W12Z={0,0,0,0};
+
+        auto nz = (p.pos(Z)-low[Z])*Ics[Z]; 
+        for(auto k:idx_list){
+            auto cz = coord[Z]+k;
+            W1Z[k+1]=W1(nz-cz);
+            W12Z[k+1]=W12(nz-cz);
+        }
+        auto ny = (p.pos(Y)-low[Y])*Ics[Y]; 
+        for(auto j:idx_list){
+            auto cy = coord[Y]+j;
+            W1Y[j+1]=W1(ny-cy);
+            W12Y[j+1]=W12(ny-cy);
+        }
+        auto nx = (p.pos(X)-low[X])*Ics[X]; 
+        for(auto i:idx_list){
+            auto cx = coord[X]+i;
+            W1X[i+1]=W1(nx-cx);
+            W12X[i+1]=W12(nx-cx);
+        }
+        
+
+
         for(auto k: idx_list){
+            auto cz = coord[Z]+k;
             for(auto j: idx_list){
+                  auto cy = coord[Y]+j;
                 for(auto i: idx_list){
                   auto cx = coord[X]+i;
-                  auto cy = coord[Y]+j;
-                  auto cz = coord[Z]+k;
-                  using namespace strugepic;
-                   dvx+= E(cx,cy,cz,X)*W12((p.pos(X)-low[X])*Ics[X]-cx)*W1((p.pos(Y)-low[Y])*Ics[Y]-cy)*W1((p.pos(Z)-low[Z])*Ics[Z]-cz); 
-                   dvy+= E(cx,cy,cz,Y)*W1((p.pos(X)-low[X])*Ics[X]-cx)*W12((p.pos(Y)-low[Y])*Ics[Y]-cy)*W1((p.pos(Z)-low[Z])*Ics[Z]-cz);
-                   dvz+= E(cx,cy,cz,Z)*W1((p.pos(X)-low[X])*Ics[X]-cx)*W1((p.pos(Y)-low[Y])*Ics[Y]-cy)*W12((p.pos(Z)-low[Z])*Ics[Z]-cz);
+                   dvx+= E(cx,cy,cz,X)*W12X[i+1]*W1Y[j+1]*W1Z[k+1]; 
+                   dvy+= E(cx,cy,cz,Y)*W1X[i+1]*W12Y[j+1]*W1Z[k+1];
+                   dvz+= E(cx,cy,cz,Z)*W1X[i+1]*W1Y[j+1]*W12Z[k+1];
                 }
             }
         }
@@ -247,7 +276,6 @@ void G_Theta_E(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab&
 
     }
 
-    P.updateNeighbors();
     E.FillBoundary(geom.periodicity());
 
 }

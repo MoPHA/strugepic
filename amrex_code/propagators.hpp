@@ -60,36 +60,61 @@ void push_E_part(const Pcontainter&particles, const amrex::Geometry geom,amrex::
     for(auto& p : particles){
         const auto p_segments = get_segment_list<comp>(geom, p.pos(comp) , p.pos(comp)+dt*p.rdata(comp+2));
         auto coord =get_point_cell(geom,{p.pos(X),p.pos(Y),p.pos(Z)}) ;
+        auto comp_u = (comp+1)%3;
+        auto comp_l = (comp+2)%3;
+        
+            std::array<double,4> comp_uW1={0,0,0,0};
+            std::array<double,4> comp_lW1={0,0,0,0};
+
+
+
+            using namespace strugepic;
+
+            auto nl=(p.pos(comp_l)-low[comp_l])*Ics[comp_l];
+            for(auto l: idx_list){
+                auto cl=coord[comp_l]+l; 
+                comp_lW1[l+1]=W1(nl-cl);
+
+            }
+            auto nu=(p.pos(comp_u)-low[comp_u])*Ics[comp_u];
+            for(auto u: idx_list){
+                auto cu=coord[comp_u]+u; 
+                comp_uW1[u+1]=W1(nu-cu);
+            }
         for(auto seg: p_segments){
             coord[comp] = std::get<2>(seg);
-        //    std::cout << coord[comp] << std::endl;
-        //    std::cout <<p.pos(comp)<< std::endl;
             auto i_s = std::get<0>(seg); 
             auto i_e = std::get<1>(seg);
+            int cl[3];
+            
 
+            std::array<double,4> compI_W12={0,0,0,0};
+           
+           auto ncs=(i_s-low[comp])*Ics[comp];
+           auto nce=(i_e-low[comp])*Ics[comp];
+            for(auto c: idx_list){
+                auto cc=coord[comp]+c;
+                compI_W12[c+1]=I_W12(ncs- cc ,nce- cc);
+
+            }
+
+            std::array<int,3> idx;
             for(auto k: idx_list){
-                for(auto j: idx_list){
-                    for(auto i: idx_list){
-                        amrex::Real res;
-                        int cl[3];
-                        cl[X] = coord[X]+i;
-                        cl[Y] = coord[Y]+j;
                         cl[Z] = coord[Z]+k;
-                        auto comp_u = (comp+1)%3;
-                        auto comp_l = (comp+2)%3;
-                        using namespace strugepic;
+                        idx[Z]=k;
+                        
+                for(auto j: idx_list){
+                        cl[Y] = coord[Y]+j;
+                        idx[Y]=j;
+                    for(auto i: idx_list){
+                        cl[X] = coord[X]+i;
+                        idx[X]=i;
                         if(E.contains(cl[X],cl[Y],cl[Z])){
-
-                            res=I_W12((i_s-low[comp])*Ics[comp]- cl[comp] ,(i_e-low[comp])*Ics[comp]- cl[comp])
-                                *W1((p.pos(comp_u)-low[comp_u])*Ics[comp_u]-cl[comp_u])
-                                *W1((p.pos(comp_l)-low[comp_l])*Ics[comp_l]-cl[comp_l]);
-                            E(cl[X],cl[Y],cl[Z],comp)-=coef*res;
-/*                        std::cout <<"E_" << comp <<": "  << E(cl[X],cl[Y],cl[Z],comp) 
-                            <<  " | I_W12: " << I_W12((i_s-low[comp])*Ics[comp]- cl[comp] ,(i_e-low[comp])*Ics[comp]- cl[comp])
-                            <<  " | Segment: " << i_s << " , " << i_e  
-                            <<  " | I_lims: " << (i_s-low[comp])*Ics[comp]- cl[comp] << " , " << (i_e-low[comp])*Ics[comp]- cl[comp] 
-                            << "\n";
-*/                            
+                            E(cl[X],cl[Y],cl[Z],comp)-=
+                                coef
+                                *compI_W12[idx[comp]+1]
+                                *comp_uW1[idx[comp_u]+1]
+                                *comp_lW1[idx[comp_l]+1];
                         }
                     }
                 }
@@ -139,36 +164,70 @@ void push_B_pos(CParticles&particles, const amrex::Geometry geom, const amrex::A
         amrex::Real res_c1=0;
         amrex::Real res_c2=0;
 
+        int cl[3];
+
+        auto comp_u = (comp+1)%3;
+        auto comp_l = (comp+2)%3;
+        
+            std::array<double,4> comp_uW1={0,0,0,0};
+            std::array<double,4> comp_lW1={0,0,0,0};
+            std::array<double,4> comp_uW12={0,0,0,0};
+            std::array<double,4> comp_lW12={0,0,0,0};
+
+
+
+            using namespace strugepic;
+
+            auto nl=(p.pos(comp_l)-low[comp_l])*Ics[comp_l];
+            for(auto l: idx_list){
+                auto cl=coord[comp_l]+l; 
+                comp_lW1[l+1]=W1(nl-cl);
+                comp_lW12[l+1]=W12(nl-cl);
+
+            }
+            auto nu=(p.pos(comp_u)-low[comp_u])*Ics[comp_u];
+            for(auto u: idx_list){
+                auto cu=coord[comp_u]+u; 
+                comp_uW1[u+1]=W1(nu-cu);
+                comp_uW12[u+1]=W12(nu-cu);
+            }
+
         for(auto seg: p_segments){
             coord[comp] = std::get<2>(seg);
             auto i_s = std::get<0>(seg); 
             auto i_e = std::get<1>(seg);
             
-// The W_1^{(2)} function is supported over -1 < x< 2 so symmetric looping is not the best, but will do for now.
-            for(auto k: idx_list){
-                for(auto j: idx_list){
-                    for(auto i: idx_list){
-                        int cl[3];
-                        cl[X] = coord[X]+i;
-                        cl[Y] = coord[Y]+j;
-                        cl[Z] = coord[Z]+k;
-                        auto comp_u = (comp+1)%3;
-                        auto comp_l = (comp+2)%3;
-                        
-                        using namespace strugepic;//norm_res+=W( (p.pos(0)-low[0])*Ics[0]-cx  , (p.pos(1)-low[1])*Ics[1]-cy    ,  (p.pos(2)-low[2])*Ics[2]-cz ) ;            
-                        //const double B_pseudo[3]={0,0,0.05};
+            std::array<double,4> compI_W12={0,0,0,0};
+           auto ncs=(i_s-low[comp])*Ics[comp];
+           auto nce=(i_e-low[comp])*Ics[comp];
+            for(auto c: idx_list){
+                auto cc=coord[comp]+c;
+                compI_W12[c+1]=I_W12(ncs- cc ,nce- cc);
 
-                        //res_c1+=B_pseudo[comp_u]
-                        res_c1+=B(cl[X],cl[Y],cl[Z],comp_u)
-                        *I_W12((i_s-low[comp])*Ics[comp]- cl[comp] ,(i_e-low[comp])*Ics[comp]- cl[comp])
-                        *W1(  (p.pos(comp_u)-low[comp_u])*Ics[comp_u]-cl[comp_u])
-                        *W12( (p.pos(comp_l)-low[comp_l])*Ics[comp_l]-cl[comp_l]);
+            }
+            
+                std::array<int,3> idx;
+            for(auto k: idx_list){
+                        cl[Z] = coord[Z]+k;
+                        idx[Z]=k;
                         
-                        //res_c2-=B_pseudo[comp_l]
+                for(auto j: idx_list){
+                        cl[Y] = coord[Y]+j;
+                        idx[Y]=j;
+                    for(auto i: idx_list){
+                        cl[X] = coord[X]+i;
+                        idx[X]=i;
+        
+                        
+                        res_c1+=B(cl[X],cl[Y],cl[Z],comp_u)
+                        *compI_W12[idx[comp]+1]
+                        *comp_uW1[idx[comp_u]+1]
+                        *comp_lW12[idx[comp_l]+1];
+                        
                         res_c2-=B(cl[X],cl[Y],cl[Z],comp_l)
-                        *I_W12((i_s-low[comp])*Ics[comp]- cl[comp] ,(i_e-low[comp])*Ics[comp]- cl[comp])
-                        *W12( (p.pos(comp_u)-low[comp_u])*Ics[comp_u]-cl[comp_u])
-                        *W1(  (p.pos(comp_l)-low[comp_l])*Ics[comp_l]-cl[comp_l]);
+                        *compI_W12[idx[comp]+1]
+                        *comp_uW12[idx[comp_u]+1]
+                        *comp_lW1[idx[comp_l]+1];
 
                     } // over i
                 } // over j
