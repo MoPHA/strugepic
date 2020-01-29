@@ -22,7 +22,7 @@ void E_source::operator()(amrex::Geometry geom, amrex::MultiFab &E,double t){
         const auto box= mfi.validbox();
         amrex::ParallelFor(box, [=] AMREX_GPU_DEVICE (int i,int j,int k ){
             if(i == pos ){
-                b(i,k,j,comp) +=2*E0*sin(omega*t)*dt;
+                b(i,j,k,comp) +=2*E0*sin(omega*t)*dt;
             }
         });
     }
