@@ -175,15 +175,13 @@ void push_V_E( CParticles&particles, const amrex::Geometry geom,amrex::Array4<am
 
     // Basis functions are supported over two cells in each direction
     const int idx_list[4]={-1,0,1,2};
-    // All the particles in a give container have the same mass and charge
-    // We could probably do without saving the mass and charge for each particle
-    const double m= particles[0].rdata(M);
-    const double q= particles[0].rdata(Q);
-    const double coef = dt*q/m;
     const auto low =geom.ProbLo();
     const auto Ics = geom.InvCellSize();
     
     for(auto& p : particles){
+    const double m= p.rdata(M);
+    const double q= p.rdata(Q);
+    const double coef = dt*q/m;
         auto coord =get_point_cell(geom,{p.pos(X),p.pos(Y),p.pos(Z)}) ;
        
         double dvx=0;
