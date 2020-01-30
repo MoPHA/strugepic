@@ -17,6 +17,24 @@ void add_particle_density(const amrex::Geometry geom , CParticleContainer&P, dou
 void distribute_processes_pdens(amrex::DistributionMapping dm,const amrex::Geometry geom,amrex::BoxArray &Ba,double (*dist_func)(const amrex::Geometry,int,int,int),std::string strat);
 
 
+template<int comp>
+void shift_periodic(const amrex::Geometry geom ,CParticle &particle){
+
+    double pos=particle.pos(comp);
+    double lb =geom.ProbLo(comp);
+    double ub =geom.ProbHi(comp);
+   
+    if(pos > ub){
+        particle.pos(comp) = lb+(pos-ub); 
+    }
+    else if(pos < lb){
+
+        particle.pos(comp) = ub-(lb-pos); 
+    }
+
+
+}
+
 double wrapMax(double x, double max);
 double wrapMinMax(double x , double min ,double max);
 template <typename T> int sgn(T val) {

@@ -144,7 +144,7 @@ void push_pos_pos(CParticleContainer&p_container ,CParticles&local_particles,con
             }
             else{
             p.pos(comp)+=dt*p.rdata(2+comp);
-            p_container.Reset(p,true);
+            shift_periodic<comp>(geom,p);
             }
         }
 }

@@ -49,8 +49,6 @@ void FillDirichletBoundary(const amrex::Geometry geom, amrex::MultiFab &A,const 
 }
 
 
-
-
 // What cell index is a given point in?
 // This is equivalent with the index for the "Lower left" corner
 // Vectorization? 
