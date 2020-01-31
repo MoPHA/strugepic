@@ -141,10 +141,10 @@ for(int step=start_step; step<nsteps;step++){
     amrex::Print() <<"Step:" <<step << std::endl;
     auto E_tot = get_total_energy(geom,P,E,B); 
     amrex::Print() <<"ENERGY: "<<E_tot.first <<" "<< E_tot.second << std::endl;
-    if(step % output_interval ==0){
+    if(step % output_interval ==0 && output_interval != -1){
         SimIO.write(step);
     }
-    if(step % checkpoint_interval ==0){
+    if(step % checkpoint_interval ==0 && output_interval !=-1){
         SimIO.write(step,true);
     }
 
