@@ -42,7 +42,8 @@ class SimulationIO
 {
     public:
     SimulationIO(amrex::Geometry geom,amrex::MultiFab & E,amrex::MultiFab & B,CParticleContainer &P,double dt,std::string data_folder_name);
-    void write(int step);
+    void write(int step,bool checkpoint=false);
+    void read(int step);
     private:
         amrex::Geometry geom;
         amrex::MultiFab & E;

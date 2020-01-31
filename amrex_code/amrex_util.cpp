@@ -13,6 +13,7 @@
 #include <math.h>
 #include <utility>
 #include <vector>
+#include "AMReX_VisMF.H"
 #include "particle_defs.hpp"
 #include "amrex_util.hpp"
 
@@ -39,7 +40,13 @@ void set_uniform_field(amrex::MultiFab &A, std::array<double,3> vals){
 }
 
 
-void SimulationIO::write(int step){
+void SimulationIO::write(int step,bool checkpoint){
+    if(checkpoint){
+    amrex::VisMF::Write(E,amrex::Concatenate(data_folder_name+std::string("/E_CP"),step,0));
+    amrex::VisMF::Write(B,amrex::Concatenate(data_folder_name+std::string("/B_CP"),step,0));
+    P.Checkpoint(amrex::Concatenate(data_folder_name+std::string("/P_CP"),step,0),"Particle0");
+    }
+    else{
     int n=step;
     amrex::Real time=step*dt;
     const std::string& pltfile_E = amrex::Concatenate(data_folder_name+std::string("/plt_E"),n,0);
@@ -47,6 +54,12 @@ void SimulationIO::write(int step){
     const std::string& pltfile_B = amrex::Concatenate(data_folder_name+std::string("/plt_B"),n,0);
     WriteSingleLevelPlotfile(pltfile_B, B, {"B_x","B_y","B_z"}, geom, time, n);
     P.WriteBinaryParticleData(amrex::Concatenate(data_folder_name+std::string("/plt_P"),step,0),"Particle0",{1,1,1,1,1},{},{"Mass","Charge","VX","VY","VZ"},{});
+    }
+}
+void SimulationIO::read(int step){
+    amrex::VisMF::Read(E,amrex::Concatenate(data_folder_name+std::string("/E_CP"),step,0));
+    amrex::VisMF::Read(B,amrex::Concatenate(data_folder_name+std::string("/B_CP"),step,0));
+    P.Restart(amrex::Concatenate(data_folder_name+std::string("/P_CP"),step,0),"Particle0");
 }
 
 

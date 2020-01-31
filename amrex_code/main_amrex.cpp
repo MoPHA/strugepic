@@ -46,11 +46,14 @@ void main_main()
     int Nghost = 3; 
 
     int nsteps;
+    int start_step;
     double dt;
     double q;
     double m;
     std::array<double,3> pos;
     std::array<double,3>vel;
+    int output_interval;
+    int checkpoint_interval;
 
     std::array<double,3> E_init;
     std::array<double,3> B_init;
@@ -59,10 +62,13 @@ void main_main()
     std::string data_folder_name;
 
 
+    pp.get("output_interval",output_interval);
+    pp.get("checkpoint_interval",checkpoint_interval);
     pp.get("n_cell",n_cell);
     pp.get("max_grid_size",max_grid_size);
     pp.get("x_periodic",x_periodic);
     pp.get("nsteps",nsteps);
+    pp.get("start_step",start_step);
     pp.get("dt",dt);
     pp.get("q",q);
     pp.get("m",m);
@@ -104,32 +110,42 @@ void main_main()
     amrex::MultiFab E(ba,dm,Ncomp,Nghost);
     amrex::MultiFab B(ba,dm,Ncomp,Nghost);
     CParticleContainer P(geom,dm,ba,3);
+    auto SimIO=SimulationIO(geom,E,B,P,dt,data_folder_name);
 
+    if(start_step !=0){
+    SimIO.read(start_step);
+    }
+    else{
+    
     set_uniform_field(E,E_init);
     set_uniform_field(B,B_init);
+    add_single_particle(P,pos,vel,m,q);
+    
+    }
 
     E.FillBoundary(geom.periodicity());
     B.FillBoundary(geom.periodicity());
 
-   
-    add_single_particle(P,pos,vel,m,q);
 
+   
     P.Redistribute();
     P.fillNeighbors();
     P.updateNeighbors();
 
-    auto SimIO=SimulationIO(geom,E,B,P,dt,data_folder_name);
 
 
-for(int step=0; step<nsteps;step++){
+for(int step=start_step; step<nsteps;step++){
 
 
     
     amrex::Print() <<"Step:" <<step << std::endl;
     auto E_tot = get_total_energy(geom,P,E,B); 
     amrex::Print() <<"ENERGY: "<<E_tot.first <<" "<< E_tot.second << std::endl;
-    if(step % 10 ==0){
+    if(step % output_interval ==0){
         SimIO.write(step);
+    }
+    if(step % checkpoint_interval ==0){
+        SimIO.write(step,true);
     }
 
     G_Theta_E(geom,P,E,B,dt/2);

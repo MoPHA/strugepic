@@ -3,7 +3,10 @@ n_cell = 4 4 4
 max_grid_size = 4 4 4
 x_periodic = 1
 
-nsteps = 3000
+nsteps = 120
+start_step = 50 # If this is not zero we will try to do a restart from a plotfile
+output_interval = 1 ;
+checkpoint_interval = 10 ;
 dt = 0.5
 data_folder_name = "Single_Particle_Data_out"
 
