@@ -4,7 +4,9 @@
 #include "AMReX_CudaContainers.H"
 #include "AMReX_DistributionMapping.H"
 #include "AMReX_Geometry.H"
+#include "AMReX_MultiFab.H"
 #include "AMReX_ParallelDescriptor.H"
+#include <AMReX_PlotFileUtil.H>
 #include "AMReX_ParallelReduce.H"
 #include "AMReX_REAL.H"
 #include <iostream>
@@ -12,11 +14,45 @@
 #include <utility>
 #include <vector>
 #include "particle_defs.hpp"
+#include "amrex_util.hpp"
 
 
 // Init external dirichle boundary condition
 
 // Either periodic or dirichle
+
+void set_uniform_field(amrex::MultiFab &A, std::array<double,3> vals){
+
+    for (amrex::MFIter mfi(A); mfi.isValid(); ++mfi){
+        const amrex::Box& box = mfi.validbox();
+        amrex::Array4<amrex::Real> const& a = A.array(mfi); 
+
+    amrex::ParallelFor(box,  [=] AMREX_GPU_DEVICE (int i,int j,int k ){
+
+                a(i,j,k,X)= vals[X];
+                a(i,j,k,Y)= vals[Y];
+                a(i,j,k,Z)= vals[Z];
+
+            });
+
+    }
+}
+
+
+void SimulationIO::write(int step){
+    int n=step;
+    amrex::Real time=step*dt;
+    const std::string& pltfile_E = amrex::Concatenate(data_folder_name+std::string("/plt_E"),n,0);
+    WriteSingleLevelPlotfile(pltfile_E, E, {"E_x","E_y","E_z"}, geom, time, n);
+    const std::string& pltfile_B = amrex::Concatenate(data_folder_name+std::string("/plt_B"),n,0);
+    WriteSingleLevelPlotfile(pltfile_B, B, {"B_x","B_y","B_z"}, geom, time, n);
+    P.WriteBinaryParticleData(amrex::Concatenate(data_folder_name+std::string("/plt_P"),step,0),"Particle0",{1,1,1,1,1},{},{"Mass","Charge","VX","VY","VZ"},{});
+}
+
+
+
+SimulationIO::SimulationIO(amrex::Geometry geom,amrex::MultiFab & E,amrex::MultiFab & B,CParticleContainer &P,double dt,std::string data_folder_name):
+    geom(geom),E(E),B(B),P(P),dt(dt),data_folder_name(data_folder_name){}
 
 void FillDirichletBoundary(const amrex::Geometry geom, amrex::MultiFab &A,const amrex::Real b_val){
    
@@ -96,6 +132,19 @@ std::array<int,3> get_num_segments(const amrex::Geometry geom,const amrex::RealA
     p.rdata(3)=vel[1];
     p.rdata(4)=vel[2];
     particlet.push_back(p);
+}
+
+void add_single_particle(CParticleContainer&P,amrex::RealArray pos , amrex::RealArray vel, double m,double q){
+for(amrex::MFIter mfi= P.MakeMFIter(0) ;mfi.isValid();++mfi){
+    
+    // Each grid,tile has a their own local particle container
+    auto& particles = P.GetParticles(0)[std::make_pair(mfi.index(),mfi.tileIndex())];
+        if(mfi.index()==0){
+            add_single_particle(particles,pos,vel,m,q);
+        }
+    }
+    P.Redistribute();
+
 }
 
 

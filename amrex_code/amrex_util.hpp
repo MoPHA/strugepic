@@ -2,6 +2,7 @@
 #define amrex_util
 #include "AMReX_Array.H"
 #include "AMReX_Geometry.H"
+#include "AMReX_MultiFab.H"
 #include "particle_defs.hpp"
 #include <tuple>
 #include <math.h>
@@ -15,6 +16,8 @@ double bernstein_density(const amrex::Geometry geom, int i , int j, int k);
 double simple_line_density(const amrex::Geometry geom ,int i , int j , int k);
 void add_particle_density(const amrex::Geometry geom , CParticleContainer&P, double (*dist_func)(const amrex::Geometry,int,int,int),int ppc_max ,double m, double q ,double v);
 void distribute_processes_pdens(amrex::DistributionMapping dm,const amrex::Geometry geom,amrex::BoxArray &Ba,double (*dist_func)(const amrex::Geometry,int,int,int),std::string strat);
+void set_uniform_field(amrex::MultiFab &A, std::array<double,3> vals);
+void add_single_particle(CParticleContainer&P,amrex::RealArray pos , amrex::RealArray vel, double m,double q);
 
 
 template<int comp>
@@ -34,6 +37,24 @@ void shift_periodic(const amrex::Geometry geom ,CParticle &particle){
 
 
 }
+
+class SimulationIO
+{
+    public:
+    SimulationIO(amrex::Geometry geom,amrex::MultiFab & E,amrex::MultiFab & B,CParticleContainer &P,double dt,std::string data_folder_name);
+    void write(int step);
+    private:
+        amrex::Geometry geom;
+        amrex::MultiFab & E;
+        amrex::MultiFab & B;
+        CParticleContainer &P;
+        double dt;
+        std::string data_folder_name; 
+
+
+};
+
+
 
 double wrapMax(double x, double max);
 double wrapMinMax(double x , double min ,double max);
