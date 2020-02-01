@@ -8,7 +8,9 @@
 
 
 // Soft sine plane wave source in x-direction
-E_source::E_source(int pos,int comp,double E0 ,double omega ,double dt) : 
+E_source::E_source(amrex::Geometry geom, amrex::MultiFab &E,int pos,int comp,double E0 ,double omega ,double dt) : 
+     geom(geom),
+     E(E),
      dt(dt),
      omega(omega),
      E0(E0),
@@ -16,7 +18,7 @@ E_source::E_source(int pos,int comp,double E0 ,double omega ,double dt) :
      pos(pos)
      {}
 // Why sin and factor two ?? and not derivative
-void E_source::operator()(amrex::Geometry geom, amrex::MultiFab &E,double t){ 
+void E_source::operator()(double t){ 
     for (amrex::MFIter mfi(E); mfi.isValid(); ++mfi){
         amrex::Array4<amrex::Real> const& b = E.array(mfi); 
         const auto box= mfi.validbox();
