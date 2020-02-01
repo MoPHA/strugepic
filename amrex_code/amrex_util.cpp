@@ -1,7 +1,6 @@
 #include "AMReX_Array.H"
 #include "AMReX_Box.H"
 #include "AMReX_BoxArray.H"
-#include "AMReX_CudaContainers.H"
 #include "AMReX_DistributionMapping.H"
 #include "AMReX_Geometry.H"
 #include "AMReX_MultiFab.H"
