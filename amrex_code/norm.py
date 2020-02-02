@@ -1,14 +1,17 @@
+from math import sqrt
 ## Inputs in SI units
 ## Length in X direction
 L=4e-2
 ## Number of cells in X direction
 N=1800
 ## Magnetic field strength
-B=0.5
+B=0.55
 ## Electric field strength
 E=1e6
 ## Particle velocity
 v=6e6
+## Temp in ev
+T= 57.6
 ## Particle density
 n=2e19
 ## Time step
@@ -42,7 +45,7 @@ s_dx=1
 s_L=N
 s_B=B/(c*dx*mu0)
 s_E=E*eps0/dx
-s_v=v/c
+s_v=sqrt(T/(m_e*c**2*6.242e+18))
 
 s_l = (c/E_omega)/dx
 s_omega = dx*E_omega/c
@@ -52,12 +55,14 @@ s_m=m_e/(mu0*dx**5)*epc
 
 print("\nInput parameters: ")
 print("Simulation length X: ",s_L)
-print("Simulation length Y: ",s_L)
-print("Particle per cell: " , epc)
 print("Magnetic field: " ,s_B)
 print("Electric field: " ,s_E)
 print("Wave freq: " ,s_omega)
-print("Initial velocity: " ,s_v)
+print("Cyclotron freq:", (s_B*(q_e/(dx**3) )/(m_e/(mu0*dx**5))  ))
+print("Freq ratio: ", (dx*E_omega/c)/(s_B*(q_e/(dx**3) )/(m_e/(mu0*dx**5))  ))
+print("Initial velocity (Maxwell stand.dev): " ,s_v)
 print("Charge per cell: " ,s_q)
 print("Mass per cell: " ,s_m)
+
+
 
