@@ -1,0 +1,23 @@
+
+n_cell = 1800 2 2
+max_grid_size = 15 2 2
+x_periodic = 0
+
+nsteps = 3000
+start_step = 0 # If this is not zero we will try to do a restart from a plotfile
+output_interval = 10 ;
+checkpoint_interval = 500 ;
+dt = 0.5
+data_folder_name = "Bernstein_Data_out"
+
+q = -3.20435324
+m = 29358.51933095
+v = 0.0106169
+ppc = 100
+
+E_init = 0 0 0
+B_init = 0 0 59.7
+source_pos = 4
+source_comp = 1
+E0 = 0.011612033282038069
+omega = 0.06283185307
