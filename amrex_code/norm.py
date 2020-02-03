@@ -1,9 +1,8 @@
 from math import sqrt
 ## Inputs in SI units
 ## Length in X direction
-L=4e-2
 ## Number of cells in X direction
-N=1800
+N=1792
 ## Magnetic field strength
 B=0.55
 ## Electric field strength
@@ -35,7 +34,7 @@ E_omega=1.62*9.67e10
 ## Derived values
 ## s_ means simulation value
 
-dx = L/N
+dx = 2.773e-5
 dy = dx
 dz = dx
 epc = n*dx**3
