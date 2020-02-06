@@ -21,6 +21,33 @@ void add_single_particle(CParticleContainer&P,amrex::RealArray pos , amrex::Real
 
 
 template<int comp>
+void shift_and_grow(amrex::BoxArray &ba, int nghost){
+    // Create a list of 
+    // box index and coordinate of lower left corner
+    // no-overlaps in the input box array
+    std::vector<std::pair<int,int>> cc;
+    for(int i=0;i<ba.size();i++){
+        cc.push_back({ba[i].loVect3d()[comp],i});
+
+    }
+    std::sort(cc.begin(),cc.end());
+    
+    // Shift the coordinates
+    int num_box=0;
+    int cval=cc[0].first;
+    for(auto e:cc){
+       if(e.first > cval){
+            num_box+=1;
+            cval=e.first;
+       } 
+        ba.set(e.second,ba[e.second].shift(comp,2*nghost*num_box).grow(comp,nghost));
+
+    }
+}
+
+
+
+template<int comp>
 void shift_periodic(const amrex::Geometry geom ,CParticle &particle){
 
     double pos=particle.pos(comp);
