@@ -20,10 +20,14 @@
 // std c++
 #include <iostream>
 // Own
+#include "AMReX_Box.H"
 #include "amrex_util.hpp"
 #include "propagators.hpp"
 #include "particle_defs.hpp"
 #include "cmath"
+
+
+
 
 void main_main();
 
@@ -43,24 +47,20 @@ void main_main()
     std::array<int,3> n_cell;
     std::array<int,3> max_grid_size;
     int x_periodic;
-    int Nghost = 3; 
+    int Nghost =3; 
 
     int nsteps;
     int start_step;
     double dt;
     double q;
     double m;
-    double v;
-    int ppc;
+    std::array<double,3> pos;
+    std::array<double,3>vel;
     int output_interval;
     int checkpoint_interval;
 
     std::array<double,3> E_init;
     std::array<double,3> B_init;
-    int source_pos;
-    int source_comp;
-    double E0;
-    double omega;
     int Ncomp  = 3;
 
     std::string data_folder_name;
@@ -76,15 +76,11 @@ void main_main()
     pp.get("dt",dt);
     pp.get("q",q);
     pp.get("m",m);
-    pp.get("ppc",ppc);
-    pp.get("v",v);
+    pp.get("pos",pos);
+    pp.get("vel",vel);
     pp.get("E_init",E_init);
     pp.get("B_init",B_init);
     pp.get("data_folder_name",data_folder_name);
-    pp.get("source_pos",source_pos);
-    pp.get("source_comp",source_comp);
-    pp.get("E0",E0);
-    pp.get("omega",omega);
 
 
     // Do a quite even load balancing
@@ -100,10 +96,12 @@ void main_main()
     amrex::IntVect dom_hi(AMREX_D_DECL(n_cell[X]-1, n_cell[Y]-1, n_cell[Z]-1));
     amrex::Box domain(dom_lo, dom_hi,typ);
     amrex::BoxArray ba(domain);
+    amrex::BoxArray gba(domain);
 
     // Initialize the boxarray "ba" from the single box "bx"
     // Break up boxarray "ba" into chunks no larger than "max_grid_size" along a direction
     ba.maxSize({max_grid_size[X],max_grid_size[Y],max_grid_size[Z]});
+    gba.maxSize({max_grid_size[X],max_grid_size[Y],max_grid_size[Z]});
 
     // This defines the physical box, [-1,1] in each direction.
     amrex::RealBox real_box({AMREX_D_DECL(0,0,0)},
@@ -113,13 +111,56 @@ void main_main()
     amrex::Geometry geom(domain,&real_box,amrex::CoordSys::cartesian,is_periodic.data());
     // How Boxes are distrubuted among MPI processes
     amrex::DistributionMapping dm(ba);
-
+    shift_and_grow<X>(gba,Nghost);
+    shift_and_grow<Y>(gba,Nghost);
+    shift_and_grow<Z>(gba,Nghost);
   
+    amrex::MultiFab E_L(gba,dm,Ncomp,Nghost);
+    std::cout << gba << std::endl;
+    std::cout << ba << std::endl;
     amrex::MultiFab E(ba,dm,Ncomp,Nghost);
     amrex::MultiFab B(ba,dm,Ncomp,Nghost);
+/*   
+    for (amrex::MFIter mfi(E); mfi.isValid(); ++mfi){
+        amrex::Array4<amrex::Real > const& E_L_loc = E_L.array(mfi); 
+        auto bbox=mfi.validbox();
+        for(int j=bbox.loVect()[Y];j<=bbox.hiVect()[Y];j++){ 
+        for(int i=bbox.loVect()[X];i<=bbox.hiVect()[X];i++){
+                E_L_loc(i,j,0,X)=mfi.index()+1;
+            }
+        }
+
+    }
+    E_L.FillBoundary(geom.periodicity());
+    for (amrex::MFIter mfi(E_L); mfi.isValid(); ++mfi){
+        amrex::Array4<amrex::Real> const& E_L_loc = E_L.array(mfi); 
+        std::cout<< "-------------------------------------"<< std::endl;
+        auto bbox=mfi.validbox();
+        for(int j=bbox.loVect()[Y];j<=bbox.hiVect()[Y];j++){ 
+        for(int i=bbox.loVect()[X];i<=bbox.hiVect()[X];i++){
+           std::cout << E_L_loc(i,j,5,X) << " " ;
+        }
+        std::cout << std::endl;
+        }
+    }
+    
+    for (amrex::MFIter mfi(E_L); mfi.isValid(); ++mfi){
+        amrex::Array4<amrex::Real> const& E_L_loc = E_L.array(mfi); 
+        std::cout<< "-------------------------------------"<< std::endl;
+        auto bbox=mfi.fabbox();
+        for(int j=bbox.loVect()[Y];j<=bbox.hiVect()[Y];j++){ 
+        for(int i=bbox.loVect()[X];i<=bbox.hiVect()[X];i++){
+           std::cout << E_L_loc(i,j,0,X) << " " ;
+        }
+        std::cout << std::endl;
+        }
+    }
+    exit(1);
+
+    */
+
     CParticleContainer P(geom,dm,ba,3);
     auto SimIO=SimulationIO(geom,E,B,P,dt,data_folder_name);
-    auto Es = E_source(geom,E,source_pos,source_comp,E0,omega,dt);
 
     if(start_step !=0){
     SimIO.read(start_step);
@@ -128,7 +169,8 @@ void main_main()
     
     set_uniform_field(E,E_init);
     set_uniform_field(B,B_init);
-    add_particle_density(geom,P,bernstein_density,ppc,m,q,v); 
+    add_single_particle(P,pos,vel,m,q);
+    
     }
 
     E.FillBoundary(geom.periodicity());
@@ -139,6 +181,7 @@ void main_main()
     P.Redistribute();
     P.fillNeighbors();
     P.updateNeighbors();
+
 
 
 
@@ -155,13 +198,17 @@ for(int step=start_step; step<nsteps;step++){
     if(step % checkpoint_interval ==0 && output_interval !=-1){
         SimIO.write(step,true);
     }
-    Es(step*dt);
-    G_Theta_B(geom,P,E,B,dt);
-    G_Theta_E(geom,P,E,B,dt);
-    G_Theta<Z>(geom,P,E,B,dt);
-    G_Theta<Y>(geom,P,E,B,dt);
-    G_Theta<X>(geom,P,E,B,dt);
 
+    G_Theta_E(geom,P,E,B,dt/2);
+    G_Theta<X>(geom,P,E,E_L,B,dt/2);
+//    G_Theta<Y>(geom,P,E,E_L,B,dt/2);
+//    G_Theta<Z>(geom,P,E,E_L,B,dt/2);
+    G_Theta_B(geom,P,E,B,dt);
+//    G_Theta<Z>(geom,P,E,E_L,B,dt/2);
+//    G_Theta<Y>(geom,P,E,E_L,B,dt/2);
+    G_Theta<X>(geom,P,E,E_L,B,dt/2);
+    G_Theta_E(geom,P,E,B,dt/2);
+    print_Particle_info(geom,P);
 
 }
 

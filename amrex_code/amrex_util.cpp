@@ -15,7 +15,23 @@
 #include "AMReX_VisMF.H"
 #include "particle_defs.hpp"
 #include "amrex_util.hpp"
+#include <fstream>
 
+void print_boxes(amrex::BoxArray ba){
+    std::ofstream myfile;
+  myfile.open("boxes.txt");
+    for(int i=0;i<ba.size(); i++){
+        auto lc= ba[i].loVect3d();
+        auto hc=ba[i].hiVect3d();
+        std::array<int,3> s;
+        s[X]=hc[X]-lc[X]+1;
+        s[Y]=hc[Y]-lc[Y]+1;
+        s[Z]=hc[Z]-lc[Z]+1; 
+        myfile << lc[X] << "," << lc[Y] << "," << lc[Z] << ","; 
+        myfile << s[X] << "," << s[Y] << "," << s[Z]<<std::endl; 
+    }
+    myfile.close();
+}
 
 // Init external dirichle boundary condition
 

@@ -18,6 +18,7 @@ void add_particle_density(const amrex::Geometry geom , CParticleContainer&P, dou
 void distribute_processes_pdens(amrex::DistributionMapping dm,const amrex::Geometry geom,amrex::BoxArray &Ba,double (*dist_func)(const amrex::Geometry,int,int,int),std::string strat);
 void set_uniform_field(amrex::MultiFab &A, std::array<double,3> vals);
 void add_single_particle(CParticleContainer&P,amrex::RealArray pos , amrex::RealArray vel, double m,double q);
+void print_boxes(amrex::BoxArray ba);
 
 
 template<int comp>
