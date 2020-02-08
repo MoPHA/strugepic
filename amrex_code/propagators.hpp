@@ -386,8 +386,9 @@ void Theta(CParticleContainer&ParticleC, CParticles&local_particles, const amrex
 
 
 template <int coord>
-void G_Theta(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &E,amrex::MultiFab &E_L, amrex::MultiFab &B,double dt ){
+void G_Theta(const amrex::Geometry geom,const amrex::Geometry ggeom,CParticleContainer&P, amrex::MultiFab &E,amrex::MultiFab &E_L, amrex::MultiFab &B,double dt ){
 
+E_L.setVal(0) ;   
     for (amrex::MFIter mfi(E_L); mfi.isValid(); ++mfi){
         auto box_L=mfi.validbox();
         auto box_S=E.box(mfi.index());
@@ -401,41 +402,34 @@ void G_Theta(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &E
         amrex::Array4<amrex::Real> const& E_L_loc = E_L[mfi].array(); 
         int ng = E_L.nGrow();
         Theta<coord>(P,particles,geom,E_L_loc,box_L,box_S,ng,B_loc,dt);
-/*
-        std::cout<< "-------------------------------------"<< std::endl;
-        auto bbox=mfi.validbox();
-        for(int j=bbox.loVect()[Y];j<=bbox.hiVect()[Y];j++){ 
-        for(int i=bbox.loVect()[X];i<=bbox.hiVect()[X];i++){
-           std::cout << E_L_loc(i,j,5,X) << " " ;
-        }
-        std::cout << std::endl;
-        }
-     */   
     }
-    E_L.FillBoundary(geom.periodicity());
+    E_L.FillBoundary(ggeom.periodicity());
     for (amrex::MFIter mfi(E_L); mfi.isValid(); ++mfi){
         auto box_L=mfi.validbox();
         auto box_S=E.box(mfi.index());
         int ng = E_L.nGrow();
         amrex::Array4<amrex::Real > const& E_loc = E.array(mfi);
         amrex::Array4<amrex::Real const> const& E_L_loc = E_L.const_array(mfi); 
-      /*
-        std::cout<< "-------------------------------------"<< std::endl;
-        auto bbox=mfi.fabbox();
-        for(int j=bbox.loVect()[Y];j<=bbox.hiVect()[Y];j++){ 
-        for(int i=bbox.loVect()[X];i<=bbox.hiVect()[X];i++){
-           std::cout << E_L_loc(i,j,5,X) << " " ;
+
+        update_E<coord>(geom,E_loc,E_L_loc,box_L,box_S,ng);
+    }
+    for (amrex::MFIter mfi(E); mfi.isValid(); ++mfi){
+        auto box_L=mfi.fabbox();
+        amrex::Array4<amrex::Real > const& E_loc = E.array(mfi);
+        std::cout << "------------------------" << std::endl;
+        for(int j=box_L.loVect()[Y]; j<=box_L.hiVect()[Y];j++){
+        for(int i=box_L.loVect()[X]; i<=box_L.hiVect()[X];i++){
+            std::cout<< E_loc(i,j,2,X) <<" ";
         }
         std::cout << std::endl;
         }
-        */
-        update_E<coord>(geom,E_loc,E_L_loc,box_L,box_S,ng);
     }
 
 
     P.Redistribute();
     E.FillBoundary(geom.periodicity());
     B.FillBoundary(geom.periodicity());
+
     
 }
 

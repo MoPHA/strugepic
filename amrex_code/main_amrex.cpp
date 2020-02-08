@@ -21,6 +21,7 @@
 #include <iostream>
 // Own
 #include "AMReX_Box.H"
+#include "AMReX_BoxDomain.H"
 #include "amrex_util.hpp"
 #include "propagators.hpp"
 #include "particle_defs.hpp"
@@ -114,51 +115,17 @@ void main_main()
     shift_and_grow<X>(gba,Nghost);
     shift_and_grow<Y>(gba,Nghost);
     shift_and_grow<Z>(gba,Nghost);
-  
+    auto gdomain=gba.minimalBox(); 
+    amrex::Geometry ggeom(gdomain,&real_box,amrex::CoordSys::cartesian,is_periodic.data());
+
+
     amrex::MultiFab E_L(gba,dm,Ncomp,Nghost);
     std::cout << gba << std::endl;
     std::cout << ba << std::endl;
     amrex::MultiFab E(ba,dm,Ncomp,Nghost);
     amrex::MultiFab B(ba,dm,Ncomp,Nghost);
-/*   
-    for (amrex::MFIter mfi(E); mfi.isValid(); ++mfi){
-        amrex::Array4<amrex::Real > const& E_L_loc = E_L.array(mfi); 
-        auto bbox=mfi.validbox();
-        for(int j=bbox.loVect()[Y];j<=bbox.hiVect()[Y];j++){ 
-        for(int i=bbox.loVect()[X];i<=bbox.hiVect()[X];i++){
-                E_L_loc(i,j,0,X)=mfi.index()+1;
-            }
-        }
-
-    }
-    E_L.FillBoundary(geom.periodicity());
-    for (amrex::MFIter mfi(E_L); mfi.isValid(); ++mfi){
-        amrex::Array4<amrex::Real> const& E_L_loc = E_L.array(mfi); 
-        std::cout<< "-------------------------------------"<< std::endl;
-        auto bbox=mfi.validbox();
-        for(int j=bbox.loVect()[Y];j<=bbox.hiVect()[Y];j++){ 
-        for(int i=bbox.loVect()[X];i<=bbox.hiVect()[X];i++){
-           std::cout << E_L_loc(i,j,5,X) << " " ;
-        }
-        std::cout << std::endl;
-        }
-    }
+   
     
-    for (amrex::MFIter mfi(E_L); mfi.isValid(); ++mfi){
-        amrex::Array4<amrex::Real> const& E_L_loc = E_L.array(mfi); 
-        std::cout<< "-------------------------------------"<< std::endl;
-        auto bbox=mfi.fabbox();
-        for(int j=bbox.loVect()[Y];j<=bbox.hiVect()[Y];j++){ 
-        for(int i=bbox.loVect()[X];i<=bbox.hiVect()[X];i++){
-           std::cout << E_L_loc(i,j,0,X) << " " ;
-        }
-        std::cout << std::endl;
-        }
-    }
-    exit(1);
-
-    */
-
     CParticleContainer P(geom,dm,ba,3);
     auto SimIO=SimulationIO(geom,E,B,P,dt,data_folder_name);
 
@@ -188,7 +155,6 @@ void main_main()
 for(int step=start_step; step<nsteps;step++){
 
 
-    
     amrex::Print() <<"Step:" <<step << std::endl;
     auto E_tot = get_total_energy(geom,P,E,B); 
     amrex::Print() <<"ENERGY: "<<E_tot.first <<" "<< E_tot.second << std::endl;
@@ -200,13 +166,13 @@ for(int step=start_step; step<nsteps;step++){
     }
 
     G_Theta_E(geom,P,E,B,dt/2);
-    G_Theta<X>(geom,P,E,E_L,B,dt/2);
-//    G_Theta<Y>(geom,P,E,E_L,B,dt/2);
-//    G_Theta<Z>(geom,P,E,E_L,B,dt/2);
-    G_Theta_B(geom,P,E,B,dt);
-//    G_Theta<Z>(geom,P,E,E_L,B,dt/2);
-//    G_Theta<Y>(geom,P,E,E_L,B,dt/2);
-    G_Theta<X>(geom,P,E,E_L,B,dt/2);
+    G_Theta<X>(geom,ggeom,P,E,E_L,B,dt/2);
+//    G_Theta<Y>(geom,ggeom,P,E,E_L,B,dt/2);
+//    G_Theta<Z>(geom,ggeom,P,E,E_L,B,dt/2);
+//    G_Theta_B(geom,P,E,B,dt);
+//    G_Theta<Z>(geom,ggeom,P,E,E_L,B,dt/2);
+//    G_Theta<Y>(geom,ggeom,P,E,E_L,B,dt/2);
+    G_Theta<X>(geom,ggeom,P,E,E_L,B,dt/2);
     G_Theta_E(geom,P,E,B,dt/2);
     print_Particle_info(geom,P);
 
