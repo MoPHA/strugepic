@@ -169,7 +169,7 @@ for(int step=start_step; step<nsteps;step++){
     G_Theta<X>(geom,ggeom,P,E,E_L,B,dt/2);
 //    G_Theta<Y>(geom,ggeom,P,E,E_L,B,dt/2);
 //    G_Theta<Z>(geom,ggeom,P,E,E_L,B,dt/2);
-//    G_Theta_B(geom,P,E,B,dt);
+    G_Theta_B(geom,P,E,B,dt);
 //    G_Theta<Z>(geom,ggeom,P,E,E_L,B,dt/2);
 //    G_Theta<Y>(geom,ggeom,P,E,E_L,B,dt/2);
     G_Theta<X>(geom,ggeom,P,E,E_L,B,dt/2);
