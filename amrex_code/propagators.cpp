@@ -258,7 +258,6 @@ void G_Theta_E(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab&
 
     }
 
-    P.updateNeighbors();
     B.FillBoundary(geom.periodicity());
 
 

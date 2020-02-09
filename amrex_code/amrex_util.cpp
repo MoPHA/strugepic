@@ -4,6 +4,7 @@
 #include "AMReX_DistributionMapping.H"
 #include "AMReX_Geometry.H"
 #include "AMReX_MultiFab.H"
+#include "AMReX_ParGDB.H"
 #include "AMReX_ParallelDescriptor.H"
 #include <AMReX_PlotFileUtil.H>
 #include "AMReX_ParallelReduce.H"
@@ -328,7 +329,7 @@ void print_Particle_info(const amrex::Geometry geom,CParticleContainer&P ){
     for (CParIter pti(P, 0); pti.isValid(); ++pti) {
         auto&  particles = pti.GetArrayOfStructs();
         for(auto p : particles ){
-            std::cout << "(" << p.cpu()<<"," << p.id()<<")" << std::endl;
+            std::cout << "(" << p.cpu()<<"," << p.id()<<"," << amrex::ParallelDescriptor::MyProc() <<")" << std::endl;
             std::cout << "POS: [" << p.pos(0)<<"," << p.pos(1)<<"," << p.pos(2) << "]" << std::endl;
             std::cout << "VEL: [" << p.rdata(2)<<"," << p.rdata(3)<<"," << p.rdata(4) << "]" << std::endl;
         }

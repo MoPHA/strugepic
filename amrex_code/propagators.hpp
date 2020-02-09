@@ -308,11 +308,12 @@ void push_E_pos(const CParticles&particles, const amrex::Geometry geom,amrex::Ar
                         cl[X]+=shift[X];
                         cl[Y]+=shift[Y];
                         cl[Z]+=shift[Z];
-                            E(cl[X],cl[Y],cl[Z],comp)=
+                            E(cl[X],cl[Y],cl[Z],comp)+=
                                 -coef
                                 *compI_W12[idx[comp]+1]
                                 *comp_uW1[idx[comp_u]+1]
                                 *comp_lW1[idx[comp_l]+1];
+
                     }
                 }
             }
@@ -499,23 +500,23 @@ void G_Theta(const amrex::Geometry geom,const amrex::Geometry ggeom,CParticleCon
         update_E<coord>(geom,E_loc,E_L_loc,box_L,box_S,ng);
     }
 
+
+
+    P.Redistribute();
+    E.FillBoundary(geom.periodicity());
+    B.FillBoundary(geom.periodicity());
 /*    for (amrex::MFIter mfi(E); mfi.isValid(); ++mfi){
         auto box_L=mfi.fabbox();
         amrex::Array4<amrex::Real > const& E_loc = E.array(mfi);
         std::cout << "Proper E after push\n------------------------" << std::endl;
         for(int j=box_L.hiVect()[Y];j>= box_L.loVect()[Y];j--){
         for(int i=box_L.loVect()[X]; i<=box_L.hiVect()[X];i++){
-            std::cout<< E_loc(i,j,6,X) <<" ";
+            std::cout<< E_loc(i,j,10,X) <<" ";
         }
         std::cout << std::endl;
         }
     }
 */
-
-    P.Redistribute();
-    E.FillBoundary(geom.periodicity());
-    B.FillBoundary(geom.periodicity());
-
     
 }
 
