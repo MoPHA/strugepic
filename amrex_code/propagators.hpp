@@ -67,6 +67,7 @@ void update_E(const amrex::Geometry geom,amrex::Array4<amrex::Real> const& E,amr
     shift[Y]=(el_low[Y]+ng)-e_low[Y];
     shift[Z]=(el_low[Z]+ng)-e_low[Z];
 
+
     // Update interior
     for(int k = Ll.z+ng;k<= Lu.z-ng;k++){
     for(int j = Ll.y+ng;j<= Lu.y-ng;j++){
@@ -75,7 +76,6 @@ void update_E(const amrex::Geometry geom,amrex::Array4<amrex::Real> const& E,amr
             }
         }
     }
-
     // The exterior corresponds to contributions from particles owned by other processes
     // No T-junctions in the grid are allowed!!
     // Ghost region is not allowed to reach over on whole grid
@@ -249,7 +249,6 @@ void push_E_pos(const CParticles&particles, const amrex::Geometry geom,amrex::Ar
 
 
 
-
      for(auto& p : particles){
     const double q= p.rdata(Q);
     const  double coef = q*geom.InvCellSize(X)*geom.InvCellSize(Y)*geom.InvCellSize(Z)*geom.CellSize(comp);
@@ -304,11 +303,7 @@ void push_E_pos(const CParticles&particles, const amrex::Geometry geom,amrex::Ar
                     for(auto i: idx_list){
                         cl[X] = coord[X]+i;
                         idx[X]=i;
-
-                        cl[X]+=shift[X];
-                        cl[Y]+=shift[Y];
-                        cl[Z]+=shift[Z];
-                            E(cl[X],cl[Y],cl[Z],comp)+=
+                            E(cl[X]+shift[X],cl[Y]+shift[Y],cl[Z]+shift[Z],comp)+=
                                 -coef
                                 *compI_W12[idx[comp]+1]
                                 *comp_uW1[idx[comp_u]+1]
@@ -464,32 +459,8 @@ void G_Theta(const amrex::Geometry geom,const amrex::Geometry ggeom,CParticleCon
         int ng = E_L.nGrow();
         Theta<coord>(P,particles,geom,E_L_loc,box_L,box_S,ng,B_loc,dt);
     }
-    /*
-    for (amrex::MFIter mfi(E_L); mfi.isValid(); ++mfi){
-        auto box_L=mfi.validbox();
-        amrex::Array4<amrex::Real > const& E_L_loc = E_L.array(mfi);
-        std::cout << "AUX E_L after deposition\n------------------------" << std::endl;
-        for(int j=box_L.hiVect()[Y];j>= box_L.loVect()[Y];j--){
-        for(int i=box_L.loVect()[X]; i<=box_L.hiVect()[X];i++){
-            std::cout<< E_L_loc(i,j,6,X) <<" ";
-        }
-        std::cout << std::endl;
-        }
-    }
-    */
     E_L.FillBoundary(ggeom.periodicity());
-  /*  for (amrex::MFIter mfi(E_L); mfi.isValid(); ++mfi){
-        auto box_L=mfi.fabbox();
-        amrex::Array4<amrex::Real > const& E_L_loc = E_L.array(mfi);
-        std::cout << "AUX E_L after sync\n------------------------" << std::endl;
-        for(int j=box_L.hiVect()[Y];j>= box_L.loVect()[Y];j--){
-        for(int i=box_L.loVect()[X]; i<=box_L.hiVect()[X];i++){
-            std::cout<< E_L_loc(i,j,6,X) <<" ";
-        }
-        std::cout << std::endl;
-        }
-    }
- */  
+  
     for (amrex::MFIter mfi(E_L); mfi.isValid(); ++mfi){
         auto box_L=mfi.validbox();
         auto box_S=E.box(mfi.index());
@@ -505,18 +476,7 @@ void G_Theta(const amrex::Geometry geom,const amrex::Geometry ggeom,CParticleCon
     P.Redistribute();
     E.FillBoundary(geom.periodicity());
     B.FillBoundary(geom.periodicity());
-/*    for (amrex::MFIter mfi(E); mfi.isValid(); ++mfi){
-        auto box_L=mfi.fabbox();
-        amrex::Array4<amrex::Real > const& E_loc = E.array(mfi);
-        std::cout << "Proper E after push\n------------------------" << std::endl;
-        for(int j=box_L.hiVect()[Y];j>= box_L.loVect()[Y];j--){
-        for(int i=box_L.loVect()[X]; i<=box_L.hiVect()[X];i++){
-            std::cout<< E_loc(i,j,10,X) <<" ";
-        }
-        std::cout << std::endl;
-        }
-    }
-*/
+
     
 }
 
