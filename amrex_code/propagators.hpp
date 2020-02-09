@@ -1,6 +1,7 @@
 #ifndef PROPAGATOR
 #define PROPAGATOR
 #include<AMReX_Geometry.H>
+#include <array>
 #include "../include/interpolation.hpp"
 #include "AMReX_Box.H"
 #include "AMReX_BoxArray.H"
@@ -124,7 +125,7 @@ void update_E(const amrex::Geometry geom,amrex::Array4<amrex::Real> const& E,amr
     }
     }
 
-/**/
+
     // Construct a list of the lower left corner of the  6 faces 
     // There probably is some better way
     std::array<std::array<int,6>,6> faces;
@@ -135,7 +136,7 @@ void update_E(const amrex::Geometry geom,amrex::Array4<amrex::Real> const& E,amr
     faces[4]={Ll.x+ng,Ll.y+ng,Ll.z-ng,0,0,-1};
     faces[5]={faces[4][X],faces[4][Y],faces[4][Z]+zs,0,0,1};
     
-    // Loop limits, again this could be genrated
+    // Loop limits, again this could be generated
     std::array<std::array<int,3>,6> loop_lims;
     loop_lims[0]={ng,ely,elz};
     loop_lims[1]={ng,ely,elz};
@@ -165,6 +166,65 @@ void update_E(const amrex::Geometry geom,amrex::Array4<amrex::Real> const& E,amr
             }
         }
     }
+
+//Iterate over the edges of the cube
+    // Starting points
+    std::array<std::array<int,6>,12> edges;
+    edges[0]={Ll.x+ng,Ll.y-ng,Ll.z-ng,0,-1,-1};
+    edges[1]={edges[0][X],edges[0][Y],edges[0][Z]+zs,0,-1,1};
+    edges[2]={edges[0][X],edges[0][Y]+ys,edges[0][Z],0,1,-1};
+    edges[3]={edges[0][X],edges[0][Y]+ys,edges[0][Z]+zs,0,1,1};
+    
+    edges[4]={Ll.x-ng,Ll.y+ng,Ll.z-ng,-1,0,-1};
+    edges[5]={edges[4][X],edges[4][Y],edges[4][Z]+zs,-1,0,1};
+    edges[6]={edges[4][X]+xs,edges[4][Y],edges[4][Z],1,0,-1};
+    edges[7]={edges[4][X]+xs,edges[4][Y],edges[4][Z]+zs,1,0,1};
+    
+    edges[8]={Ll.x-ng,Ll.y-ng,Ll.z+ng,-1,-1,0};
+    edges[9]={edges[8][X]+xs,edges[8][Y],edges[8][Z],1,-1,0};
+    edges[10]={edges[8][X],edges[8][Y]+ys,edges[8][Z],-1,1,0};
+    edges[11]={edges[8][X]+xs,edges[8][Y]+ys,edges[8][Z],1,1,0};
+    // Loop limits
+    std::array<std::array<int,3>,12> ed_lims;
+
+    ed_lims[0]={elx,ng,ng};
+    ed_lims[1]={elx,ng,ng};
+    ed_lims[2]={elx,ng,ng};
+    ed_lims[3]={elx,ng,ng};
+
+    ed_lims[4]={ng,ely,ng};
+    ed_lims[5]={ng,ely,ng};
+    ed_lims[6]={ng,ely,ng};
+    ed_lims[7]={ng,ely,ng};
+
+    ed_lims[8]={ng,ng,elz};
+    ed_lims[9]={ng,ng,elz};
+    ed_lims[10]={ng,ng,elz};
+    ed_lims[11]={ng,ng,elz};
+
+
+    for( int e=0; e<12; e++  ){
+    for(int x=0; x <ed_lims[e][X];x++){
+        for(int y=0; y <ed_lims[e][Y];y++){
+            for(int z=0; z <ed_lims[e][Z];z++){
+               std::array<int,3> ext_coord={edges[e][X]+x,edges[e][Y]+y,edges[e][Z]+z}; 
+               std::array<int,3> int_coord={
+                            (ext_coord[X]-2*ng*edges[e][X+3]-shift[X]),                           
+                            (ext_coord[Y]-2*ng*edges[e][Y+3]-shift[Y]),                            
+                            (ext_coord[Z]-2*ng*edges[e][Z+3]-shift[Z])                           
+                        };
+
+                // Modulo in case we wrap around 
+                            int_coord[X]=mod((int_coord[X]-e_low[X]), elx)+e_low[X];
+                            int_coord[Y]=mod((int_coord[Y]-e_low[Y]), ely)+e_low[Y];
+                            int_coord[Z]=mod((int_coord[Z]-e_low[Z]), elz)+e_low[Z];
+                E(int_coord[X],int_coord[Y],int_coord[Z],comp)+=E_L(ext_coord[X],ext_coord[Y],ext_coord[Z],comp);
+                }
+            }
+        }
+    }
+
+
 }
 
 
@@ -388,7 +448,7 @@ void Theta(CParticleContainer&ParticleC, CParticles&local_particles, const amrex
 template <int coord>
 void G_Theta(const amrex::Geometry geom,const amrex::Geometry ggeom,CParticleContainer&P, amrex::MultiFab &E,amrex::MultiFab &E_L, amrex::MultiFab &B,double dt ){
 
-E_L.setVal(0) ;   
+    E_L.setVal(0) ;   
     for (amrex::MFIter mfi(E_L); mfi.isValid(); ++mfi){
         auto box_L=mfi.validbox();
         auto box_S=E.box(mfi.index());
@@ -403,7 +463,32 @@ E_L.setVal(0) ;
         int ng = E_L.nGrow();
         Theta<coord>(P,particles,geom,E_L_loc,box_L,box_S,ng,B_loc,dt);
     }
+    /*
+    for (amrex::MFIter mfi(E_L); mfi.isValid(); ++mfi){
+        auto box_L=mfi.validbox();
+        amrex::Array4<amrex::Real > const& E_L_loc = E_L.array(mfi);
+        std::cout << "AUX E_L after deposition\n------------------------" << std::endl;
+        for(int j=box_L.hiVect()[Y];j>= box_L.loVect()[Y];j--){
+        for(int i=box_L.loVect()[X]; i<=box_L.hiVect()[X];i++){
+            std::cout<< E_L_loc(i,j,6,X) <<" ";
+        }
+        std::cout << std::endl;
+        }
+    }
+    */
     E_L.FillBoundary(ggeom.periodicity());
+  /*  for (amrex::MFIter mfi(E_L); mfi.isValid(); ++mfi){
+        auto box_L=mfi.fabbox();
+        amrex::Array4<amrex::Real > const& E_L_loc = E_L.array(mfi);
+        std::cout << "AUX E_L after sync\n------------------------" << std::endl;
+        for(int j=box_L.hiVect()[Y];j>= box_L.loVect()[Y];j--){
+        for(int i=box_L.loVect()[X]; i<=box_L.hiVect()[X];i++){
+            std::cout<< E_L_loc(i,j,6,X) <<" ";
+        }
+        std::cout << std::endl;
+        }
+    }
+ */  
     for (amrex::MFIter mfi(E_L); mfi.isValid(); ++mfi){
         auto box_L=mfi.validbox();
         auto box_S=E.box(mfi.index());
@@ -413,18 +498,19 @@ E_L.setVal(0) ;
 
         update_E<coord>(geom,E_loc,E_L_loc,box_L,box_S,ng);
     }
-    for (amrex::MFIter mfi(E); mfi.isValid(); ++mfi){
+
+/*    for (amrex::MFIter mfi(E); mfi.isValid(); ++mfi){
         auto box_L=mfi.fabbox();
         amrex::Array4<amrex::Real > const& E_loc = E.array(mfi);
-        std::cout << "------------------------" << std::endl;
-        for(int j=box_L.loVect()[Y]; j<=box_L.hiVect()[Y];j++){
+        std::cout << "Proper E after push\n------------------------" << std::endl;
+        for(int j=box_L.hiVect()[Y];j>= box_L.loVect()[Y];j--){
         for(int i=box_L.loVect()[X]; i<=box_L.hiVect()[X];i++){
-            std::cout<< E_loc(i,j,2,X) <<" ";
+            std::cout<< E_loc(i,j,6,X) <<" ";
         }
         std::cout << std::endl;
         }
     }
-
+*/
 
     P.Redistribute();
     E.FillBoundary(geom.periodicity());
