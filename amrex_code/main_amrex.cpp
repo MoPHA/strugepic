@@ -146,8 +146,6 @@ void main_main()
 
    
     P.Redistribute();
-    P.fillNeighbors();
-    P.updateNeighbors();
 
 
 

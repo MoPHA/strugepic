@@ -276,8 +276,6 @@ for(amrex::MFIter mfi= P.MakeMFIter(0) ;mfi.isValid();++mfi){
    }
  }
 P.Redistribute();
-P.fillNeighbors();
-P.updateNeighbors();
 
 }
 
@@ -318,8 +316,6 @@ for(amrex::MFIter mfi= P.MakeMFIter(0) ;mfi.isValid();++mfi){
    }
  }
 P.Redistribute();
-P.fillNeighbors();
-P.updateNeighbors();
 
 }
 
