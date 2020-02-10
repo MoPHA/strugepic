@@ -159,8 +159,8 @@ for(int step=start_step; step<nsteps;step++){
     if(step % output_interval ==0 && output_interval != -1){
         SimIO.write(step);
     }
-    if(step % checkpoint_interval ==0 && output_interval !=-1){
-        SimIO.write(step,true);
+    if(step % checkpoint_interval ==0 && checkpoint_interval  !=-1){
+        SimIO.write(step,true,true);
     }
     Es(step*dt);
     G_Theta_B(geom,P,E,B,dt);

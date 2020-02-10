@@ -20,15 +20,10 @@
 // std c++
 #include <iostream>
 // Own
-#include "AMReX_Box.H"
-#include "AMReX_BoxDomain.H"
 #include "amrex_util.hpp"
 #include "propagators.hpp"
 #include "particle_defs.hpp"
 #include "cmath"
-
-
-
 
 void main_main();
 
@@ -48,20 +43,24 @@ void main_main()
     std::array<int,3> n_cell;
     std::array<int,3> max_grid_size;
     int x_periodic;
-    int Nghost =3; 
+    int Nghost = 3; 
 
     int nsteps;
     int start_step;
     double dt;
     double q;
     double m;
-    std::array<double,3> pos;
-    std::array<double,3>vel;
+    double v;
+    int ppc;
     int output_interval;
     int checkpoint_interval;
 
     std::array<double,3> E_init;
     std::array<double,3> B_init;
+    int source_pos;
+    int source_comp;
+    double E0;
+    double omega;
     int Ncomp  = 3;
 
     std::string data_folder_name;
@@ -77,11 +76,16 @@ void main_main()
     pp.get("dt",dt);
     pp.get("q",q);
     pp.get("m",m);
-    pp.get("pos",pos);
-    pp.get("vel",vel);
+    pp.get("ppc",ppc);
+    pp.get("v",v);
     pp.get("E_init",E_init);
     pp.get("B_init",B_init);
     pp.get("data_folder_name",data_folder_name);
+    pp.get("source_pos",source_pos);
+    pp.get("source_comp",source_comp);
+    pp.get("E0",E0);
+    pp.get("omega",omega);
+
 
 
     // Do a quite even load balancing
@@ -119,13 +123,12 @@ void main_main()
     amrex::Geometry ggeom(gdomain,&real_box,amrex::CoordSys::cartesian,is_periodic.data());
 
 
-    amrex::MultiFab E_L(gba,dm,Ncomp,Nghost);
+    amrex::MultiFab E_L(gba,dm,Ncomp,Nghost); 
     amrex::MultiFab E(ba,dm,Ncomp,Nghost);
     amrex::MultiFab B(ba,dm,Ncomp,Nghost);
-   
-    
     CParticleContainer P(geom,dm,ba,3);
     auto SimIO=SimulationIO(geom,E,B,P,dt,data_folder_name);
+    auto Es = E_source(geom,E,source_pos,source_comp,E0,omega,dt);
 
     if(start_step !=0){
     SimIO.read(start_step);
@@ -134,8 +137,7 @@ void main_main()
     
     set_uniform_field(E,E_init);
     set_uniform_field(B,B_init);
-    add_single_particle(P,pos,vel,m,q);
-    
+    add_particle_density(geom,P,bernstein_density,ppc,m,q,v); 
     }
 
     E.FillBoundary(geom.periodicity());
@@ -147,31 +149,25 @@ void main_main()
 
 
 
-
 for(int step=start_step; step<nsteps;step++){
 
 
+    
     amrex::Print() <<"Step:" <<step << std::endl;
     auto E_tot = get_total_energy(geom,P,E,B); 
     amrex::Print() <<"ENERGY: "<<E_tot.first <<" "<< E_tot.second << std::endl;
     if(step % output_interval ==0 && output_interval != -1){
         SimIO.write(step);
     }
-    if(step % checkpoint_interval ==0 && output_interval !=-1){
-        SimIO.write(step,true);
+    if(step % checkpoint_interval ==0 && checkpoint_interval  !=-1){
+        SimIO.write(step,true,true);
     }
-
-    G_Theta_E(geom,P,E,B,dt/2);
-    G_Theta<X>(geom,ggeom,P,E,E_L,B,dt/2);
-    G_Theta<Y>(geom,ggeom,P,E,E_L,B,dt/2);
-    G_Theta<Z>(geom,ggeom,P,E,E_L,B,dt/2);
+    Es(step*dt);
     G_Theta_B(geom,P,E,B,dt);
-    G_Theta<Z>(geom,ggeom,P,E,E_L,B,dt/2);
-    G_Theta<Y>(geom,ggeom,P,E,E_L,B,dt/2);
-    G_Theta<X>(geom,ggeom,P,E,E_L,B,dt/2);
-    G_Theta_E(geom,P,E,B,dt/2);
-    print_Particle_info(geom,P);
-
+    G_Theta_E(geom,P,E,B,dt);
+    G_Theta<Z>(geom,ggeom,P,E,E_L,B,dt);
+    G_Theta<Y>(geom,ggeom,P,E,E_L,B,dt);
+    G_Theta<X>(geom,ggeom,P,E,E_L,B,dt);
 }
 
 
