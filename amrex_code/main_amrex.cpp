@@ -120,8 +120,6 @@ void main_main()
 
 
     amrex::MultiFab E_L(gba,dm,Ncomp,Nghost);
-    std::cout << gba << std::endl;
-    std::cout << ba << std::endl;
     amrex::MultiFab E(ba,dm,Ncomp,Nghost);
     amrex::MultiFab B(ba,dm,Ncomp,Nghost);
    
