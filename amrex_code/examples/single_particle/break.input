@@ -1,18 +1,17 @@
-# Example of electron cyclotron motion
-# Should complete one revolution
+# Example of electron slowing down in E-field
+# Should come to a complete stop
 # SI-inputs
-# B = 0.55 T
+# E = 1MV/m
 # m = m_e
 # q = q_e
 # dx = 2.773e-5
 # vel = 0.01 c
 
-
 n_cell =  12 12 12
 max_grid_size = 12 12 12
 x_periodic = 1
 
-nsteps = 1404
+nsteps = 368
 start_step = 0 # If this is not zero we will try to do a restart from a plotfile
 output_interval = -1 ;
 checkpoint_interval = -1 ;
@@ -24,5 +23,5 @@ m = 9.427127615688092e-16
 pos = 6 6 6
 vel = 0.01 0.0 0.0
 
-E_init = 0 0 0
-B_init = 0 0 52.6480455412605
+E_init = 0.31929995744680856 0 0
+B_init = 0 0 0

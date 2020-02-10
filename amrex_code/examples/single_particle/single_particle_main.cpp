@@ -20,10 +20,15 @@
 // std c++
 #include <iostream>
 // Own
+#include "AMReX_Box.H"
+#include "AMReX_BoxDomain.H"
 #include "amrex_util.hpp"
 #include "propagators.hpp"
 #include "particle_defs.hpp"
 #include "cmath"
+
+
+
 
 void main_main();
 
@@ -43,7 +48,7 @@ void main_main()
     std::array<int,3> n_cell;
     std::array<int,3> max_grid_size;
     int x_periodic;
-    int Nghost = 3; 
+    int Nghost =3; 
 
     int nsteps;
     int start_step;
@@ -92,10 +97,12 @@ void main_main()
     amrex::IntVect dom_hi(AMREX_D_DECL(n_cell[X]-1, n_cell[Y]-1, n_cell[Z]-1));
     amrex::Box domain(dom_lo, dom_hi,typ);
     amrex::BoxArray ba(domain);
+    amrex::BoxArray gba(domain);
 
     // Initialize the boxarray "ba" from the single box "bx"
     // Break up boxarray "ba" into chunks no larger than "max_grid_size" along a direction
     ba.maxSize({max_grid_size[X],max_grid_size[Y],max_grid_size[Z]});
+    gba.maxSize({max_grid_size[X],max_grid_size[Y],max_grid_size[Z]});
 
     // This defines the physical box, [-1,1] in each direction.
     amrex::RealBox real_box({AMREX_D_DECL(0,0,0)},
@@ -105,10 +112,20 @@ void main_main()
     amrex::Geometry geom(domain,&real_box,amrex::CoordSys::cartesian,is_periodic.data());
     // How Boxes are distrubuted among MPI processes
     amrex::DistributionMapping dm(ba);
+    shift_and_grow<X>(gba,Nghost);
+    shift_and_grow<Y>(gba,Nghost);
+    shift_and_grow<Z>(gba,Nghost);
+    auto gdomain=gba.minimalBox(); 
+    amrex::Geometry ggeom(gdomain,&real_box,amrex::CoordSys::cartesian,is_periodic.data());
 
-  
+
+    amrex::MultiFab E_L(gba,dm,Ncomp,Nghost);
+    std::cout << gba << std::endl;
+    std::cout << ba << std::endl;
     amrex::MultiFab E(ba,dm,Ncomp,Nghost);
     amrex::MultiFab B(ba,dm,Ncomp,Nghost);
+   
+    
     CParticleContainer P(geom,dm,ba,3);
     auto SimIO=SimulationIO(geom,E,B,P,dt,data_folder_name);
 
@@ -134,10 +151,10 @@ void main_main()
 
 
 
+
 for(int step=start_step; step<nsteps;step++){
 
 
-    
     amrex::Print() <<"Step:" <<step << std::endl;
     auto E_tot = get_total_energy(geom,P,E,B); 
     amrex::Print() <<"ENERGY: "<<E_tot.first <<" "<< E_tot.second << std::endl;
@@ -149,13 +166,13 @@ for(int step=start_step; step<nsteps;step++){
     }
 
     G_Theta_E(geom,P,E,B,dt/2);
-    G_Theta<X>(geom,P,E,B,dt/2);
-    G_Theta<Y>(geom,P,E,B,dt/2);
-    G_Theta<Z>(geom,P,E,B,dt/2);
+    G_Theta<X>(geom,ggeom,P,E,E_L,B,dt/2);
+    G_Theta<Y>(geom,ggeom,P,E,E_L,B,dt/2);
+    G_Theta<Z>(geom,ggeom,P,E,E_L,B,dt/2);
     G_Theta_B(geom,P,E,B,dt);
-    G_Theta<Z>(geom,P,E,B,dt/2);
-    G_Theta<Y>(geom,P,E,B,dt/2);
-    G_Theta<X>(geom,P,E,B,dt/2);
+    G_Theta<Z>(geom,ggeom,P,E,E_L,B,dt/2);
+    G_Theta<Y>(geom,ggeom,P,E,E_L,B,dt/2);
+    G_Theta<X>(geom,ggeom,P,E,E_L,B,dt/2);
     G_Theta_E(geom,P,E,B,dt/2);
     print_Particle_info(geom,P);
 
