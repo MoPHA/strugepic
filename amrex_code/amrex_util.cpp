@@ -69,9 +69,9 @@ void SimulationIO::write(int step,bool checkpoint,bool particles){
     WriteSingleLevelPlotfile(pltfile_E, E, {"E_x","E_y","E_z"}, geom, time, n);
     const std::string& pltfile_B = amrex::Concatenate(data_folder_name+std::string("/plt_B"),n,0);
     WriteSingleLevelPlotfile(pltfile_B, B, {"B_x","B_y","B_z"}, geom, time, n);
+    }
     if(particles){
         P.WriteBinaryParticleData(amrex::Concatenate(data_folder_name+std::string("/plt_P"),step,0),"Particle0",{1,1,1,1,1},{},{"Mass","Charge","VX","VY","VZ"},{});
-    }
     }
 }
 void SimulationIO::read(int step){
