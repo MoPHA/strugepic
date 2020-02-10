@@ -87,6 +87,7 @@ void main_main()
     pp.get("omega",omega);
 
 
+
     // Do a quite even load balancing
     amrex::DistributionMapping::strategy(amrex::DistributionMapping::KNAPSACK);
 
@@ -100,10 +101,12 @@ void main_main()
     amrex::IntVect dom_hi(AMREX_D_DECL(n_cell[X]-1, n_cell[Y]-1, n_cell[Z]-1));
     amrex::Box domain(dom_lo, dom_hi,typ);
     amrex::BoxArray ba(domain);
+    amrex::BoxArray gba(domain);
 
     // Initialize the boxarray "ba" from the single box "bx"
     // Break up boxarray "ba" into chunks no larger than "max_grid_size" along a direction
     ba.maxSize({max_grid_size[X],max_grid_size[Y],max_grid_size[Z]});
+    gba.maxSize({max_grid_size[X],max_grid_size[Y],max_grid_size[Z]});
 
     // This defines the physical box, [-1,1] in each direction.
     amrex::RealBox real_box({AMREX_D_DECL(0,0,0)},
@@ -113,8 +116,14 @@ void main_main()
     amrex::Geometry geom(domain,&real_box,amrex::CoordSys::cartesian,is_periodic.data());
     // How Boxes are distrubuted among MPI processes
     amrex::DistributionMapping dm(ba);
+    shift_and_grow<X>(gba,Nghost);
+    shift_and_grow<Y>(gba,Nghost);
+    shift_and_grow<Z>(gba,Nghost);
+    auto gdomain=gba.minimalBox(); 
+    amrex::Geometry ggeom(gdomain,&real_box,amrex::CoordSys::cartesian,is_periodic.data());
 
-  
+
+    amrex::MultiFab E_L(gba,dm,Ncomp,Nghost); 
     amrex::MultiFab E(ba,dm,Ncomp,Nghost);
     amrex::MultiFab B(ba,dm,Ncomp,Nghost);
     CParticleContainer P(geom,dm,ba,3);
@@ -137,8 +146,6 @@ void main_main()
 
    
     P.Redistribute();
-    P.fillNeighbors();
-    P.updateNeighbors();
 
 
 
@@ -158,11 +165,9 @@ for(int step=start_step; step<nsteps;step++){
     Es(step*dt);
     G_Theta_B(geom,P,E,B,dt);
     G_Theta_E(geom,P,E,B,dt);
-    G_Theta<Z>(geom,P,E,B,dt);
-    G_Theta<Y>(geom,P,E,B,dt);
-    G_Theta<X>(geom,P,E,B,dt);
-
-
+    G_Theta<Z>(geom,ggeom,P,E,E_L,B,dt);
+    G_Theta<Y>(geom,ggeom,P,E,E_L,B,dt);
+    G_Theta<X>(geom,ggeom,P,E,E_L,B,dt);
 }
 
 
