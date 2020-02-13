@@ -116,6 +116,8 @@ void main_main()
     amrex::Geometry geom(domain,&real_box,amrex::CoordSys::cartesian,is_periodic.data());
     // How Boxes are distrubuted among MPI processes
     amrex::DistributionMapping dm(ba);
+    CParticleContainer P(geom,dm,ba,3);
+    distribute_processes_pdens(dm,geom,ba,bernstein_density,"SFC");    
     shift_and_grow<X>(gba,Nghost);
     shift_and_grow<Y>(gba,Nghost);
     shift_and_grow<Z>(gba,Nghost);
@@ -126,7 +128,6 @@ void main_main()
     amrex::MultiFab E_L(gba,dm,Ncomp,Nghost); 
     amrex::MultiFab E(ba,dm,Ncomp,Nghost);
     amrex::MultiFab B(ba,dm,Ncomp,Nghost);
-    CParticleContainer P(geom,dm,ba,3);
     auto SimIO=SimulationIO(geom,E,B,P,dt,data_folder_name);
     auto Es = E_source(geom,E,source_pos,source_comp,E0,omega,dt);
 
