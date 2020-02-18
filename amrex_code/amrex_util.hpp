@@ -19,6 +19,7 @@ void distribute_processes_pdens(amrex::DistributionMapping dm,const amrex::Geome
 void set_uniform_field(amrex::MultiFab &A, std::array<double,3> vals);
 void add_single_particle(CParticleContainer&P,amrex::RealArray pos , amrex::RealArray vel, double m,double q);
 void print_boxes(amrex::BoxArray ba);
+void get_particle_number_density(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &P_dens);
 
 
 template<int comp>
@@ -69,13 +70,14 @@ void shift_periodic(const amrex::Geometry geom ,CParticle &particle){
 class SimulationIO
 {
     public:
-    SimulationIO(amrex::Geometry geom,amrex::MultiFab & E,amrex::MultiFab & B,CParticleContainer &P,double dt,std::string data_folder_name);
+    SimulationIO(amrex::Geometry geom,amrex::MultiFab & E,amrex::MultiFab & B,amrex::MultiFab & Pdens,CParticleContainer &P,double dt,std::string data_folder_name);
     void write(int step,bool checkpoint=false,bool particles=false);
     void read(int step);
     private:
         amrex::Geometry geom;
         amrex::MultiFab & E;
         amrex::MultiFab & B;
+        amrex::MultiFab & Pdens;
         CParticleContainer &P;
         double dt;
         std::string data_folder_name; 

@@ -126,9 +126,10 @@ void main_main()
 
 
     amrex::MultiFab E_L(gba,dm,Ncomp,Nghost); 
+    amrex::MultiFab Pdens(ba,dm,1,0);
     amrex::MultiFab E(ba,dm,Ncomp,Nghost);
     amrex::MultiFab B(ba,dm,Ncomp,Nghost);
-    auto SimIO=SimulationIO(geom,E,B,P,dt,data_folder_name);
+    auto SimIO=SimulationIO(geom,E,B,Pdens,P,dt,data_folder_name);
     auto Es = E_source(geom,E,source_pos,source_comp,E0,omega,dt);
 
     if(start_step !=0){
@@ -150,18 +151,16 @@ void main_main()
 
 
 
-for(int step=start_step; step<nsteps;step++){
-
-
-    
+for(int step=start_step; step<nsteps;step++){ 
     amrex::Print() <<"Step:" <<step << std::endl;
     auto E_tot = get_total_energy(geom,P,E,B); 
     amrex::Print() <<"ENERGY: "<<E_tot.first <<" "<< E_tot.second << std::endl;
     if(step % output_interval ==0 && output_interval != -1){
+        get_particle_number_density(geom,P,Pdens);
         SimIO.write(step);
     }
     if(step % checkpoint_interval ==0 && checkpoint_interval  !=-1){
-        SimIO.write(step,true,true);
+        SimIO.write(step,true,false);
     }
     Es(step*dt);
     G_Theta_B(geom,P,E,B,dt);

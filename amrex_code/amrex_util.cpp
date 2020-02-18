@@ -69,6 +69,8 @@ void SimulationIO::write(int step,bool checkpoint,bool particles){
     WriteSingleLevelPlotfile(pltfile_E, E, {"E_x","E_y","E_z"}, geom, time, n);
     const std::string& pltfile_B = amrex::Concatenate(data_folder_name+std::string("/plt_B"),n,0);
     WriteSingleLevelPlotfile(pltfile_B, B, {"B_x","B_y","B_z"}, geom, time, n);
+    const std::string& pltfile_Pdens = amrex::Concatenate(data_folder_name+std::string("/plt_Pdens"),n,0);
+    WriteSingleLevelPlotfile(pltfile_Pdens, Pdens, {"n"}, geom, time, n);
     }
     if(particles){
         P.WriteBinaryParticleData(amrex::Concatenate(data_folder_name+std::string("/plt_P"),step,0),"Particle0",{1,1,1,1,1},{},{"Mass","Charge","VX","VY","VZ"},{});
@@ -82,8 +84,8 @@ void SimulationIO::read(int step){
 
 
 
-SimulationIO::SimulationIO(amrex::Geometry geom,amrex::MultiFab & E,amrex::MultiFab & B,CParticleContainer &P,double dt,std::string data_folder_name):
-    geom(geom),E(E),B(B),P(P),dt(dt),data_folder_name(data_folder_name){}
+SimulationIO::SimulationIO(amrex::Geometry geom,amrex::MultiFab & E,amrex::MultiFab & B,amrex::MultiFab &Pdens,CParticleContainer &P,double dt,std::string data_folder_name):
+    geom(geom),E(E),B(B),Pdens(Pdens),P(P),dt(dt),data_folder_name(data_folder_name){}
 
 void FillDirichletBoundary(const amrex::Geometry geom, amrex::MultiFab &A,const amrex::Real b_val){
    
@@ -356,6 +358,23 @@ std::pair<amrex::Real,amrex::Real> get_total_energy(const amrex::Geometry geom,C
     return std::make_pair(E_field*geom.CellSize(X)*geom.CellSize(Y)*geom.CellSize(Z),E_kin);
 
 }
+
+void get_particle_number_density(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &P_dens){
+    P_dens.setVal(0);
+    for (amrex::MFIter mfi(P_dens); mfi.isValid(); ++mfi){
+        auto& Part = P.GetParticles(0)[std::make_pair(mfi.index(),mfi.LocalTileIndex())];
+        auto&  particles = Part.GetArrayOfStructs();
+        amrex::Array4<amrex::Real> const& P_dens_loc = P_dens[mfi].array(); 
+        for(auto &p : particles ){
+        auto coord =get_point_cell(geom,{p.pos(X),p.pos(Y),p.pos(Z)}) ;
+               P_dens_loc(coord[X],coord[Y],coord[Z],0)+=1;
+        }
+
+    }
+
+
+}
+
 
 std::pair<std::array<amrex::Real,3>,std::array<amrex::Real,3>> get_total_momentum(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &E, amrex::MultiFab &B){
     
