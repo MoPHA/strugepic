@@ -51,16 +51,13 @@ void main_main()
     double q;
     double m;
     double v;
+    double vd;
     int ppc;
     int output_interval;
     int checkpoint_interval;
 
     std::array<double,3> E_init;
     std::array<double,3> B_init;
-    int source_pos;
-    int source_comp;
-    double E0;
-    double omega;
     int Ncomp  = 3;
 
     std::string data_folder_name;
@@ -78,18 +75,15 @@ void main_main()
     pp.get("m",m);
     pp.get("ppc",ppc);
     pp.get("v",v);
+    pp.get("vd",vd);
     pp.get("E_init",E_init);
     pp.get("B_init",B_init);
     pp.get("data_folder_name",data_folder_name);
-    pp.get("source_pos",source_pos);
-    pp.get("source_comp",source_comp);
-    pp.get("E0",E0);
-    pp.get("omega",omega);
 
 
 
     // Do a quite even load balancing
-    amrex::DistributionMapping::strategy(amrex::DistributionMapping::KNAPSACK);
+   // amrex::DistributionMapping::strategy(amrex::DistributionMapping::KNAPSACK);
 
     // Periodic
     amrex::Vector<int> is_periodic({x_periodic,1,1});     
@@ -107,7 +101,6 @@ void main_main()
     // Break up boxarray "ba" into chunks no larger than "max_grid_size" along a direction
     ba.maxSize({max_grid_size[X],max_grid_size[Y],max_grid_size[Z]});
     gba.maxSize({max_grid_size[X],max_grid_size[Y],max_grid_size[Z]});
-
     // This defines the physical box, [-1,1] in each direction.
     amrex::RealBox real_box({AMREX_D_DECL(0,0,0)},
                      {AMREX_D_DECL((double)n_cell[X] , (double)n_cell[Y],(double)n_cell[Z])});
@@ -117,7 +110,7 @@ void main_main()
     // How Boxes are distrubuted among MPI processes
     amrex::DistributionMapping dm(ba);
     CParticleContainer P(geom,dm,ba,3);
-    distribute_processes_pdens(dm,geom,ba,bernstein_density,"SFC");    
+    //distribute_processes_pdens(dm,geom,ba,bernstein_density,"SFC");    
     shift_and_grow<X>(gba,Nghost);
     shift_and_grow<Y>(gba,Nghost);
     shift_and_grow<Z>(gba,Nghost);
@@ -129,7 +122,6 @@ void main_main()
     amrex::MultiFab E(ba,dm,Ncomp,Nghost);
     amrex::MultiFab B(ba,dm,Ncomp,Nghost);
     auto SimIO=SimulationIO(geom,E,B,P,dt,data_folder_name);
-    auto Es = E_source(geom,E,source_pos,source_comp,E0,omega,dt);
 
     if(start_step !=0){
     SimIO.read(start_step);
@@ -138,7 +130,8 @@ void main_main()
     
     set_uniform_field(E,E_init);
     set_uniform_field(B,B_init);
-    add_particle_density(geom,P,bernstein_density,ppc,m,q,v); 
+    add_particle_density(geom,P,uniform_density,ppc,m,q,v); 
+    set_two_stream_drift<X>(P,vd);
     }
 
     E.FillBoundary(geom.periodicity());
@@ -160,7 +153,6 @@ for(int step=start_step; step<nsteps;step++){
     if(step % checkpoint_interval ==0 && checkpoint_interval  !=-1){
         SimIO.write(step,true,false);
     }
-    Es(step*dt);
     G_Theta_B(geom,P,E,B,dt);
     G_Theta_E(geom,P,E,B,dt);
     G_Theta<Z>(geom,ggeom,P,E,E_L,B,dt);

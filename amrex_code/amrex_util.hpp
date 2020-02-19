@@ -20,6 +20,7 @@ void set_uniform_field(amrex::MultiFab &A, std::array<double,3> vals);
 void add_single_particle(CParticleContainer&P,amrex::RealArray pos , amrex::RealArray vel, double m,double q);
 void print_boxes(amrex::BoxArray ba);
 void get_particle_number_density(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &P_dens);
+double uniform_density(const amrex::Geometry geom,int i ,int j ,int k);
 
 
 template<int comp>
@@ -172,6 +173,15 @@ std::vector<std::tuple<amrex::Real,amrex::Real,int>> get_segment_list(const amre
 std::pair<amrex::Real,amrex::Real> get_total_energy(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &E, amrex::MultiFab &B );
 std::pair<std::array<amrex::Real,3>,std::array<amrex::Real,3>> get_total_momentum(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &E, amrex::MultiFab &B);
 void add_particle_n_per_cell(const amrex::Geometry geom, CParticleContainer&P,double m,double q,double v,int n);
+template <int comp>
+void set_two_stream_drift(CParticleContainer &P,double v){
+    for(CParIter pti(P,0);pti.isValid() ; ++pti){ 
+        auto & particles = pti.GetArrayOfStructs();
+        for (auto &p : particles){
+             p.rdata(comp +2)+= ((p.id() % 2)*2 -1)*v;
+        }
+    }
 
+}
 
 #endif

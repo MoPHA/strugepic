@@ -202,6 +202,9 @@ double bernstein_density(const amrex::Geometry geom, int i , int j, int k){
     }
 
 }
+double uniform_density(const amrex::Geometry geom,int i ,int j ,int k){
+    return 1;
+}
 
 double simple_line_density(const amrex::Geometry geom ,int i , int j , int k){
       return (1.0*i/20);  
@@ -416,6 +419,8 @@ std::pair<std::array<amrex::Real,3>,std::array<amrex::Real,3>> get_total_momentu
     return std::make_pair(P_field,P_part);
 
 }
+
+
 
 //
 // From
