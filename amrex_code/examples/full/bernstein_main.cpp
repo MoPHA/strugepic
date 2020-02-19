@@ -116,6 +116,8 @@ void main_main()
     amrex::Geometry geom(domain,&real_box,amrex::CoordSys::cartesian,is_periodic.data());
     // How Boxes are distrubuted among MPI processes
     amrex::DistributionMapping dm(ba);
+    CParticleContainer P(geom,dm,ba,3);
+    distribute_processes_pdens(dm,geom,ba,bernstein_density,"SFC");    
     shift_and_grow<X>(gba,Nghost);
     shift_and_grow<Y>(gba,Nghost);
     shift_and_grow<Z>(gba,Nghost);
@@ -126,7 +128,6 @@ void main_main()
     amrex::MultiFab E_L(gba,dm,Ncomp,Nghost); 
     amrex::MultiFab E(ba,dm,Ncomp,Nghost);
     amrex::MultiFab B(ba,dm,Ncomp,Nghost);
-    CParticleContainer P(geom,dm,ba,3);
     auto SimIO=SimulationIO(geom,E,B,P,dt,data_folder_name);
     auto Es = E_source(geom,E,source_pos,source_comp,E0,omega,dt);
 
@@ -149,10 +150,7 @@ void main_main()
 
 
 
-for(int step=start_step; step<nsteps;step++){
-
-
-    
+for(int step=start_step; step<nsteps;step++){ 
     amrex::Print() <<"Step:" <<step << std::endl;
     auto E_tot = get_total_energy(geom,P,E,B); 
     amrex::Print() <<"ENERGY: "<<E_tot.first <<" "<< E_tot.second << std::endl;
@@ -160,7 +158,7 @@ for(int step=start_step; step<nsteps;step++){
         SimIO.write(step);
     }
     if(step % checkpoint_interval ==0 && checkpoint_interval  !=-1){
-        SimIO.write(step,true,true);
+        SimIO.write(step,true,false);
     }
     Es(step*dt);
     G_Theta_B(geom,P,E,B,dt);
