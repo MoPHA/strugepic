@@ -109,7 +109,7 @@ void main_main()
     amrex::Geometry geom(domain,&real_box,amrex::CoordSys::cartesian,is_periodic.data());
     // How Boxes are distrubuted among MPI processes
     amrex::DistributionMapping dm(ba);
-    CParticleContainer P(geom,dm,ba,3);
+    CParticleContainer P(geom,dm,ba);
     //distribute_processes_pdens(dm,geom,ba,bernstein_density,"SFC");    
     shift_and_grow<X>(gba,Nghost);
     shift_and_grow<Y>(gba,Nghost);

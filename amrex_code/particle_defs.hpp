@@ -2,7 +2,6 @@
 #define particledefs
 #include "AMReX_Particles.H"
 #include<AMReX.H>
-#include <AMReX_NeighborParticles.H>
 
 
 // We are not going to support multiple particle structure 
@@ -50,8 +49,7 @@
 
 
 typedef amrex::ParIter< C_NUM_REALS  ,C_NUM_INTS,C_NUM_SOA_REALS,C_NUM_SOA_INTS> CParIter;
-typedef amrex::NeighborParticleContainer<C_NUM_REALS,C_NUM_INTS> CParticleContainer;
-typedef amrex::ParticleContainer<C_NUM_REALS, C_NUM_INTS, 0, 0>::ParticleVector CNParticles;
+typedef amrex::ParticleContainer<C_NUM_REALS,C_NUM_INTS,C_NUM_SOA_INTS,C_NUM_SOA_REALS> CParticleContainer;
 typedef amrex::Particle<C_NUM_REALS,C_NUM_INTS> CParticle;
 typedef amrex::ArrayOfStructs<C_NUM_REALS,C_NUM_INTS> CParticles;
 typedef amrex::ParticleTile<C_NUM_REALS  ,C_NUM_INTS,C_NUM_SOA_REALS,C_NUM_SOA_INTS> CParticleTile;
