@@ -63,6 +63,7 @@ void SimulationIO::write(int step,bool checkpoint,bool particles){
     P.Checkpoint(amrex::Concatenate(data_folder_name+std::string("/P_CP"),step,0),"Particle0");
     }
     else{
+    get_particle_number_density(geom,P,Pdens);
     int n=step;
     amrex::Real time=step*dt;
     const std::string& pltfile_E = amrex::Concatenate(data_folder_name+std::string("/plt_E"),n,0);
@@ -84,8 +85,11 @@ void SimulationIO::read(int step){
 
 
 
-SimulationIO::SimulationIO(amrex::Geometry geom,amrex::MultiFab & E,amrex::MultiFab & B,amrex::MultiFab &Pdens,CParticleContainer &P,double dt,std::string data_folder_name):
-    geom(geom),E(E),B(B),Pdens(Pdens),P(P),dt(dt),data_folder_name(data_folder_name){}
+SimulationIO::SimulationIO(amrex::Geometry geom,amrex::MultiFab & E,amrex::MultiFab & B,CParticleContainer &P,double dt,std::string data_folder_name):
+    geom(geom),E(E),B(B),P(P),dt(dt),data_folder_name(data_folder_name){
+        this->Pdens=amrex::MultiFab(E.boxArray(),E.DistributionMap(),1,0);
+        
+    }
 
 void FillDirichletBoundary(const amrex::Geometry geom, amrex::MultiFab &A,const amrex::Real b_val){
    
@@ -369,11 +373,9 @@ void get_particle_number_density(const amrex::Geometry geom,CParticleContainer&P
         auto coord =get_point_cell(geom,{p.pos(X),p.pos(Y),p.pos(Z)}) ;
                P_dens_loc(coord[X],coord[Y],coord[Z],0)+=1;
         }
-
     }
-
-
 }
+
 
 
 std::pair<std::array<amrex::Real,3>,std::array<amrex::Real,3>> get_total_momentum(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &E, amrex::MultiFab &B){

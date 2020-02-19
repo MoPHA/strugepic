@@ -70,14 +70,14 @@ void shift_periodic(const amrex::Geometry geom ,CParticle &particle){
 class SimulationIO
 {
     public:
-    SimulationIO(amrex::Geometry geom,amrex::MultiFab & E,amrex::MultiFab & B,amrex::MultiFab & Pdens,CParticleContainer &P,double dt,std::string data_folder_name);
+    SimulationIO(amrex::Geometry geom,amrex::MultiFab & E,amrex::MultiFab & B,CParticleContainer &P,double dt,std::string data_folder_name);
     void write(int step,bool checkpoint=false,bool particles=false);
     void read(int step);
     private:
         amrex::Geometry geom;
         amrex::MultiFab & E;
         amrex::MultiFab & B;
-        amrex::MultiFab & Pdens;
+        amrex::MultiFab  Pdens;
         CParticleContainer &P;
         double dt;
         std::string data_folder_name; 

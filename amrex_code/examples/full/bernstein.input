@@ -1,12 +1,12 @@
 
 n_cell = 1792 2 2
-max_grid_size = 15 2 2
+max_grid_size = 1792 2 2
 x_periodic = 0
 
-nsteps = 3000
+nsteps = 100
 start_step = 0 # If this is not zero we will try to do a restart from a plotfile
 output_interval = 10 ;
-checkpoint_interval = 500 ;
+checkpoint_interval = -1 ;
 dt = 0.5
 data_folder_name = "Bernstein_Data_out"
 
