@@ -12,6 +12,10 @@
 
 
 
+
+
+
+
 class E_source
 {
     public:
@@ -235,7 +239,6 @@ void update_E(const amrex::Geometry geom,amrex::Array4<amrex::Real> const& E,amr
 // Local and neighbour particle list are not the same data structure
 template<int comp>
 void Theta(CParticles&particles, const amrex::Geometry geom,amrex::Array4<amrex::Real> const& E ,amrex::Array4<amrex::Real> const& B  ,amrex::Box box_L,amrex::Box box_S,int ng,double dt){ 
-    const int idx_list[4]={-1,0,1,2};
     const auto low = geom.ProbLo();
     const auto Ics = geom.InvCellSize();
     // Remote particle grid lower corner
@@ -246,17 +249,25 @@ void Theta(CParticles&particles, const amrex::Geometry geom,amrex::Array4<amrex:
       shift[Y]=(el_low[Y]+ng)-e_low[Y];
       shift[Z]=(el_low[Z]+ng)-e_low[Z];
 
-
-
-
      for(auto& p : particles){
+
 
     const double m= p.rdata(M);
     const double q= p.rdata(Q);
     const  double B_coef = q/m*geom.CellSize(comp);
-    const  double E_coef = q*geom.InvCellSize(X)*geom.InvCellSize(Y)*geom.InvCellSize(Z)*geom.CellSize(comp);
-        const auto p_segments = get_segment_list<comp>(geom, p.pos(comp) , p.pos(comp)+dt*p.rdata(comp+2));
-        auto coord =get_point_cell(geom,{p.pos(X),p.pos(Y),p.pos(Z)}) ;
+    const  double E_coef = q*Ics[X]*Ics[Y]*Ics[Z]*geom.CellSize(comp);
+        double new_pos=p.pos(comp)+dt*p.rdata(comp+2);
+        int num_segments=get_num_segments<comp>(geom,p.pos(comp),new_pos);
+       // Never more than two segments!! 
+        std::array<std::tuple<amrex::Real,amrex::Real,int>,2> segments;
+
+        get_segment_list<comp>(geom,segments,num_segments, p.pos(comp) , new_pos);
+        int coord[3];
+        coord[X]=floor((p.pos(X) -low[X])*Ics[X]);
+        coord[Y]=floor((p.pos(Y) -low[Y])*Ics[Y]);
+        coord[Z]=floor((p.pos(Z) -low[Z])*Ics[Z]);
+        
+
         amrex::Real res_c1=0;
         amrex::Real res_c2=0;
 
@@ -273,80 +284,77 @@ void Theta(CParticles&particles, const amrex::Geometry geom,amrex::Array4<amrex:
             using namespace strugepic;
 
             auto nl=(p.pos(comp_l)-low[comp_l])*Ics[comp_l];
-            for(auto l: idx_list){
-                auto cl=coord[comp_l]+l; 
-                comp_lW1[l+1]=W1(nl-cl);
-                comp_lW12[l+1]=W12(nl-cl);
+            for(int l=0; l<4;l++){
+                auto cl=coord[comp_l]+(l-1); 
+                comp_lW1[l]=W1(nl-cl);
+
+            }
+            for(int l=0; l<3;l++){
+                auto cl=coord[comp_l]+(l-1); 
+                comp_lW12[l]=W12(nl-cl);
 
             }
             auto nu=(p.pos(comp_u)-low[comp_u])*Ics[comp_u];
-            for(auto u: idx_list){
-                auto cu=coord[comp_u]+u; 
-                comp_uW1[u+1]=W1(nu-cu);
-                comp_uW12[u+1]=W12(nu-cu);
+            for(int  u=0; u<4;u++){
+                auto cu=coord[comp_u]+(u-1); 
+                comp_uW1[u]=W1(nu-cu);
+            }
+            for(int  u=0; u<3;u++){
+                auto cu=coord[comp_u]+(u-1); 
+                comp_uW12[u]=W12(nu-cu);
             }
 
-        for(auto seg: p_segments){
-            coord[comp] = std::get<2>(seg);
-            auto i_s = std::get<0>(seg); 
-            auto i_e = std::get<1>(seg);
-            int cl[3];
+        for(int seg=0;seg<num_segments;seg++){
+            coord[comp] = std::get<2>(segments[seg]);
+            auto i_s = std::get<0>(segments[seg]); 
+            auto i_e = std::get<1>(segments[seg]);
             
 
-            std::array<double,4> compI_W12={0,0,0,0};
+            std::array<double,4> compI_W12={0,0,0};
            
            auto ncs=(i_s-low[comp])*Ics[comp];
            auto nce=(i_e-low[comp])*Ics[comp];
-            for(auto c: idx_list){
-                auto cc=coord[comp]+c;
-                compI_W12[c+1]=I_W12(ncs- cc ,nce- cc);
+            for(int c=0;c<3;c++){
+                auto cc=coord[comp]+(c-1);
+                compI_W12[c]=I_W12(ncs- cc ,nce- cc);
 
             }
 
-            std::array<int,3> idx;
-            for(auto k: idx_list){
-                        cl[Z] = coord[Z]+k;
-                        idx[Z]=k;
-                        
-                for(auto j: idx_list){
-                        cl[Y] = coord[Y]+j;
-                        idx[Y]=j;
-                    for(auto i: idx_list){
-                        cl[X] = coord[X]+i;
-                        idx[X]=i;
-                            E(cl[X]+shift[X],cl[Y]+shift[Y],cl[Z]+shift[Z],comp)+=
-                                -E_coef
-                                *compI_W12[idx[comp]+1]
-                                *comp_uW1[idx[comp_u]+1]
-                                *comp_lW1[idx[comp_l]+1];
+
+
+            for(int l=0;l<4; l++ ){
+                for(int u=0;u<4;u++){
+                double mul=comp_lW1[l]*comp_uW1[u];
+                double mulu12l1=comp_uW12[u]*comp_lW1[l];
+                double mull12u1=comp_lW12[l]*comp_uW1[u];
+                for(int c=0;c<3;c++){
+                    int cx,cy,cz;
+
+                    if(comp==0){
+                     cx=coord[X]+(c-1);
+                     cy=coord[Y]+(u-1);
+                     cz=coord[Z]+(l-1);
+                    }else if(comp==1){
+                     cx=coord[X]+(l-1);
+                     cy=coord[Y]+(c-1);
+                     cz=coord[Z]+(u-1);
 
                     }
+                    else{
+                     cx=coord[X]-(u-1);
+                     cx=coord[Y]-(l-1);
+                     cy=coord[Z]-(c-1);
+                    }
+
+                    E(cx+shift[X],cy+shift[Y],cz+shift[Z],comp)-=E_coef*mul*compI_W12[c];
+                    res_c1+=B(cx,cy,cz,comp_u)*mull12u1*compI_W12[c];
+                    res_c2-=B(cx,cy,cz,comp_l)*compI_W12[c]*mulu12l1;
                 }
             }
-
-            for(auto k: idx_list){
-                        cl[Z] = coord[Z]+k;
-                        idx[Z]=k;
-                        
-                for(auto j: idx_list){
-                        cl[Y] = coord[Y]+j;
-                        idx[Y]=j;
-                    for(auto i: idx_list){
-                        cl[X] = coord[X]+i;
-                        idx[X]=i;
-                        res_c1+=B(cl[X],cl[Y],cl[Z],comp_u)
-                        *compI_W12[idx[comp]+1]
-                        *comp_uW1[idx[comp_u]+1]
-                        *comp_lW12[idx[comp_l]+1];
-                        
-                        res_c2-=B(cl[X],cl[Y],cl[Z],comp_l)
-                        *compI_W12[idx[comp]+1]
-                        *comp_uW12[idx[comp_u]+1]
-                        *comp_lW1[idx[comp_l]+1];
-                }
-              }
             }
 
+
+        
         }
 
         // Update position
@@ -366,115 +374,6 @@ void Theta(CParticles&particles, const amrex::Geometry geom,amrex::Array4<amrex:
     }
 }
 
-
-
-template<int comp>
-void push_pos_pos(CParticleContainer&p_container ,CParticles&local_particles,const amrex::Geometry geom,double dt){
-        for(auto &p: local_particles){
-            if(!geom.isPeriodic(comp)){
-                auto res = reflect_boundary<comp>(geom,p.pos(comp)+dt*p.rdata(2+comp));
-                p.pos(comp) =res.first;
-                p.rdata(comp+2)*=res.second;   
-            }
-            else{
-            p.pos(comp)+=dt*p.rdata(2+comp);
-            shift_periodic<comp>(geom,p);
-            }
-        }
-}
-
-
-template<int comp>
-void push_B_pos(CParticles&particles, const amrex::Geometry geom, const amrex::Array4<amrex::Real> & B ,double dt){ 
-    const int idx_list[4]={-1,0,1,2};
-    const auto low = geom.ProbLo();
-    const auto Ics = geom.InvCellSize();
-    // A scaling factor is needed here if dx,dy,dz are not equal!
-
-    for(auto& p : particles){
-    const double m= p.rdata(M);
-    const double q= p.rdata(Q);
-    const  double coef = q/m*geom.CellSize(comp);
-        const auto p_segments = get_segment_list<comp>(geom, p.pos(comp) , p.pos(comp)+dt*p.rdata(comp+2));
-        auto coord =get_point_cell(geom,{p.pos(X),p.pos(Y),p.pos(Z)}) ;
-        amrex::Real res_c1=0;
-        amrex::Real res_c2=0;
-
-        int cl[3];
-
-        auto comp_u = (comp+1)%3;
-        auto comp_l = (comp+2)%3;
-        
-            std::array<double,4> comp_uW1={0,0,0,0};
-            std::array<double,4> comp_lW1={0,0,0,0};
-            std::array<double,4> comp_uW12={0,0,0,0};
-            std::array<double,4> comp_lW12={0,0,0,0};
-
-
-
-            using namespace strugepic;
-
-            auto nl=(p.pos(comp_l)-low[comp_l])*Ics[comp_l];
-            for(auto l: idx_list){
-                auto cl=coord[comp_l]+l; 
-                comp_lW1[l+1]=W1(nl-cl);
-                comp_lW12[l+1]=W12(nl-cl);
-
-            }
-            auto nu=(p.pos(comp_u)-low[comp_u])*Ics[comp_u];
-            for(auto u: idx_list){
-                auto cu=coord[comp_u]+u; 
-                comp_uW1[u+1]=W1(nu-cu);
-                comp_uW12[u+1]=W12(nu-cu);
-            }
-
-        for(auto seg: p_segments){
-            coord[comp] = std::get<2>(seg);
-            auto i_s = std::get<0>(seg); 
-            auto i_e = std::get<1>(seg);
-            
-            std::array<double,4> compI_W12={0,0,0,0};
-           auto ncs=(i_s-low[comp])*Ics[comp];
-           auto nce=(i_e-low[comp])*Ics[comp];
-            for(auto c: idx_list){
-                auto cc=coord[comp]+c;
-                compI_W12[c+1]=I_W12(ncs- cc ,nce- cc);
-
-            }
-            
-                std::array<int,3> idx;
-            for(auto k: idx_list){
-                        cl[Z] = coord[Z]+k;
-                        idx[Z]=k;
-                        
-                for(auto j: idx_list){
-                        cl[Y] = coord[Y]+j;
-                        idx[Y]=j;
-                    for(auto i: idx_list){
-                        cl[X] = coord[X]+i;
-                        idx[X]=i;
-        
-                        
-                        res_c1+=B(cl[X],cl[Y],cl[Z],comp_u)
-                        *compI_W12[idx[comp]+1]
-                        *comp_uW1[idx[comp_u]+1]
-                        *comp_lW12[idx[comp_l]+1];
-                        
-                        res_c2-=B(cl[X],cl[Y],cl[Z],comp_l)
-                        *compI_W12[idx[comp]+1]
-                        *comp_uW12[idx[comp_u]+1]
-                        *comp_lW1[idx[comp_l]+1];
-
-                    } // over i
-                } // over j
-            } // over k  
-        } // over segments
-
-        p.rdata( (comp +2 )% 3 +2   )+=coef*res_c1;
-        p.rdata( (comp+1) % 3 +2  )+=coef*res_c2; 
-
-    } // over particles
-} // function end
 
 
 

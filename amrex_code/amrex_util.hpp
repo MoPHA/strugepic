@@ -131,13 +131,11 @@ std::pair<amrex::Real,int> reflect_boundary(const amrex::Geometry geom,amrex::Re
 // List of segments with start,end , cell_idexx. all 1D
 // How do we handle periodicity?
 template<int comp>
-std::vector<std::tuple<amrex::Real,amrex::Real,int>> get_segment_list(const amrex::Geometry geom, amrex::Real x_start ,amrex::Real x_end){
+void get_segment_list(const amrex::Geometry geom,
+        std::array<std::tuple<amrex::Real,amrex::Real,int>,2> &segments,int num_segments, amrex::Real x_start ,amrex::Real x_end){
         
-    std::vector<std::tuple<amrex::Real,amrex::Real,int>> seg_list;
     const auto cellsize=geom.CellSize(comp);
     const auto problo = geom.ProbLo(comp);
-    const auto probhi = geom.ProbHi(comp);
-    const auto num_segments = get_num_segments<comp>(geom,x_start,x_end);
     double segment_start = x_start;
     double segment_end;
     int segment_index=get_point_line<comp>(geom,segment_start);
@@ -149,9 +147,9 @@ std::vector<std::tuple<amrex::Real,amrex::Real,int>> get_segment_list(const amre
     }else{
         sig=1;
     }
-    for(int seg=1;seg < num_segments;seg++){ 
+    if(num_segments == 2){
             segment_end = (segment_index+ (sig+1)/2)*cellsize + problo; 
-            seg_list.push_back(std::make_tuple(segment_start,segment_end,segment_index));
+            segments[0]=std::make_tuple(segment_start,segment_end,segment_index);
             segment_index =segment_index+sig;//(((segment_index +sig) % index_mod) +index_mod) %index_mod ;
         
             segment_start=(segment_index -((sig-1))/2)*cellsize+problo;
@@ -160,14 +158,13 @@ std::vector<std::tuple<amrex::Real,amrex::Real,int>> get_segment_list(const amre
               x_end=res.first;
               sig*=-1;
             }
-
+        segment_end = x_end; 
+        segments[1]=std::make_tuple(segment_start,segment_end,segment_index); 
     }
-
-   segment_end = x_end;// wrapMinMax(x_end,problo,probhi);
-   
-   seg_list.push_back(std::make_tuple(segment_start,segment_end,segment_index));
-   return seg_list;
-
+    else{
+        segment_end = x_end; 
+        segments[0]=std::make_tuple(segment_start,segment_end,segment_index);
+    }
 }
 
 std::pair<amrex::Real,amrex::Real> get_total_energy(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &E, amrex::MultiFab &B );

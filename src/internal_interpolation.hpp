@@ -1,14 +1,14 @@
 #include<math.h>
 // 8th order piecewise polynominal coefficients, from highest to lowest, comments indicate the range
 // Function is zero outside the range
-constexpr  double P8_coeffs[36]={
+const  double P8_coeffs[36]={
         15.0/1024,15.0/128,49.0/128,21.0/32,35.0/64,0,0,1,1,  // -2 -> -1
         -15.0/1024,15.0/128,7.0/16,21.0/32,175.0/256,0,-105.0/128,0,337.0/512, // -1 -> 0
         -15.0/1024,-15.0/128,7.0/16,-21.0/32,175.0/256,0,-105.0/128,0,337.0/512, // 0 -> 1
         15.0/1024,-15.0/128,49.0/128,-21.0/32,35.0/64,0,0,-1,1 //1->2
         };
 // Derivative for previous
-constexpr  double P8d_coeffs[32]={
+const  double P8d_coeffs[32]={
          15.0/128, 105.0/128, 147.0/64,105.0/32,35.0/16,0,0,1, // -2 -> -1 
          -15.0/128,105.0/128,21.0/8,105.0/32,175.0/64,0,-105.0/64,0,  // -1 -> 0
          -15.0/128,-105.0/128,21.0/8,-105.0/32,175.0/64,0,-105.0/64,0,  // 0  -> 1
@@ -16,7 +16,7 @@ constexpr  double P8d_coeffs[32]={
          };
 
 // Integral coefficients (with extra constant so continuous)
-constexpr  double P8I_coeffs[40]={
+const  double P8I_coeffs[40]={
         5.0/3072,15.0/1024,7.0/128,7.0/64,7.0/64,0,0,1.0/2,1,7.0/12, // -2 -> 1
         -5./3072,15./1024,1./16,7./64,35./256,0,-35./128,0,337./512,1.0/2 , // -1->0
         -5./3072,-15./1024,1./16,-7./64,35./256,0,-35./128,0,337./512,1.0/2 , // 0->1
