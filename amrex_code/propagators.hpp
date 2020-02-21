@@ -341,9 +341,9 @@ void Theta(CParticles&particles, const amrex::Geometry geom,amrex::Array4<amrex:
 
                     }
                     else{
-                     cx=coord[X]-(u-1);
-                     cx=coord[Y]-(l-1);
-                     cy=coord[Z]-(c-1);
+                     cx=coord[X]+(u-1);
+                     cy=coord[Y]+(l-1);
+                     cz=coord[Z]+(c-1);
                     }
 
                     E(cx+shift[X],cy+shift[Y],cz+shift[Z],comp)-=E_coef*mul*compI_W12[c];
