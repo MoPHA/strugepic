@@ -181,4 +181,33 @@ void set_two_stream_drift(CParticleContainer &P,double v){
 
 }
 
+template  <int p_comp,int v_comp>
+void save_velocity_distribution( CParticleContainer &P, double p_min,double p_max, double v_min,double v_max,int p_bins,int v_bins,std::string filename )  {
+        int count = p_bins*v_bins; 
+        int * data = (int *) calloc(count,sizeof(int));
+        double v_bin_size=(v_max-v_min)/v_bins;
+        double p_bin_size=(p_max-p_min)/p_bins;
+    for(CParIter pti(P,0);pti.isValid() ; ++pti){ 
+        auto & particles = pti.GetArrayOfStructs();
+        for (auto &p : particles){
+            int vel_b = (int)((p.rdata(2+v_comp)-v_min)/v_bin_size); 
+            int pos_b = (int)((p.pos(p_comp)-p_min)/p_bin_size);    ;
+            data[pos_b+vel_b*p_bins]+=1; 
+        }
+    }
+    amrex::ParallelDescriptor::ReduceIntSum(data,count);
+    if (amrex::ParallelContext::IOProcessorSub()) {
+    std::ofstream ofs(filename, std::ofstream::out);
+    for(int j =0; j < v_bins; j++){
+        for(int i =0;i< p_bins; i++){
+            amrex::Print(ofs) << i*p_bin_size+p_min << " " << j* v_bin_size +v_min <<" " << data[i+j*p_bins] << "\n";
+        }
+    }
+    ofs.close();
+    }
+    free(data);
+}
+
+
+
 #endif
