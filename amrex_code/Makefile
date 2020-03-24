@@ -2,7 +2,7 @@
 # -fno-omit-frame-pointer
 
 LIB_NAME=interpol
-LIB_DIR=../lib
+LIB_DIR=../interpolation/lib
 DEPS=propagators.o amrex_util.o main_amrex.o
 HDEPS=amrex_util.hpp
 FLAGS= -std=c++14 -Ofast -mavx2  -march=native# -g -fno-omit-frame-pointer

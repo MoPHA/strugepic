@@ -2,7 +2,7 @@
 #define PROPAGATOR
 #include<AMReX_Geometry.H>
 #include <array>
-#include "../include/interpolation.hpp"
+#include "../interpolation/include/interpolation.hpp"
 #include "AMReX_Box.H"
 #include "AMReX_BoxArray.H"
 #include "AMReX_BoxDomain.H"
