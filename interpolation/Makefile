@@ -3,6 +3,7 @@
 all: libs tests 
 
 libs:
+	mkdir -p lib
 	cd src && $(MAKE) all
 
 tests:
@@ -15,3 +16,4 @@ run-test:
 clean:
 	cd test && $(MAKE) clean
 	cd src && $(MAKE) clean
+	rm -r lib
