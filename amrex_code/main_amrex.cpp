@@ -50,8 +50,8 @@ void main_main()
     double dt;
     double q;
     double m;
-    double v;
-    double vd;
+    double v_min;
+    double v_max;
     int ppc;
     int output_interval;
     int checkpoint_interval;
@@ -74,8 +74,8 @@ void main_main()
     pp.get("q",q);
     pp.get("m",m);
     pp.get("ppc",ppc);
-    pp.get("v",v);
-    pp.get("vd",vd);
+    pp.get("v_min",v_min);
+    pp.get("v_max",v_max);
     pp.get("E_init",E_init);
     pp.get("B_init",B_init);
     pp.get("data_folder_name",data_folder_name);
@@ -121,7 +121,7 @@ void main_main()
     amrex::MultiFab E_L(gba,dm,Ncomp,Nghost); 
     amrex::MultiFab E(ba,dm,Ncomp,Nghost);
     amrex::MultiFab B(ba,dm,Ncomp,Nghost);
-    auto SimIO=SimulationIO(geom,E,B,P,dt,data_folder_name);
+    auto SimIO=SimulationIO(geom,ggeom,gba,E,B,P,dt,data_folder_name);
 
     if(start_step !=0){
     SimIO.read(start_step);
@@ -130,8 +130,9 @@ void main_main()
     
     set_uniform_field(E,E_init);
     set_uniform_field(B,B_init);
-    add_particle_density(geom,P,uniform_density,ppc,m,q,v); 
-    set_two_stream_drift<X>(P,vd);
+    add_particle_density(geom,P,uniform_density,ppc,m,q,v_min); 
+    set_temprature_gradient<X>(P,gaussian_dist,v_min,v_max,(double)n_cell[X]);
+    set_field_gradient_gaussian_x(E,E_init[X],(double)n_cell[X]);
     }
 
     E.FillBoundary(geom.periodicity());
@@ -142,7 +143,7 @@ void main_main()
     P.Redistribute();
 
 
-
+    amrex::Print() << "Total number of particles: " << P.TotalNumberOfParticles() << std::endl;
 for(int step=start_step; step<nsteps;step++){ 
     amrex::Print() <<"Step:" <<step << std::endl;
     auto E_tot = get_total_energy(geom,P,E,B); 
