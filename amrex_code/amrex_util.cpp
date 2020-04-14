@@ -252,26 +252,24 @@ double simple_line_density(const amrex::Geometry geom ,int i , int j , int k){
       return (1.0*i/20);  
 }
 
-double gaussian_dist(double pos,double simu_len){
+double gaussian_dist(double pos,double center,double std_dev){
         // Scale and shift position to center
-        double sc_pos=(pos-0.5*simu_len)/(simu_len/10);
+        double sc_pos=(pos-center)/(std_dev);
         return exp(-sc_pos*sc_pos);
 }
 
-double d_gaussian_dist(double pos,double simu_len){
-            double sd=simu_len/10;
-            double m=simu_len/2;
-            return -2*(pos-m)/(sd*sd)*gaussian_dist(pos,simu_len);
+double d_gaussian_dist(double pos,double center,double std_dev){
+            return -2*(pos-center)/(std_dev*std_dev)*gaussian_dist(pos,center,std_dev);
 }
 
-void set_field_gradient_gaussian_x(amrex::MultiFab &A,double A_max,double simu_len){
+void set_field_gradient_gaussian_x(amrex::MultiFab &A,double A_max,double center,double std_dev){
 
     for (amrex::MFIter mfi(A); mfi.isValid(); ++mfi){
         const amrex::Box& box = mfi.validbox();
         amrex::Array4<amrex::Real> const& a = A.array(mfi); 
 
     amrex::ParallelFor(box,  [=] AMREX_GPU_DEVICE (int i,int j,int k ){
-                a(i,j,k,X)=A_max*d_gaussian_dist(i,simu_len);                 
+                a(i,j,k,X)=A_max*d_gaussian_dist(i,center,std_dev);                 
             });
 
     }

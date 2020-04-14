@@ -21,8 +21,8 @@ void add_single_particle(CParticleContainer&P,amrex::RealArray pos , amrex::Real
 void print_boxes(amrex::BoxArray ba);
 void get_particle_number_density(const amrex::Geometry geom,const amrex::Geometry aux_geom,CParticleContainer&P, amrex::MultiFab &P_dens,amrex::MultiFab & P_dens_aux);
 double uniform_density(const amrex::Geometry geom,int i ,int j ,int k);
-double gaussian_dist(double pos,double simu_len);
-void set_field_gradient_gaussian_x(amrex::MultiFab &A,double A_max,double simu_len);
+double gaussian_dist(double pos,double center,double std_dev);
+void set_field_gradient_gaussian_x(amrex::MultiFab &A,double A_max,double center,double std_dev);
 
 template<int comp>
 void shift_and_grow(amrex::BoxArray &ba, int nghost){
@@ -188,7 +188,7 @@ void set_two_stream_drift(CParticleContainer &P,double v){
 }
 
 template <int comp>
-void set_temprature_gradient(CParticleContainer &P,double (*grad_fun) (double,double) ,double v_min,double v_max,double system_len){
+void set_temprature_gradient_gaussian(CParticleContainer &P,double v_min,double v_max,double center,double std_dev,double B_init){
     std::random_device rd;
     std::mt19937 mt(rd());
     
@@ -199,20 +199,19 @@ void set_temprature_gradient(CParticleContainer &P,double (*grad_fun) (double,do
     for(CParIter pti(P,0);pti.isValid() ; ++pti){ 
         auto & particles = pti.GetArrayOfStructs();
         for (auto &p : particles){
-            double v = sqrt(v_min_var+grad_fun(p.pos(comp),system_len)*v_diff_var);
+            double v = sqrt(v_min_var+gaussian_dist(p.pos(comp),center,std_dev)*v_diff_var);
             double ang = angle(mt);
             std::normal_distribution<double> vel(0,v);
             double vx = vel(mt);
             double vy = vel(mt);
             double v_mag=sqrt(vx*vx+vy*vy);
-            double rad = p.rdata(M)*v_mag/(p.rdata(Q)*2678.2);
+            double rad = p.rdata(M)*v_mag/(p.rdata(Q)*B_init);
 
             p.rdata(VX)= -v_mag*sin(ang);
             p.rdata(VY)= v_mag*cos(ang);
             p.pos(X)+=rad*cos(ang);
             p.pos(Y)+=rad*sin(ang);
-            
-
+        
             p.rdata(VZ)= vel(mt);
         }
     }

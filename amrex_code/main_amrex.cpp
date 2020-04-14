@@ -53,6 +53,7 @@ void main_main()
     double v_min;
     double v_max;
     int ppc;
+    double gradient_std_dev;
     int output_interval;
     int checkpoint_interval;
 
@@ -78,6 +79,7 @@ void main_main()
     pp.get("v_max",v_max);
     pp.get("E_init",E_init);
     pp.get("B_init",B_init);
+    pp.get("gradient_std_dev",gradient_std_dev);
     pp.get("data_folder_name",data_folder_name);
 
 
@@ -131,8 +133,8 @@ void main_main()
     set_uniform_field(E,E_init);
     set_uniform_field(B,B_init);
     add_particle_density(geom,P,uniform_density,ppc,m,q,v_min); 
-    set_temprature_gradient<X>(P,gaussian_dist,v_min,v_max,(double)n_cell[X]);
-    set_field_gradient_gaussian_x(E,E_init[X],(double)n_cell[X]);
+    set_temprature_gradient_gaussian<X>(P,v_min,v_max,(double)n_cell[X]*0.5,gradient_std_dev,B_init[Z]);
+    set_field_gradient_gaussian_x(E,E_init[X],(double)n_cell[X]*0.5,gradient_std_dev);
     }
 
     E.FillBoundary(geom.periodicity());
