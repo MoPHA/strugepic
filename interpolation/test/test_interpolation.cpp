@@ -1,5 +1,5 @@
 #include<iostream>
-#include"interpolation.hpp"
+#include"w_defs.hpp"
 #include<iomanip>
 #include <vector>
 #include <fstream>
@@ -111,28 +111,28 @@ int main(void){
     std::cout << "Running tests:" << std::endl;
     std::string coordf[3]={"data_x.out","data_y.out","data_z.out"};
 
-    auto f1= strugepic::W;
+    auto f1= W;
     void *tf1 = *(void**)(&f1);
     int res1=run_test<3>("W(x,y,z)",tf1,coordf,"data_W.out");
 
-    auto f2= strugepic::W1d;
+    auto f2= W1d;
     void *tf2 = *(void**)(&f2);
     int res2=run_test<1>("W1d(x)",tf2,coordf,"./data_W1d.out");
 
-    auto f3= strugepic::W12;
+    auto f3= Wp;
     void *tf3 = *(void**)(&f3);
     int res3=run_test<1>("W12(x)",tf3,coordf,"./data_W12.out");
     
 
-    auto f4= strugepic::W1;
+    auto f4= W1;
     void *tf4 = *(void**)(&f4);
     int res4=run_test<1>("W1(x)",tf4,coordf,"./data_W1.out");
 
-    auto f5= strugepic::I_W12;
+    auto f5= I_Wp;
     void *tf5 = *(void**)(&f5);
     int res5=run_test<2>("I_W12(a,b)",tf5,coordf,"./data_IW12.out");
 
-    auto f6 = strugepic::I_W1;
+    auto f6 = I_W1;
     void *tf6 = *(void**)(&f6);
     int res6=run_test<2>("I_W1(a,b)",tf6,coordf,"./data_IW1.out");
 

@@ -1,9 +1,8 @@
 CXX=g++
-LIB_FLAGS=-fvisibility=hidden -fPIC -shared
+LIB_FLAGS=-fPIC -shared
 CXX_FLAGS=-O3 -std=c++14 -Wall -Werror
 LIB_NAME=interpol
-LIB_SRC=internal_interpolation.hpp interpolation.cpp
-LIB_HEADDER=interpolation.hpp
+LIB_SRC=./poly8_range2.cpp
 LIB_DIR=../lib
 
 all: $(LIB_DIR)/lib$(LIB_NAME).so
