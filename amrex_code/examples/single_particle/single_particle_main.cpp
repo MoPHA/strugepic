@@ -80,8 +80,13 @@ void main_main()
     pp.get("data_folder_name",data_folder_name);
 
 
-    // Do a quite even load balancing
-   // amrex::DistributionMapping::strategy(amrex::DistributionMapping::KNAPSACK);
+
+    
+
+
+///////////7
+
+
 
     // Periodic
     amrex::Vector<int> is_periodic({x_periodic,1,1});     
@@ -119,7 +124,10 @@ void main_main()
     amrex::MultiFab E_L(gba,dm,Ncomp,Nghost); 
     amrex::MultiFab E(ba,dm,Ncomp,Nghost);
     amrex::MultiFab B(ba,dm,Ncomp,Nghost);
-    auto SimIO=SimulationIO(geom,E,B,P,dt,data_folder_name);
+    auto SimIO=SimulationIO(geom,ggeom,gba,E,B,P,dt,data_folder_name);
+
+
+////////////7
 
     if(start_step !=0){
     SimIO.read(start_step);

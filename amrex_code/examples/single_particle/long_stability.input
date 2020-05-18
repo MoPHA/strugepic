@@ -1,0 +1,28 @@
+# Example of electron cyclotron motion
+# Should complete one revolution
+# SI-inputs
+# B = 0.55 T
+# m = m_e
+# q = q_e
+# dx = 2.773e-5
+# vel = 0.01 c
+
+
+n_cell =  12 12 1
+max_grid_size = 6 6 1
+x_periodic = 1
+
+nsteps = 126000
+start_step = 0 # If this is not zero we will try to do a restart from a plotfile
+output_interval = -1 ;
+checkpoint_interval = -1 ;
+dt = 0.5
+data_folder_name = "Single_Particle_Data_out"
+
+q = -2e-3
+m = 10e-1
+pos = 6 6 0.5
+vel = 0.1 0.1 0 
+
+E_init = 0 0 0
+B_init = 0 0 0
