@@ -2,7 +2,7 @@
 #define PROPAGATOR
 #include<AMReX_Geometry.H>
 #include <array>
-#include "../interpolation/include/interpolation.hpp"
+#include "w_defs.hpp"
 #include "AMReX_Box.H"
 #include "AMReX_BoxArray.H"
 #include "AMReX_BoxDomain.H"
@@ -281,7 +281,6 @@ void Theta(CParticles&particles, const amrex::Geometry geom,amrex::Array4<amrex:
 
 
 
-            using namespace strugepic;
 
             auto nl=(p.pos(comp_l)-low[comp_l])*Ics[comp_l];
             for(int l=0; l<4;l++){
@@ -291,7 +290,7 @@ void Theta(CParticles&particles, const amrex::Geometry geom,amrex::Array4<amrex:
             }
             for(int l=0; l<3;l++){
                 auto cl=coord[comp_l]+(l-1); 
-                comp_lW12[l]=W12(nl-cl);
+                comp_lW12[l]=Wp(nl-cl);
 
             }
             auto nu=(p.pos(comp_u)-low[comp_u])*Ics[comp_u];
@@ -301,7 +300,7 @@ void Theta(CParticles&particles, const amrex::Geometry geom,amrex::Array4<amrex:
             }
             for(int  u=0; u<3;u++){
                 auto cu=coord[comp_u]+(u-1); 
-                comp_uW12[u]=W12(nu-cu);
+                comp_uW12[u]=Wp(nu-cu);
             }
 
         for(int seg=0;seg<num_segments;seg++){
@@ -316,7 +315,7 @@ void Theta(CParticles&particles, const amrex::Geometry geom,amrex::Array4<amrex:
            auto nce=(i_e-low[comp])*Ics[comp];
             for(int c=0;c<3;c++){
                 auto cc=coord[comp]+(c-1);
-                compI_W12[c]=I_W12(ncs- cc ,nce- cc);
+                compI_W12[c]=I_Wp(ncs- cc ,nce- cc);
 
             }
 

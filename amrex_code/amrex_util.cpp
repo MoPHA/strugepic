@@ -17,7 +17,7 @@
 #include "particle_defs.hpp"
 #include "amrex_util.hpp"
 #include <fstream>
-#include "../interpolation/include/interpolation.hpp"
+#include "w_defs.hpp"
 #include "propagators.hpp"
 
 
@@ -477,7 +477,7 @@ void get_particle_number_density(const amrex::Geometry geom,const amrex::Geometr
                 for(int k=-1;k<2;k++){
                     auto nz=coord[Z] +k;
                        P_dens_aux_loc(nx+shift[X],ny+shift[Y],nz+shift[Z],X)+=
-                           strugepic::W12(px-nx)*strugepic::W12(py-ny)*strugepic::W12(pz-nz);
+                          Wp(px-nx)*Wp(py-ny)*Wp(pz-nz);
             }
         }
         }
