@@ -191,7 +191,6 @@ void push_V_E( CParticles&particles, const amrex::Geometry geom,amrex::Array4<am
         double dvz=0;
 
 
-        using namespace strugepic;
         std::array<double,4> W1X={0,0,0,0};
         std::array<double,4> W1Y={0,0,0,0};
         std::array<double,4> W1Z={0,0,0,0};
@@ -203,19 +202,19 @@ void push_V_E( CParticles&particles, const amrex::Geometry geom,amrex::Array4<am
         for(auto k:idx_list){
             auto cz = coord[Z]+k;
             W1Z[k+1]=W1(nz-cz);
-            W12Z[k+1]=W12(nz-cz);
+            W12Z[k+1]=Wp(nz-cz);
         }
         auto ny = (p.pos(Y)-low[Y])*Ics[Y]; 
         for(auto j:idx_list){
             auto cy = coord[Y]+j;
             W1Y[j+1]=W1(ny-cy);
-            W12Y[j+1]=W12(ny-cy);
+            W12Y[j+1]=Wp(ny-cy);
         }
         auto nx = (p.pos(X)-low[X])*Ics[X]; 
         for(auto i:idx_list){
             auto cx = coord[X]+i;
             W1X[i+1]=W1(nx-cx);
-            W12X[i+1]=W12(nx-cx);
+            W12X[i+1]=Wp(nx-cx);
         }
         
 
