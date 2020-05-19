@@ -78,6 +78,13 @@ void E_source_hard(amrex::Geometry geom,amrex::MultiFab &E,int pos,double omega,
 
 
 void push_B_E(const amrex::Geometry geom, amrex::Box const& bx,  amrex::Array4<amrex::Real> const& B, amrex::Array4<amrex::Real const> const& E,double dt){
+    push_ff<-1,1>(geom,bx,E,B,curl_fdiff_1,dt);
+}
+
+void push_E_B(const amrex::Geometry geom, amrex::Box const& bx,  amrex::Array4<amrex::Real> const& E, amrex::Array4<amrex::Real const> const& B,double dt){
+    push_ff<1,1>(geom,bx,B,E,curl_bdiff_1,dt);
+    }/*
+void push_B_E(const amrex::Geometry geom, amrex::Box const& bx,  amrex::Array4<amrex::Real> const& B, amrex::Array4<amrex::Real const> const& E,double dt){
    const auto ics = geom.InvCellSize() ;
    const auto domain =geom.Domain();
    const auto lo = amrex::lbound(domain);
@@ -164,7 +171,7 @@ void push_E_B(const amrex::Geometry geom, amrex::Box const& bx,  amrex::Array4<a
 
    }
 }
-
+*/
 
 void Theta_B(const amrex::Geometry geom, amrex::Box const& bx,amrex::Array4<amrex::Real> const& E,amrex::Array4<amrex::Real const> const& B,double dt ){
     push_E_B(geom,bx,E,B,dt);
