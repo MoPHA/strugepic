@@ -416,5 +416,112 @@ void G_Theta(const amrex::Geometry geom,const amrex::Geometry ggeom,CParticleCon
     
 }
 
+
+template<int coord,int boundary_size>
+void construct_exterior_interior(const amrex::Geometry geom, const int* const& Lo ,const int* const& Hi,std::vector<std::array<int,3>> &exterior,amrex::Box &interior){
+   if(!geom.isPeriodic(coord) && boundary_size > 0){
+        std::array<int,3> point;
+        const int up_c =(coord+1) % 3;
+        const int lo_c =(coord+2) % 3;
+       if(interior.loVect()[coord]==Lo[coord]){
+           interior.growLo(coord,-boundary_size);
+            for(int k=Lo[up_c]; k <= Hi[up_c];k++){
+                for(int j=Lo[lo_c]; j<=Hi[lo_c];j++ ){
+                    for(int i=Lo[coord]; i < Lo[coord]+boundary_size;i++){
+                        point[up_c]=k;
+                        point[lo_c]=j;
+                        point[coord]=i;
+                        exterior.push_back(point);
+
+                    }
+                }
+            }
+       }
+        
+       if(interior.hiVect()[coord]==Hi[coord]){
+           interior.growHi(coord,-boundary_size);
+            for(int k=Lo[up_c]; k <= Hi[up_c];k++){
+                for(int j=Lo[lo_c]; j<=Hi[lo_c];j++ ){
+                    for(int i=Hi[coord]; i > Hi[coord]-boundary_size;i--){
+                        point[up_c]=k;
+                        point[lo_c]=j;
+                        point[coord]=i;
+                        exterior.push_back(point);
+                    }
+                }
+            }
+       }
+   }     
+}
+
+template<int coord>
+void MABC(amrex::Array4<amrex::Real> const& A,const int* const& Lo ,const int* const& Hi,std::vector<std::array<int,3>> &exterior,double dt){
+        for(auto point : exterior){
+          if(point[coord] == Lo[coord]){
+            const int i = point[X];
+            const int j = point[Y];
+            const int k = point[Z];
+            auto npoint=point;
+            npoint[coord]+=1;
+           A(i,j,k,X) = (1-dt)*A(i,j,k,X)+A(npoint[X],npoint[Y],npoint[Z],X)*dt;
+           A(i,j,k,Y) = (1-dt)*A(i,j,k,Y)+A(npoint[X],npoint[Y],npoint[Z],Y)*dt;
+           A(i,j,k,Z) = (1-dt)*A(i,j,k,Z)+A(npoint[X],npoint[Y],npoint[Z],Z)*dt; 
+          }
+          else if(point[coord] == Hi[coord]){ 
+            const int i = point[X];
+            const int j = point[Y];
+            const int k = point[Z];
+            auto npoint=point;
+            npoint[coord]-=1;
+           A(i,j,k,X) = (1-dt)*A(i,j,k,X)+A(npoint[X],npoint[Y],npoint[Z],X)*dt;
+           A(i,j,k,Y) = (1-dt)*A(i,j,k,Y)+A(npoint[X],npoint[Y],npoint[Z],Y)*dt;
+           A(i,j,k,Z) = (1-dt)*A(i,j,k,Z)+A(npoint[X],npoint[Y],npoint[Z],Z)*dt; 
+          }
+        }         
+
+}
+
+
+template<typename Curl_type, int sg> 
+void curl_field_update(const amrex::Geometry geom, amrex::Box const& interior_region, amrex::Array4<amrex::Real const> const& Source,amrex::Array4<amrex::Real> const& Target,
+        Curl_type f,double dt){
+   const auto ics = geom.InvCellSize() ;
+   amrex::ParallelFor(interior_region, [=] AMREX_GPU_DEVICE (int i,int j,int k ){
+         auto res = f(Source,i,j,k,ics);
+         Target(i,j,k,X) =Target(i,j,k,X)+sg*dt*res[0] ;  
+         Target(i,j,k,Y) =Target(i,j,k,Y)+sg*dt*res[1] ;
+         Target(i,j,k,Z) =Target(i,j,k,Z)+sg*dt*res[2] ;   
+        }); 
+
+}
+
+template<int sg,int boundary_size,typename Op> 
+void push_ff(const amrex::Geometry geom, amrex::Box const& bx, amrex::Array4<amrex::Real const> const& Source,amrex::Array4<amrex::Real> const& Target,Op f,double dt){
+   const auto domain=geom.Domain();
+   const auto lo = domain.loVect();
+   const auto hi = domain.hiVect();
+   const auto ics = geom.InvCellSize() ;
+    
+   auto interior=bx;
+   std::vector<std::array<int,3>> exterior;
+   // If the size of the boundary is zero we set a periodic boundary
+   // We also asume that the size of any non-periodic boundaries
+   // are the same in any direction
+   construct_exterior_interior<X,boundary_size>(geom,lo,hi,exterior,interior);
+   
+   MABC<X>(Target,lo,hi,exterior,dt);
+   
+
+   amrex::ParallelFor(interior, [=] AMREX_GPU_DEVICE (int i,int j,int k ){
+         auto res = f(Source,i,j,k,ics);
+         Target(i,j,k,X) =Target(i,j,k,X)+sg*dt*res[0] ;  
+         Target(i,j,k,Y) =Target(i,j,k,Y)+sg*dt*res[1] ;
+         Target(i,j,k,Z) =Target(i,j,k,Z)+sg*dt*res[2] ;   
+        }); 
+   
+
+
+}
+
 #endif
 
