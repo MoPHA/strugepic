@@ -492,7 +492,7 @@ void get_particle_number_density(const amrex::Geometry geom,const amrex::Geometr
         auto box_S=P_dens.box(mfi.index());
         amrex::Array4<amrex::Real const > const& P_dens_aux_loc = P_dens_aux.const_array(mfi); 
         amrex::Array4<amrex::Real > const& P_dens_loc = P_dens.array(mfi);
-        update_E<0>(geom,P_dens_loc,P_dens_aux_loc,box_L,box_S,ng);
+        map_from_aux<0>(geom,P_dens_loc,P_dens_aux_loc,box_L,box_S,ng);
     }
 
    

@@ -59,7 +59,8 @@ inline int mod(int a,int n){
 return (a%n+n)%n;
 }
 template<int comp>
-void update_E(const amrex::Geometry geom,amrex::Array4<amrex::Real> const& E,amrex::Array4<amrex::Real const> const& E_L ,amrex::Box box_L,amrex::Box box_S,int ng){
+void map_from_aux(const amrex::Geometry geom,amrex::Array4<amrex::Real> const& E,amrex::Array4<amrex::Real const> const& E_L ,amrex::Box box_L,amrex::Box box_S,int ng){
+
 
     auto Ll=amrex::lbound(box_L);
     auto Lu=amrex::ubound(box_L);
@@ -236,7 +237,6 @@ void update_E(const amrex::Geometry geom,amrex::Array4<amrex::Real> const& E,amr
 // This is for one particle type
 // If there are several you need to do this again
 // 0 -> x  , 1-> y 2->z
-// Local and neighbour particle list are not the same data structure
 template<int comp>
 void Theta(CParticles&particles, const amrex::Geometry geom,amrex::Array4<amrex::Real> const& E ,amrex::Array4<amrex::Real> const& B  ,amrex::Box box_L,amrex::Box box_S,int ng,double dt){ 
     const auto low = geom.ProbLo();
@@ -404,7 +404,7 @@ void G_Theta(const amrex::Geometry geom,const amrex::Geometry ggeom,CParticleCon
         amrex::Array4<amrex::Real > const& E_loc = E.array(mfi);
         amrex::Array4<amrex::Real const> const& E_L_loc = E_L.const_array(mfi); 
 
-        update_E<coord>(geom,E_loc,E_L_loc,box_L,box_S,ng);
+        map_from_aux<coord>(geom,E_loc,E_L_loc,box_L,box_S,ng);
     }
 
 
