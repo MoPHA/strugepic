@@ -9,7 +9,7 @@
 #include "AMReX_MultiFab.H"
 #include "particle_defs.hpp"
 #include "amrex_util.hpp"
-
+#include<cmath>
 
 
 
@@ -514,4 +514,40 @@ void push_ff(const amrex::Geometry geom, amrex::Box const& bx, amrex::Array4<amr
 }
 
 #endif
+
+
+template<int order>
+inline void Theta_map(const amrex::Geometry geom,const amrex::Geometry ggeom,CParticleContainer&P, amrex::MultiFab &E,amrex::MultiFab &E_L, amrex::MultiFab &B,double dt ){
+   const int l=order/2-1;
+   const double alpha=1/(2-pow(2,1/(2*l+1)));
+   const double beta=1-2*alpha;
+   Theta_map<order-2>(geom,ggeom,P,E,E_L,B,alpha*dt);
+   Theta_map<order-2>(geom,ggeom,P,E,E_L,B,beta*dt);
+   Theta_map<order-2>(geom,ggeom,P,E,E_L,B,alpha*dt);
+}
+template<>
+inline void Theta_map<1>(const amrex::Geometry geom,const amrex::Geometry ggeom,CParticleContainer&P, amrex::MultiFab &E,amrex::MultiFab &E_L, amrex::MultiFab &B,double dt ){
+
+    G_Theta_B(geom,P,E,B,dt);
+    G_Theta_E(geom,P,E,B,dt);
+    G_Theta<Z>(geom,ggeom,P,E,E_L,B,dt);
+    G_Theta<Y>(geom,ggeom,P,E,E_L,B,dt);
+    G_Theta<X>(geom,ggeom,P,E,E_L,B,dt);
+
+}
+template<>
+inline void Theta_map<2>(const amrex::Geometry geom,const amrex::Geometry ggeom,CParticleContainer&P, amrex::MultiFab &E,amrex::MultiFab &E_L, amrex::MultiFab &B,double dt ){
+
+    G_Theta_E(geom,P,E,B,dt/2);
+    G_Theta<X>(geom,ggeom,P,E,E_L,B,dt/2);
+    G_Theta<Y>(geom,ggeom,P,E,E_L,B,dt/2);
+    G_Theta<Z>(geom,ggeom,P,E,E_L,B,dt/2);
+    G_Theta_B(geom,P,E,B,dt);
+    G_Theta<Z>(geom,ggeom,P,E,E_L,B,dt/2);
+    G_Theta<Y>(geom,ggeom,P,E,E_L,B,dt/2);
+    G_Theta<X>(geom,ggeom,P,E,E_L,B,dt/2);
+    G_Theta_E(geom,P,E,B,dt/2);
+
+}
+
 
