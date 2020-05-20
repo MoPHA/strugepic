@@ -17,7 +17,6 @@ E_source::E_source(amrex::Geometry geom, amrex::MultiFab &E,int pos,int comp,dou
      comp(comp),
      pos(pos)
      {}
-// Why sin and factor two ?? and not derivative
 void E_source::operator()(double t){ 
     for (amrex::MFIter mfi(E); mfi.isValid(); ++mfi){
         amrex::Array4<amrex::Real> const& b = E.array(mfi); 
@@ -32,20 +31,6 @@ void E_source::operator()(double t){
  }
 
 
-// Compact hard source sin(wt)
-// Keept here for debugging purpouse
-void E_source_hard(amrex::Geometry geom,amrex::MultiFab &E,int pos,double omega,double t){
-    for (amrex::MFIter mfi(E); mfi.isValid(); ++mfi){
-        amrex::Array4<amrex::Real> const& b = E.array(mfi); 
-        const auto box= mfi.validbox();
-   amrex::ParallelFor(box, [=] AMREX_GPU_DEVICE (int i,int j,int k ){
-           if(i == pos ){
-            b(i,k,j,Y) =sin(omega*t);
-            }
-         });
-    }
-    E.FillBoundary(geom.periodicity());
-}
 
 
 // Central difference first order
@@ -59,7 +44,7 @@ void E_source_hard(amrex::Geometry geom,amrex::MultiFab &E,int pos,double omega,
 
 
 // forward difference, first order
- std::array<amrex::Real,3> curl_fdiff_1(amrex::Array4<amrex::Real const> const& a ,int i , int j ,int k, const double* ics){
+inline std::array<amrex::Real,3> curl_fdiff_1(amrex::Array4<amrex::Real const> const& a ,int i , int j ,int k, const double* ics){
     return {
         ((a(i,j+1,k,Z)-a(i,j,k,Z))*ics[Y]-( a(i,j,k+1,Y)-a(i,j,k,Y))*ics[Z]),
         ((a(i,j,k+1,X)-a(i,j,k,X))*ics[Z]-( a(i+1,j,k,Z)-a(i,j,k,Z))*ics[X]),
@@ -68,7 +53,7 @@ void E_source_hard(amrex::Geometry geom,amrex::MultiFab &E,int pos,double omega,
 }
 
 // backward difference, first order
- std::array<amrex::Real,3> curl_bdiff_1(amrex::Array4<amrex::Real const> const& a ,int i , int j ,int k, const double* ics){
+inline std::array<amrex::Real,3> curl_bdiff_1(amrex::Array4<amrex::Real const> const& a ,int i , int j ,int k, const double* ics){
     return {
         ((a(i,j,k,Z)-a(i,j-1,k,Z))*ics[Y]-( a(i,j,k,Y)-a(i,j,k-1,Y))*ics[Z]),
         ((a(i,j,k,X)-a(i,j,k-1,X))*ics[Z]-( a(i,j,k,Z)-a(i-1,j,k,Z))*ics[X]),
@@ -76,109 +61,33 @@ void E_source_hard(amrex::Geometry geom,amrex::MultiFab &E,int pos,double omega,
     };
 }
 
+void E_curl(const amrex::Geometry geom, amrex::Box const& bx,  amrex::Array4<amrex::Real const> const& E, amrex::Array4<amrex::Real > const& B,double dt){
+
+   amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i,int j,int k ){
+         auto res = curl_fdiff_1(E,i,j,k,geom.InvCellSize());
+         B(i,j,k,X) =B(i,j,k,X)-dt*res[0] ;  
+         B(i,j,k,Y) =B(i,j,k,Y)-dt*res[1] ;
+         B(i,j,k,Z) =B(i,j,k,Z)-dt*res[2] ;   
+        }); 
+}
+
+void B_curl(const amrex::Geometry geom, amrex::Box const& bx,  amrex::Array4<amrex::Real const> const& B, amrex::Array4<amrex::Real> const& E,double dt){
+   amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i,int j,int k ){
+         auto res = curl_bdiff_1(B,i,j,k,geom.InvCellSize());
+         E(i,j,k,X) =E(i,j,k,X)+dt*res[0] ;  
+         E(i,j,k,Y) =E(i,j,k,Y)+dt*res[1] ;
+         E(i,j,k,Z) =E(i,j,k,Z)+dt*res[2] ;   
+        }); 
+
+}
 
 void push_B_E(const amrex::Geometry geom, amrex::Box const& bx,  amrex::Array4<amrex::Real> const& B, amrex::Array4<amrex::Real const> const& E,double dt){
-    push_ff<-1,1>(geom,bx,E,B,curl_fdiff_1,dt);
+    push_ff<1>(geom,bx,E,B,E_curl,MABC<X>,dt);
 }
 
 void push_E_B(const amrex::Geometry geom, amrex::Box const& bx,  amrex::Array4<amrex::Real> const& E, amrex::Array4<amrex::Real const> const& B,double dt){
-    push_ff<1,1>(geom,bx,B,E,curl_bdiff_1,dt);
-    }/*
-void push_B_E(const amrex::Geometry geom, amrex::Box const& bx,  amrex::Array4<amrex::Real> const& B, amrex::Array4<amrex::Real const> const& E,double dt){
-   const auto ics = geom.InvCellSize() ;
-   const auto domain =geom.Domain();
-   const auto lo = amrex::lbound(domain);
-   const auto hi = amrex::ubound(domain);
-   if (!geom.isPeriodic(X)){
-   amrex::ParallelFor(bx,  [=] AMREX_GPU_DEVICE (int i,int j,int k ){
-         if(!( (i == lo.x || i==hi.x ) ) ){
-         double B_old_x =0;
-         double B_old_y =0;
-         double B_old_z =0;
-         if(i == lo.x+1 || i==hi.x-1){
-           B_old_x=B(i,j,k,X); 
-           B_old_y=B(i,j,k,Y); 
-           B_old_z=B(i,j,k,Z); 
-         }
-         auto curl = curl_fdiff_1(E,i,j,k,ics);
-         B(i,j,k,X) -=dt*curl[0];  
-         B(i,j,k,Y) -=dt*curl[1];
-         B(i,j,k,Z) -=dt*curl[2];
-
-         if(i== lo.x+1){
-         B(i-1,j,k,X) = (1-dt)*B(i-1,j,k,X)+B_old_x*dt;
-         B(i-1,j,k,Y) = (1-dt)*B(i-1,j,k,Y)+B_old_y*dt;
-         B(i-1,j,k,Z) = (1-dt)*B(i-1,j,k,Z)+B_old_z*dt;
-         }
-         else if( i== hi.x-1){
-         B(i+1,j,k,X) = (1-dt)*B(i+1,j,k,X)+B_old_x*dt;
-         B(i+1,j,k,Y) = (1-dt)*B(i+1,j,k,Y)+B_old_y*dt;
-         B(i+1,j,k,Z) = (1-dt)*B(i+1,j,k,Z)+B_old_z*dt;
-         }
-         }
-   });
-   }
-   else{
-   amrex::ParallelFor(bx,  [=] AMREX_GPU_DEVICE (int i,int j,int k ){
-         auto curl = curl_fdiff_1(E,i,j,k,ics);
-         B(i,j,k,X) -=dt*curl[0];  
-         B(i,j,k,Y) -=dt*curl[1];
-         B(i,j,k,Z) -=dt*curl[2];
-   });
-   }
-}
-
-void push_E_B(const amrex::Geometry geom, amrex::Box const& bx,  amrex::Array4<amrex::Real> const& E, amrex::Array4<amrex::Real const> const& B,double dt){
-   const auto ics = geom.InvCellSize() ;
-   const auto domain =geom.Domain();
-   const auto lo = amrex::lbound(domain);
-   const auto hi = amrex::ubound(domain);
-   if (!geom.isPeriodic(X)){
-   amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i,int j,int k ){
-         if(!( (i == lo.x || i==hi.x ) && !geom.isPeriodic(X)) ){
-         auto curl = curl_bdiff_1(B,i,j,k,ics);
-         double E_old_x=0;
-         double E_old_y=0;
-         double E_old_z=0;
-         if( i== lo.x+1 || i== hi.x -1){
-            E_old_x = E(i,j,k,X);
-            E_old_y = E(i,j,k,Y);
-            E_old_z = E(i,j,k,Z);
-         }
-         E(i,j,k,X) +=dt*curl[0];  
-         E(i,j,k,Y) +=dt*curl[1];
-         E(i,j,k,Z) +=dt*curl[2];
-         if(i== lo.x+1){
-         E(i-1,j,k,X) = (1-dt)*E(i-1,j,k,X)+E_old_x*dt;
-         E(i-1,j,k,Y) = (1-dt)*E(i-1,j,k,Y)+E_old_y*dt;
-         E(i-1,j,k,Z) = (1-dt)*E(i-1,j,k,Z)+E_old_z*dt;
-         }
-         else if( i== hi.x-1){
-         E(i+1,j,k,X) = (1-dt)*E(i+1,j,k,X)+E_old_x*dt;
-         E(i+1,j,k,Y) = (1-dt)*E(i+1,j,k,Y)+E_old_y*dt;
-         E(i+1,j,k,Z) = (1-dt)*E(i+1,j,k,Z)+E_old_z*dt;
-         }
-        } 
-         });
-   }
-   else{
-   amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i,int j,int k ){
-         auto curl = curl_bdiff_1(B,i,j,k,ics);
-         E(i,j,k,X) +=dt*curl[0];  
-         E(i,j,k,Y) +=dt*curl[1];
-         E(i,j,k,Z) +=dt*curl[2];
-         });
-
-   }
-}
-*/
-
-void Theta_B(const amrex::Geometry geom, amrex::Box const& bx,amrex::Array4<amrex::Real> const& E,amrex::Array4<amrex::Real const> const& B,double dt ){
-    push_E_B(geom,bx,E,B,dt);
-}
-
-
-
+    push_ff<1>(geom,bx,B,E,B_curl,MABC<X>,dt);
+    }
 
 void push_V_E( CParticles&particles, const amrex::Geometry geom,amrex::Array4<amrex::Real const> const& E ,double dt){
 
@@ -270,15 +179,13 @@ void G_Theta_E(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab&
 }
 
 
-
  void G_Theta_B(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &E, amrex::MultiFab &B,double dt ){
     
     for (amrex::MFIter mfi(E); mfi.isValid(); ++mfi){
         const amrex::Box& box = mfi.validbox();
         auto const& E_loc = E.array(mfi);
-        auto const& B_loc = B.const_array(mfi); 
-        Theta_B(geom,box,E_loc,B_loc,dt);
-
+        auto const& B_loc = B.const_array(mfi);  
+        push_E_B(geom,box,E_loc,B_loc,dt);
     }
 
     E.FillBoundary(geom.periodicity());
