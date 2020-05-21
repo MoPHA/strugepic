@@ -15,6 +15,7 @@
 
 
 
+void fill_extra_halo(amrex::Geometry geom, amrex::Array4<amrex::Real> const& A,amrex::Box bx,int ng);
 
 class E_source
 {
@@ -60,6 +61,7 @@ return (a%n+n)%n;
 }
 template<int comp>
 void map_from_aux(const amrex::Geometry geom,amrex::Array4<amrex::Real> const& E,amrex::Array4<amrex::Real const> const& E_L ,amrex::Box box_L,amrex::Box box_S,int ng){
+
 
 
     auto Ll=amrex::lbound(box_L);
@@ -270,7 +272,8 @@ void map_from_aux(const amrex::Geometry geom,amrex::Array4<amrex::Real> const& E
                     int_coord[Y]=mod((int_coord[Y]-e_low[Y]), ely)+e_low[Y];
                     int_coord[Z]=mod((int_coord[Z]-e_low[Z]), elz)+e_low[Z];
             //std::cout << "PATH: " << int_coord[X]<< " "<<int_coord[Y]<< " "<<int_coord[Z]<< " "<<ext_coord[X]<< " "<<ext_coord[Y]<< " "<<ext_coord[Z] <<std::endl;
-                E(int_coord[X],int_coord[Y],int_coord[Z],comp)+=E_L(ext_coord[X],ext_coord[Y],ext_coord[Z],comp);
+              
+                    E(int_coord[X],int_coord[Y],int_coord[Z],comp)+=E_L(ext_coord[X],ext_coord[Y],ext_coord[Z],comp);
                    } 
                 }
              } 
@@ -293,7 +296,7 @@ void map_from_aux(const amrex::Geometry geom,amrex::Array4<amrex::Real> const& E
                     int_coord[Y]=mod((int_coord[Y]-e_low[Y]), ely)+e_low[Y];
                     int_coord[Z]=mod((int_coord[Z]-e_low[Z]), elz)+e_low[Z];
             //std::cout << "PATH: " << int_coord[X]<< " "<<int_coord[Y]<< " "<<int_coord[Z]<< " "<<ext_coord[X]<< " "<<ext_coord[Y]<< " "<<ext_coord[Z] <<std::endl;
-                E(int_coord[X],int_coord[Y],int_coord[Z],comp)+=E_L(ext_coord[X],ext_coord[Y],ext_coord[Z],comp);
+                    E(int_coord[X],int_coord[Y],int_coord[Z],comp)+=E_L(ext_coord[X],ext_coord[Y],ext_coord[Z],comp);
                    } 
                 }
              } 
@@ -302,8 +305,6 @@ void map_from_aux(const amrex::Geometry geom,amrex::Array4<amrex::Real> const& E
         }
 
     }
-
-//exit(0);
 
 }
 
@@ -479,8 +480,9 @@ void G_Theta(const amrex::Geometry geom,const amrex::Geometry ggeom,CParticleCon
         //exit(0);
         amrex::Array4<amrex::Real> const& E_L_loc = E_L[mfi].array(); 
         int ng = E_L.nGrow();
-        
+         
         Theta<coord>(particles,geom,E_L_loc,B_loc,box_L,box_S,ng,dt);
+        fill_extra_halo(geom,B_loc,box_S,E.nGrow());
     }
     E_L.FillBoundary(ggeom.periodicity());
   
@@ -490,8 +492,8 @@ void G_Theta(const amrex::Geometry geom,const amrex::Geometry ggeom,CParticleCon
         int ng = E_L.nGrow();
         amrex::Array4<amrex::Real > const& E_loc = E.array(mfi);
         amrex::Array4<amrex::Real const> const& E_L_loc = E_L.const_array(mfi); 
-
         map_from_aux<coord>(geom,E_loc,E_L_loc,box_L,box_S,ng);
+        fill_extra_halo(geom,E_loc,box_S,E.nGrow());
     }
 
 
