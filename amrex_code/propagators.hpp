@@ -42,8 +42,6 @@ void push_B_E(const amrex::Geometry geom, amrex::Box const& bx,  amrex::Array4<a
 
 void push_E_B(const amrex::Geometry geom, amrex::Box const& bx,  amrex::Array4<amrex::Real> const& E, amrex::Array4<amrex::Real const> const& B,double dt);
 
-void push_V_E( CParticles&particles, const amrex::Geometry geom,amrex::Array4<amrex::Real const> const& E ,double dt);
-
 void Theta_E(const amrex::Geometry geom,amrex::Box const& bx,amrex::Array4<amrex::Real const> const& E,amrex::Array4<amrex::Real> const& B,CParticles&particles,double dt );
 
 void Theta_B(const amrex::Geometry geom,amrex::Box const& bx,amrex::Array4<amrex::Real> const& E,amrex::Array4<amrex::Real const> const& B,double dt );
@@ -314,7 +312,7 @@ void map_from_aux(const amrex::Geometry geom,amrex::Array4<amrex::Real> const& E
 // This is for one particle type
 // If there are several you need to do this again
 // 0 -> x  , 1-> y 2->z
-template<int comp>
+template<int comp,int W_range>
 void Theta(CParticles&particles, const amrex::Geometry geom,amrex::Array4<amrex::Real> const& E ,amrex::Array4<amrex::Real> const& B  ,amrex::Box box_L,amrex::Box box_S,int ng,double dt){ 
     const auto low = geom.ProbLo();
     const auto Ics = geom.InvCellSize();
@@ -349,7 +347,6 @@ void Theta(CParticles&particles, const amrex::Geometry geom,amrex::Array4<amrex:
         amrex::Real res_c2=0;
 
 
-        constexpr int W_range=2;
         constexpr int W1_r=W_range*2;
         constexpr int W1_li=-W_range+1;
         constexpr int W1_hi= W_range;
@@ -460,6 +457,80 @@ void Theta(CParticles&particles, const amrex::Geometry geom,amrex::Array4<amrex:
 }
 
 
+template<int W_range>
+void push_V_E( CParticles&particles, const amrex::Geometry geom,amrex::Array4<amrex::Real const> const& E ,double dt){
+
+    // Basis functions are supported over two cells in each direction
+    const auto low =geom.ProbLo();
+    const auto Ics = geom.InvCellSize();
+    
+    for(auto& p : particles){
+    const double m= p.rdata(M);
+    const double q= p.rdata(Q);
+    const double coef = dt*q/m;
+    auto coord =get_point_cell(geom,{p.pos(X),p.pos(Y),p.pos(Z)}) ;
+       
+        double dvx=0;
+        double dvy=0;
+        double dvz=0;
+
+        constexpr int W1_r=W_range*2;
+        constexpr int W1_li=-W_range+1;
+        constexpr int W1_hi= W_range;
+        constexpr int Wp_li= W1_li;
+        constexpr int Wp_hi= W1_hi-1;
+
+        std::array<double,W1_r> W1X={0};
+        std::array<double,W1_r> W1Y={0};
+        std::array<double,W1_r> W1Z={0};
+        std::array<double,W1_r> WpX={0};
+        std::array<double,W1_r> WpY={0};
+        std::array<double,W1_r> WpZ={0};
+
+        // Particle coordinate shifted to cell
+        auto nz = (p.pos(Z)-low[Z])*Ics[Z]; 
+        auto ny = (p.pos(Y)-low[Y])*Ics[Y]; 
+        auto nx = (p.pos(X)-low[X])*Ics[X]; 
+       
+            for(int  i=W1_li; i<=W1_hi;i++){
+                auto cx = coord[X]+i;
+                W1X[i+1]=W1(nx-cx); 
+                auto cy = coord[Y]+i;
+                W1Y[i+1]=W1(ny-cy);
+                auto cz = coord[Z]+i;
+                W1Z[i+1]=W1(nz-cz);
+            }
+            for(int i=Wp_li; i<=Wp_hi;i++){
+                auto cx = coord[X]+i;
+                WpX[i+1]=Wp(nx-cx); 
+                auto cy = coord[Y]+i;
+                WpY[i+1]=Wp(ny-cy);
+                auto cz = coord[Z]+i;
+                WpZ[i+1]=Wp(nz-cz);
+            
+            }
+
+        
+
+
+        for(int  k=W1_li; k<=W1_hi;k++){
+            auto cz = coord[Z]+k;
+            for(int  j=W1_li; j<=W1_hi;j++){
+                  auto cy = coord[Y]+j;
+            for(int  i=W1_li; i<=W1_hi;i++){
+                  auto cx = coord[X]+i;
+                   dvx+= E(cx,cy,cz,X)*WpX[i+1]*W1Y[j+1]*W1Z[k+1]; 
+                   dvy+= E(cx,cy,cz,Y)*W1X[i+1]*WpY[j+1]*W1Z[k+1];
+                   dvz+= E(cx,cy,cz,Z)*W1X[i+1]*W1Y[j+1]*WpZ[k+1];
+                }
+            }
+        }
+        p.rdata(VX)+=dvx*coef;
+        p.rdata(VY)+=dvy*coef;
+        p.rdata(VZ)+=dvz*coef;
+        
+    }
+}
 
 
 
@@ -482,7 +553,7 @@ void G_Theta(const amrex::Geometry geom,const amrex::Geometry ggeom,CParticleCon
         amrex::Array4<amrex::Real> const& E_L_loc = E_L[mfi].array(); 
         int ng = E_L.nGrow();
          
-        Theta<coord>(particles,geom,E_L_loc,B_loc,box_L,box_S,ng,dt);
+        Theta<coord,WRANGE>(particles,geom,E_L_loc,B_loc,box_L,box_S,ng,dt);
         fill_extra_halo(geom,B_loc,box_S,E.nGrow());
     }
     E_L.FillBoundary(ggeom.periodicity());

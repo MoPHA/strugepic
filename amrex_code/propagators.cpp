@@ -154,80 +154,6 @@ void push_E_B(const amrex::Geometry geom, amrex::Box const& bx,  amrex::Array4<a
     push_ff<1>(geom,bx,B,E,B_curl,MABC<X>,dt);
     }
 
-void push_V_E( CParticles&particles, const amrex::Geometry geom,amrex::Array4<amrex::Real const> const& E ,double dt){
-
-    // Basis functions are supported over two cells in each direction
-    const auto low =geom.ProbLo();
-    const auto Ics = geom.InvCellSize();
-    
-    for(auto& p : particles){
-    const double m= p.rdata(M);
-    const double q= p.rdata(Q);
-    const double coef = dt*q/m;
-    auto coord =get_point_cell(geom,{p.pos(X),p.pos(Y),p.pos(Z)}) ;
-       
-        double dvx=0;
-        double dvy=0;
-        double dvz=0;
-
-        constexpr int W_range=2;
-        constexpr int W1_r=W_range*2;
-        constexpr int W1_li=-W_range+1;
-        constexpr int W1_hi= W_range;
-        constexpr int Wp_li= W1_li;
-        constexpr int Wp_hi= W1_hi-1;
-
-        std::array<double,W1_r> W1X={0};
-        std::array<double,W1_r> W1Y={0};
-        std::array<double,W1_r> W1Z={0};
-        std::array<double,W1_r> WpX={0};
-        std::array<double,W1_r> WpY={0};
-        std::array<double,W1_r> WpZ={0};
-
-        // Particle coordinate shifted to cell
-        auto nz = (p.pos(Z)-low[Z])*Ics[Z]; 
-        auto ny = (p.pos(Y)-low[Y])*Ics[Y]; 
-        auto nx = (p.pos(X)-low[X])*Ics[X]; 
-       
-            for(int  i=W1_li; i<=W1_hi;i++){
-                auto cx = coord[X]+i;
-                W1X[i+1]=W1(nx-cx); 
-                auto cy = coord[Y]+i;
-                W1Y[i+1]=W1(ny-cy);
-                auto cz = coord[Z]+i;
-                W1Z[i+1]=W1(nz-cz);
-            }
-            for(int i=Wp_li; i<=Wp_hi;i++){
-                auto cx = coord[X]+i;
-                WpX[i+1]=Wp(nx-cx); 
-                auto cy = coord[Y]+i;
-                WpY[i+1]=Wp(ny-cy);
-                auto cz = coord[Z]+i;
-                WpZ[i+1]=Wp(nz-cz);
-            
-            }
-
-        
-
-
-        for(int  k=W1_li; k<=W1_hi;k++){
-            auto cz = coord[Z]+k;
-            for(int  j=W1_li; j<=W1_hi;j++){
-                  auto cy = coord[Y]+j;
-            for(int  i=W1_li; i<=W1_hi;i++){
-                  auto cx = coord[X]+i;
-                   dvx+= E(cx,cy,cz,X)*WpX[i+1]*W1Y[j+1]*W1Z[k+1]; 
-                   dvy+= E(cx,cy,cz,Y)*W1X[i+1]*WpY[j+1]*W1Z[k+1];
-                   dvz+= E(cx,cy,cz,Z)*W1X[i+1]*W1Y[j+1]*WpZ[k+1];
-                }
-            }
-        }
-        p.rdata(VX)+=dvx*coef;
-        p.rdata(VY)+=dvy*coef;
-        p.rdata(VZ)+=dvz*coef;
-        
-    }
-}
 
 
 void G_Theta_E(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab&E, amrex::MultiFab&B,double dt ){
@@ -237,7 +163,7 @@ void G_Theta_E(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab&
         auto&  particles = pti.GetArrayOfStructs();
         amrex::Array4<amrex::Real const> const& E_loc = E.const_array(pti);
          
-        push_V_E(particles,geom,E_loc,dt);
+        push_V_E<WRANGE>(particles,geom,E_loc,dt);
     }
 
     for (amrex::MFIter mfi(E); mfi.isValid(); ++mfi){
