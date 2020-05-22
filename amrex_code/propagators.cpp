@@ -157,7 +157,6 @@ void push_E_B(const amrex::Geometry geom, amrex::Box const& bx,  amrex::Array4<a
 void push_V_E( CParticles&particles, const amrex::Geometry geom,amrex::Array4<amrex::Real const> const& E ,double dt){
 
     // Basis functions are supported over two cells in each direction
-    const int idx_list[4]={-1,0,1,2};
     const auto low =geom.ProbLo();
     const auto Ics = geom.InvCellSize();
     
@@ -165,50 +164,61 @@ void push_V_E( CParticles&particles, const amrex::Geometry geom,amrex::Array4<am
     const double m= p.rdata(M);
     const double q= p.rdata(Q);
     const double coef = dt*q/m;
-        auto coord =get_point_cell(geom,{p.pos(X),p.pos(Y),p.pos(Z)}) ;
+    auto coord =get_point_cell(geom,{p.pos(X),p.pos(Y),p.pos(Z)}) ;
        
         double dvx=0;
         double dvy=0;
         double dvz=0;
 
+        constexpr int W_range=2;
+        constexpr int W1_r=W_range*2;
+        constexpr int W1_li=-W_range+1;
+        constexpr int W1_hi= W_range;
+        constexpr int Wp_li= W1_li;
+        constexpr int Wp_hi= W1_hi-1;
 
-        std::array<double,4> W1X={0,0,0,0};
-        std::array<double,4> W1Y={0,0,0,0};
-        std::array<double,4> W1Z={0,0,0,0};
-        std::array<double,4> W12X={0,0,0,0};
-        std::array<double,4> W12Y={0,0,0,0};
-        std::array<double,4> W12Z={0,0,0,0};
+        std::array<double,W1_r> W1X={0};
+        std::array<double,W1_r> W1Y={0};
+        std::array<double,W1_r> W1Z={0};
+        std::array<double,W1_r> WpX={0};
+        std::array<double,W1_r> WpY={0};
+        std::array<double,W1_r> WpZ={0};
 
+        // Particle coordinate shifted to cell
         auto nz = (p.pos(Z)-low[Z])*Ics[Z]; 
-        for(auto k:idx_list){
-            auto cz = coord[Z]+k;
-            W1Z[k+1]=W1(nz-cz);
-            W12Z[k+1]=Wp(nz-cz);
-        }
         auto ny = (p.pos(Y)-low[Y])*Ics[Y]; 
-        for(auto j:idx_list){
-            auto cy = coord[Y]+j;
-            W1Y[j+1]=W1(ny-cy);
-            W12Y[j+1]=Wp(ny-cy);
-        }
         auto nx = (p.pos(X)-low[X])*Ics[X]; 
-        for(auto i:idx_list){
-            auto cx = coord[X]+i;
-            W1X[i+1]=W1(nx-cx);
-            W12X[i+1]=Wp(nx-cx);
-        }
+       
+            for(int  i=W1_li; i<=W1_hi;i++){
+                auto cx = coord[X]+i;
+                W1X[i+1]=W1(nx-cx); 
+                auto cy = coord[Y]+i;
+                W1Y[i+1]=W1(ny-cy);
+                auto cz = coord[Z]+i;
+                W1Z[i+1]=W1(nz-cz);
+            }
+            for(int i=Wp_li; i<=Wp_hi;i++){
+                auto cx = coord[X]+i;
+                WpX[i+1]=Wp(nx-cx); 
+                auto cy = coord[Y]+i;
+                WpY[i+1]=Wp(ny-cy);
+                auto cz = coord[Z]+i;
+                WpZ[i+1]=Wp(nz-cz);
+            
+            }
+
         
 
 
-        for(auto k: idx_list){
+        for(int  k=W1_li; k<=W1_hi;k++){
             auto cz = coord[Z]+k;
-            for(auto j: idx_list){
+            for(int  j=W1_li; j<=W1_hi;j++){
                   auto cy = coord[Y]+j;
-                for(auto i: idx_list){
+            for(int  i=W1_li; i<=W1_hi;i++){
                   auto cx = coord[X]+i;
-                   dvx+= E(cx,cy,cz,X)*W12X[i+1]*W1Y[j+1]*W1Z[k+1]; 
-                   dvy+= E(cx,cy,cz,Y)*W1X[i+1]*W12Y[j+1]*W1Z[k+1];
-                   dvz+= E(cx,cy,cz,Z)*W1X[i+1]*W1Y[j+1]*W12Z[k+1];
+                   dvx+= E(cx,cy,cz,X)*WpX[i+1]*W1Y[j+1]*W1Z[k+1]; 
+                   dvy+= E(cx,cy,cz,Y)*W1X[i+1]*WpY[j+1]*W1Z[k+1];
+                   dvz+= E(cx,cy,cz,Z)*W1X[i+1]*W1Y[j+1]*WpZ[k+1];
                 }
             }
         }
