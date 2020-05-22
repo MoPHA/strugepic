@@ -1,10 +1,10 @@
 
 n_cell = 15 15 1
-max_grid_size = 5 5 1
+max_grid_size = 15 15 1
 
 x_periodic = 1
 
-nsteps = 16000
+nsteps = 8000
 start_step = 0 # If this is not zero we will try to do a restart from a plotfile
 output_interval = -1 ;
 checkpoint_interval = -1 ;
