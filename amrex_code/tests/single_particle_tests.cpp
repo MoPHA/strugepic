@@ -44,7 +44,7 @@ void main_main()
     std::array<int,3> n_cell;
     std::array<int,3> max_grid_size;
     int x_periodic;
-    int Nghost =3; 
+    int Nghost =WRANGE+1; 
 
     int nsteps;
     int start_step;
@@ -58,7 +58,7 @@ void main_main()
 
     std::array<double,3> E_init;
     std::array<double,3> B_init;
-    int Ncomp  = 3;
+    int Ncomp =3; 
 
     std::string data_folder_name;
 

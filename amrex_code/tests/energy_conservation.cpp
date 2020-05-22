@@ -44,7 +44,7 @@ void main_main()
     std::array<int,3> n_cell;
     std::array<int,3> max_grid_size;
     int x_periodic;
-    int Nghost =3; 
+    int Nghost =WRANGE+1; 
 
     int nsteps;
     int start_step;
@@ -151,7 +151,6 @@ void main_main()
     std::cout << P.TotalNumberOfParticles() << std::endl;
 
 for(int step=start_step; step<nsteps;step++){ 
-    //print_Particle_info(geom,P);
     amrex::Print() <<"Step:" <<step << std::endl;
     auto E_tot = get_total_energy(geom,P,E,B); 
     amrex::Print() <<"ENERGY: "<<E_tot.first <<" "<< E_tot.second << std::endl;
