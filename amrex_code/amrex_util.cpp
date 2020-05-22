@@ -60,7 +60,7 @@ void set_uniform_field(amrex::MultiFab &A, std::array<double,3> vals){
 
 void SimulationIO::dump_pdens(std::string filename){
 
-    get_particle_number_density(geom,aux_geom,P,Pdens,Pdens_aux); 
+    get_particle_number_density<WRANGE>(geom,aux_geom,P,Pdens,Pdens_aux); 
     for (amrex::MFIter mfi(Pdens); mfi.isValid(); ++mfi){
         const amrex::Box& box = mfi.validbox();
         amrex::Array4<amrex::Real> const& pd = Pdens.array(mfi); 
@@ -103,7 +103,7 @@ void SimulationIO::write(int step,bool checkpoint,bool particles){
     P.Checkpoint(amrex::Concatenate(data_folder_name+std::string("/P_CP"),step,0),"Particle0");
     }
     else{
-    get_particle_number_density(geom,aux_geom,P,Pdens,Pdens_aux);
+    get_particle_number_density<WRANGE>(geom,aux_geom,P,Pdens,Pdens_aux);
     int n=step;
     amrex::Real time=step*dt;
     const std::string& pltfile_E = amrex::Concatenate(data_folder_name+std::string("/plt_E"),n,0);
@@ -431,71 +431,6 @@ std::pair<amrex::Real,amrex::Real> get_total_energy(const amrex::Geometry geom,C
 
     amrex::ParallelAllReduce::Sum(E_kin,amrex::ParallelDescriptor::Communicator());
     return std::make_pair(E_field*geom.CellSize(X)*geom.CellSize(Y)*geom.CellSize(Z),E_kin);
-
-}
-
-void get_particle_number_density(const amrex::Geometry geom,const amrex::Geometry aux_geom,CParticleContainer&P, amrex::MultiFab &P_dens,amrex::MultiFab &P_dens_aux){
-    P_dens.setVal(0);
-    P_dens_aux.setVal(0);
-    
-    int ng=P_dens.nGrow(); 
-    for (amrex::MFIter mfi(P_dens_aux); mfi.isValid(); ++mfi){
-        auto box_L=mfi.validbox();
-        auto box_S=P_dens.box(mfi.index());
-    
-        // Each grid,tile has a their own local particle container
-        auto& Part = P.GetParticles(0)[std::make_pair(mfi.index(),mfi.LocalTileIndex())];
-        auto&  particles = Part.GetArrayOfStructs();
-        amrex::Array4<amrex::Real> const& P_dens_aux_loc = P_dens_aux[mfi].array(); 
-
-    const auto low = geom.ProbLo();
-    const auto Ics = geom.InvCellSize();
-    // Remote particle grid lower corner
-     const auto el_low=box_L.loVect();
-     const auto e_low=box_S.loVect();
-      std::array<int,3> shift;
-      shift[X]=(el_low[X]+ng)-e_low[X];
-      shift[Y]=(el_low[Y]+ng)-e_low[Y];
-      shift[Z]=(el_low[Z]+ng)-e_low[Z];
-
-     for(auto& p : particles){
-        int coord[3];
-        coord[X]=floor((p.pos(X) -low[X])*Ics[X]);
-        coord[Y]=floor((p.pos(Y) -low[Y])*Ics[Y]);
-        coord[Z]=floor((p.pos(Z) -low[Z])*Ics[Z]);
-        
-            
-
-        auto px=(p.pos(X)-low[X])*Ics[X];
-        auto py=(p.pos(Y)-low[Y])*Ics[Y];
-        auto pz=(p.pos(Z)-low[Z])*Ics[Z];
-        
-        for(int i=-1;i<2;i++){
-            auto nx=coord[X] +i;
-            for(int j=-1;j<2;j++){
-                auto ny=coord[Y] +j;
-                for(int k=-1;k<2;k++){
-                    auto nz=coord[Z] +k;
-                       P_dens_aux_loc(nx+shift[X],ny+shift[Y],nz+shift[Z],X)+=
-                          Wp(px-nx)*Wp(py-ny)*Wp(pz-nz);
-            }
-        }
-        }
-
-    }
-
-    }
-    P_dens_aux.FillBoundary(aux_geom.periodicity());
-  
-    for (amrex::MFIter mfi(P_dens_aux); mfi.isValid(); ++mfi){
-        auto box_L=mfi.validbox();
-        auto box_S=P_dens.box(mfi.index());
-        amrex::Array4<amrex::Real const > const& P_dens_aux_loc = P_dens_aux.const_array(mfi); 
-        amrex::Array4<amrex::Real > const& P_dens_loc = P_dens.array(mfi);
-        map_from_aux<0>(geom,P_dens_loc,P_dens_aux_loc,box_L,box_S,ng);
-    }
-
-   
 
 }
 

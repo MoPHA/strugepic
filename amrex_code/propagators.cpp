@@ -3,8 +3,8 @@
 #include "AMReX_Loop.H"
 #include "AMReX_MultiFab.H"
 #include "particle_defs.hpp"
-#include "propagators.hpp"
 #include "amrex_util.hpp"
+#include "propagators.hpp"
 
 
 void fill_extra_halo(amrex::Geometry geom, amrex::Array4<amrex::Real> const& A,amrex::Box bx,int ng){
