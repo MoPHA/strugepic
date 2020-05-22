@@ -366,24 +366,31 @@ void Theta(CParticles&particles, const amrex::Geometry geom,amrex::Array4<amrex:
 
 
             auto nl=(p.pos(comp_l)-low[comp_l])*Ics[comp_l];
+            int idx=0;
             for(int l=W1_li; l<=W1_hi;l++){
                 auto cl=coord[comp_l]+(l); 
-                comp_lW1[l+1]=W1(nl-cl);
+                comp_lW1[idx]=W1(nl-cl);
+                idx++;
 
-            }
+            }idx=0;
             for(int l=Wp_li; l<=Wp_hi;l++){
                 auto cl=coord[comp_l]+(l); 
-                comp_lWp[l+1]=Wp(nl-cl);
+                comp_lWp[idx]=Wp(nl-cl);
+                idx++;
 
-            }
+            }idx=0;
             auto nu=(p.pos(comp_u)-low[comp_u])*Ics[comp_u];
             for(int  u=W1_li; u<=W1_hi;u++){
                 auto cu=coord[comp_u]+(u); 
-                comp_uW1[u+1]=W1(nu-cu);
-            }
+                comp_uW1[idx]=W1(nu-cu);
+                idx++;
+            }idx=0;
+        
+
             for(int  u=Wp_li; u<=Wp_hi;u++){
                 auto cu=coord[comp_u]+(u); 
-                comp_uWp[u+1]=Wp(nu-cu);
+                comp_uWp[idx]=Wp(nu-cu);
+                idx++;
             }
 
         for(int seg=0;seg<num_segments;seg++){
@@ -396,19 +403,23 @@ void Theta(CParticles&particles, const amrex::Geometry geom,amrex::Array4<amrex:
            
            auto ncs=(i_s-low[comp])*Ics[comp];
            auto nce=(i_e-low[comp])*Ics[comp];
+           idx=0;
             for(int c=Wp_li;c<=Wp_hi;c++){
                 auto cc=coord[comp]+(c);
-                compI_W12[c+1]=I_Wp(ncs- cc ,nce- cc);
+                compI_W12[idx]=I_Wp(ncs- cc ,nce- cc);
+                idx++;
 
             }
 
 
-
+            int idl=0;
             for(int l=W1_li;l<=W1_hi; l++ ){
+                int idu=0;
                 for(int u=W1_li;u<=W1_hi;u++){
-                double mul=comp_lW1[l+1]*comp_uW1[u+1];
-                double mulu12l1=comp_uWp[u+1]*comp_lW1[l+1];
-                double mull12u1=comp_lWp[l+1]*comp_uW1[u+1];
+                   int  idc=0;
+                double mul=comp_lW1[idl]*comp_uW1[idu];
+                double mulu12l1=comp_uWp[idu]*comp_lW1[idl];
+                double mull12u1=comp_lWp[idl]*comp_uW1[idu];
                 for(int c=Wp_li;c<=Wp_hi;c++){
                     int cx,cy,cz;
 
@@ -428,11 +439,14 @@ void Theta(CParticles&particles, const amrex::Geometry geom,amrex::Array4<amrex:
                      cz=coord[Z]+(c);
                     }
 
-                    E(cx+shift[X],cy+shift[Y],cz+shift[Z],comp)-=E_coef*mul*compI_W12[c+1];
-                    res_c1+=B(cx,cy,cz,comp_u)*mull12u1*compI_W12[c+1];
-                    res_c2-=B(cx,cy,cz,comp_l)*compI_W12[c+1]*mulu12l1;
+                    E(cx+shift[X],cy+shift[Y],cz+shift[Z],comp)-=E_coef*mul*compI_W12[idc];
+                    res_c1+=B(cx,cy,cz,comp_u)*mull12u1*compI_W12[idc];
+                    res_c2-=B(cx,cy,cz,comp_l)*compI_W12[idc]*mulu12l1;
+                    idc++;
                 }
+                idu++;
             }
+                idl++;
             }
 
 
@@ -491,39 +505,49 @@ void push_V_E( CParticles&particles, const amrex::Geometry geom,amrex::Array4<am
         auto nz = (p.pos(Z)-low[Z])*Ics[Z]; 
         auto ny = (p.pos(Y)-low[Y])*Ics[Y]; 
         auto nx = (p.pos(X)-low[X])*Ics[X]; 
-       
+      
+            int idx=0;
             for(int  i=W1_li; i<=W1_hi;i++){
                 auto cx = coord[X]+i;
-                W1X[i+1]=W1(nx-cx); 
+                W1X[idx]=W1(nx-cx); 
                 auto cy = coord[Y]+i;
-                W1Y[i+1]=W1(ny-cy);
+                W1Y[idx]=W1(ny-cy);
                 auto cz = coord[Z]+i;
-                W1Z[i+1]=W1(nz-cz);
+                W1Z[idx]=W1(nz-cz);
+                idx++;
             }
+            idx=0;
             for(int i=Wp_li; i<=Wp_hi;i++){
                 auto cx = coord[X]+i;
-                WpX[i+1]=Wp(nx-cx); 
+                WpX[idx]=Wp(nx-cx); 
                 auto cy = coord[Y]+i;
-                WpY[i+1]=Wp(ny-cy);
+                WpY[idx]=Wp(ny-cy);
                 auto cz = coord[Z]+i;
-                WpZ[i+1]=Wp(nz-cz);
+                WpZ[idx]=Wp(nz-cz);
+                idx++;
             
             }
 
         
 
 
+            int idk=0;
         for(int  k=W1_li; k<=W1_hi;k++){
             auto cz = coord[Z]+k;
+            int idj=0;
             for(int  j=W1_li; j<=W1_hi;j++){
+                int idi=0;
                   auto cy = coord[Y]+j;
             for(int  i=W1_li; i<=W1_hi;i++){
                   auto cx = coord[X]+i;
-                   dvx+= E(cx,cy,cz,X)*WpX[i+1]*W1Y[j+1]*W1Z[k+1]; 
-                   dvy+= E(cx,cy,cz,Y)*W1X[i+1]*WpY[j+1]*W1Z[k+1];
-                   dvz+= E(cx,cy,cz,Z)*W1X[i+1]*W1Y[j+1]*WpZ[k+1];
+                   dvx+= E(cx,cy,cz,X)*WpX[idi]*W1Y[idj]*W1Z[idk]; 
+                   dvy+= E(cx,cy,cz,Y)*W1X[idi]*WpY[idj]*W1Z[idk];
+                   dvz+= E(cx,cy,cz,Z)*W1X[idi]*W1Y[idj]*WpZ[idk];
+                   idi++;
                 }
+                idj++;
             }
+            idk++;
         }
         p.rdata(VX)+=dvx*coef;
         p.rdata(VY)+=dvy*coef;

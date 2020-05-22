@@ -47,7 +47,7 @@ REAL I_W1(REAL a,REAL b ){
 }
 
 REAL Wp(REAL x){
-    if(x <1 && x >0){
+    if(x <1 && x >=0){
         return 1;
     }
     else{
