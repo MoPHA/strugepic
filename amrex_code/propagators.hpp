@@ -736,3 +736,73 @@ inline void Theta_map<2>(const amrex::Geometry geom,const amrex::Geometry ggeom,
 }
 
 
+template<int W_range>
+void get_particle_number_density(const amrex::Geometry geom,const amrex::Geometry aux_geom,CParticleContainer&P, amrex::MultiFab &P_dens,amrex::MultiFab &P_dens_aux){
+    P_dens.setVal(0);
+    P_dens_aux.setVal(0);
+    
+    int ng=P_dens.nGrow(); 
+    for (amrex::MFIter mfi(P_dens_aux); mfi.isValid(); ++mfi){
+        auto box_L=mfi.validbox();
+        auto box_S=P_dens.box(mfi.index());
+    
+        // Each grid,tile has a their own local particle container
+        auto& Part = P.GetParticles(0)[std::make_pair(mfi.index(),mfi.LocalTileIndex())];
+        auto&  particles = Part.GetArrayOfStructs();
+        amrex::Array4<amrex::Real> const& P_dens_aux_loc = P_dens_aux[mfi].array(); 
+
+    const auto low = geom.ProbLo();
+    const auto Ics = geom.InvCellSize();
+    // Remote particle grid lower corner
+     const auto el_low=box_L.loVect();
+     const auto e_low=box_S.loVect();
+      std::array<int,3> shift;
+      shift[X]=(el_low[X]+ng)-e_low[X];
+      shift[Y]=(el_low[Y]+ng)-e_low[Y];
+      shift[Z]=(el_low[Z]+ng)-e_low[Z];
+
+     for(auto& p : particles){
+        int coord[3];
+        coord[X]=floor((p.pos(X) -low[X])*Ics[X]);
+        coord[Y]=floor((p.pos(Y) -low[Y])*Ics[Y]);
+        coord[Z]=floor((p.pos(Z) -low[Z])*Ics[Z]);
+        
+            
+
+        auto px=(p.pos(X)-low[X])*Ics[X];
+        auto py=(p.pos(Y)-low[Y])*Ics[Y];
+        auto pz=(p.pos(Z)-low[Z])*Ics[Z];
+        
+        constexpr int W1_li=-W_range+1;
+        constexpr int W1_hi= W_range;
+        constexpr int Wp_li= W1_li;
+        constexpr int Wp_hi= W1_hi-1;
+        
+        for(int i=Wp_li;i<=Wp_hi;i++){
+            auto nx=coord[X] +i;
+            for(int j=Wp_li;j<=Wp_hi;j++){
+                auto ny=coord[Y] +j;
+                for(int k=Wp_li;k<=Wp_hi;k++){
+                    auto nz=coord[Z] +k;
+                       P_dens_aux_loc(nx+shift[X],ny+shift[Y],nz+shift[Z],X)+=
+                          Wp(px-nx)*Wp(py-ny)*Wp(pz-nz);
+            }
+        }
+        }
+
+    }
+
+    }
+    P_dens_aux.FillBoundary(aux_geom.periodicity());
+  
+    for (amrex::MFIter mfi(P_dens_aux); mfi.isValid(); ++mfi){
+        auto box_L=mfi.validbox();
+        auto box_S=P_dens.box(mfi.index());
+        amrex::Array4<amrex::Real const > const& P_dens_aux_loc = P_dens_aux.const_array(mfi); 
+        amrex::Array4<amrex::Real > const& P_dens_loc = P_dens.array(mfi);
+        map_from_aux<0>(geom,P_dens_loc,P_dens_aux_loc,box_L,box_S,ng);
+    }
+
+   
+
+}

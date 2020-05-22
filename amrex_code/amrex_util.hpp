@@ -19,10 +19,13 @@ void distribute_processes_pdens(amrex::DistributionMapping dm,const amrex::Geome
 void set_uniform_field(amrex::MultiFab &A, std::array<double,3> vals);
 void add_single_particle(CParticleContainer&P,amrex::RealArray pos , amrex::RealArray vel, double m,double q);
 void print_boxes(amrex::BoxArray ba);
-void get_particle_number_density(const amrex::Geometry geom,const amrex::Geometry aux_geom,CParticleContainer&P, amrex::MultiFab &P_dens,amrex::MultiFab & P_dens_aux);
 double uniform_density(const amrex::Geometry geom,int i ,int j ,int k);
 double gaussian_dist(double pos,double center,double std_dev);
 void set_field_gradient_gaussian_x(amrex::MultiFab &A,double A_max,double center,double std_dev);
+
+
+
+
 
 template<int comp>
 void shift_and_grow(amrex::BoxArray &ba, int nghost){
