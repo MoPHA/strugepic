@@ -247,27 +247,28 @@ void map_from_aux(const amrex::Geometry geom,amrex::Array4<amrex::Real> const& E
     const auto auxgridHi = box_L.hiVect();
 
     for(auto coord: {X,Y,Z}){
-        auto cooord_u = (coord+1)%3;
-        auto cooord_l = (coord+2)%3;
+        auto coord_u = (coord+1)%3;
+        auto coord_l = (coord+2)%3;
         auto missing_L =  ng-(domainHi[coord]-domainLo[coord]+1);
         if(domainLo[coord] == subgridLo[coord] && domainHi[coord]==subgridHi[coord] && geom.isPeriodic(coord)
                 && missing_L > 0){
           //  std::cout <<"Missing: " <<missing_L << std::endl;
           //  std::cout <<"COORD: " << coord << std::endl;
-             for(int u=0; u<=(subgridHi[cooord_u]-subgridLo[cooord_u]);u++){
+             for(int u=0; u<=(subgridHi[coord_u]-subgridLo[coord_u]);u++){
             //     std::cout << "U: " << u << std::endl;
-                for(int l=0; l<=(subgridHi[cooord_l]-subgridLo[cooord_l]);l++){
+                for(int l=0; l<=(subgridHi[coord_l]-subgridLo[coord_l]);l++){
             //     std::cout << "L: " << l << std::endl;
                    for(int c =0; c < missing_L ; c++){
              //          std::cout << "C: "<< c << std::endl;
                         std::array<int,3> ext_coord;
-                        ext_coord[cooord_u] = u+auxgridLo[cooord_u]+(ng);
-                        ext_coord[cooord_l] = l+auxgridLo[cooord_l]+(ng);
+                        ext_coord[coord_u] = u+auxgridLo[coord_u]+(ng);
+                        ext_coord[coord_l] = l+auxgridLo[coord_l]+(ng);
                         ext_coord[coord] = c+auxgridHi[coord]-(missing_L-1);
-                    std::array<int,3> int_coord={
-                            (ext_coord[cooord_u]-shift[cooord_u]-ng),                           
-                            (ext_coord[cooord_l]-shift[cooord_l]-ng),                            
-                    };                           
+                    std::array<int,3> int_coord;
+                    int_coord[coord_l]=ext_coord[coord_l]-shift[coord_l];
+                    int_coord[coord_u]=ext_coord[coord_u]-shift[coord_u];
+                    int_coord[coord]=ext_coord[coord];
+                    
                     int_coord[X]=mod((int_coord[X]-e_low[X]), elx)+e_low[X];
                     int_coord[Y]=mod((int_coord[Y]-e_low[Y]), ely)+e_low[Y];
                     int_coord[Z]=mod((int_coord[Z]-e_low[Z]), elz)+e_low[Z];
@@ -277,21 +278,21 @@ void map_from_aux(const amrex::Geometry geom,amrex::Array4<amrex::Real> const& E
                    } 
                 }
              } 
-             for(int u=0; u<=(subgridHi[cooord_u]-subgridLo[cooord_u]);u++){
+             for(int u=0; u<=(subgridHi[coord_u]-subgridLo[coord_u]);u++){
               //  std::cout << "U: " << u << std::endl;
-                for(int l=0; l<=(subgridHi[cooord_l]-subgridLo[cooord_l]);l++){
+                for(int l=0; l<=(subgridHi[coord_l]-subgridLo[coord_l]);l++){
               //   std::cout << "L: " << l << std::endl;
                    for(int c =0; c < missing_L ; c++){
                 //       std::cout << "C: " << c<< std::endl;
                         std::array<int,3> ext_coord;
-                        ext_coord[cooord_u] = u+auxgridLo[cooord_u]+(ng);
-                        ext_coord[cooord_l] = l+auxgridLo[cooord_l]+(ng);
+                        ext_coord[coord_u] = u+auxgridLo[coord_u]+(ng);
+                        ext_coord[coord_l] = l+auxgridLo[coord_l]+(ng);
                         ext_coord[coord] = c+auxgridLo[coord];
-                    std::array<int,3> int_coord={
-                            (ext_coord[cooord_u]-shift[cooord_u]-ng),                           
-                            (ext_coord[cooord_l]-shift[cooord_l]-ng),                            
-                            ext_coord[coord]
-                    };                          
+                    std::array<int,3> int_coord;
+                    int_coord[coord_l]=ext_coord[coord_l]-shift[coord_l];
+                    int_coord[coord_u]=ext_coord[coord_u]-shift[coord_u];
+                    int_coord[coord]=ext_coord[coord];
+                    
                     int_coord[X]=mod((int_coord[X]-e_low[X]), elx)+e_low[X];
                     int_coord[Y]=mod((int_coord[Y]-e_low[Y]), ely)+e_low[Y];
                     int_coord[Z]=mod((int_coord[Z]-e_low[Z]), elz)+e_low[Z];

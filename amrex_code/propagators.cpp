@@ -8,10 +8,9 @@
 
 
 void fill_extra_halo(amrex::Geometry geom, amrex::Array4<amrex::Real> const& A,amrex::Box bx,int ng){
-
     for(auto coord: {X,Y,Z}){
-        auto cooord_u = (coord+1)%3;
-        auto cooord_l = (coord+2)%3;
+        auto coord_u = (coord+1)%3;
+        auto coord_l = (coord+2)%3;
         const auto domainLo = geom.Domain().loVect();
         const auto subgridLo =bx.loVect();
         const auto domainHi = geom.Domain().hiVect();
@@ -25,19 +24,18 @@ void fill_extra_halo(amrex::Geometry geom, amrex::Array4<amrex::Real> const& A,a
                 auto ely=e_high[Y]-e_low[Y] +1;
                 auto elz=e_high[Z]-e_low[Z] +1;
         
-             for(int u=0; u<=(subgridHi[cooord_u]-subgridLo[cooord_u]);u++){
-                for(int l=0; l<=(subgridHi[cooord_l]-subgridLo[cooord_l]);l++){
+             for(int u=0; u<=(subgridHi[coord_u]-subgridLo[coord_u]);u++){
+                for(int l=0; l<=(subgridHi[coord_l]-subgridLo[coord_l]);l++){
                    for(int c =0; c < missing_L ; c++){
                         
                         std::array<int,3> ext_coord;
-                        ext_coord[cooord_u] = u+subgridLo[cooord_u];
-                        ext_coord[cooord_l] = l+subgridLo[cooord_l];
+                        ext_coord[coord_u] = u+subgridLo[coord_u];
+                        ext_coord[coord_l] = l+subgridLo[coord_l];
                         ext_coord[coord] = c+subgridHi[coord]+1+(subgridHi[coord]-subgridLo[coord]+1);
-                    std::array<int,3> int_coord={
-                            (ext_coord[cooord_u]),                           
-                            (ext_coord[cooord_l]),                            
-                            ext_coord[coord]
-                    };                          
+                    std::array<int,3> int_coord;
+                    int_coord[coord_l]=ext_coord[coord_l];
+                    int_coord[coord_u]=ext_coord[coord_u];
+                    int_coord[coord]=ext_coord[coord];
                     int_coord[X]=mod((int_coord[X]-e_low[X]), elx)+e_low[X];
                     int_coord[Y]=mod((int_coord[Y]-e_low[Y]), ely)+e_low[Y];
                     int_coord[Z]=mod((int_coord[Z]-e_low[Z]), elz)+e_low[Z];
@@ -47,19 +45,18 @@ void fill_extra_halo(amrex::Geometry geom, amrex::Array4<amrex::Real> const& A,a
                    }
                 }
              }
-             for(int u=0; u<=(subgridHi[cooord_u]-subgridLo[cooord_u]);u++){
-                for(int l=0; l<=(subgridHi[cooord_l]-subgridLo[cooord_l]);l++){
+             for(int u=0; u<=(subgridHi[coord_u]-subgridLo[coord_u]);u++){
+                for(int l=0; l<=(subgridHi[coord_l]-subgridLo[coord_l]);l++){
                    for(int c =0; c < missing_L ; c++){
                         
                         std::array<int,3> ext_coord;
-                        ext_coord[cooord_u] = u+subgridLo[cooord_u];
-                        ext_coord[cooord_l] = l+subgridLo[cooord_l];
+                        ext_coord[coord_u] = u+subgridLo[coord_u];
+                        ext_coord[coord_l] = l+subgridLo[coord_l];
                         ext_coord[coord] = c+subgridLo[coord]-ng;
-                    std::array<int,3> int_coord={
-                            (ext_coord[cooord_u]),                           
-                            (ext_coord[cooord_l]),                            
-                            ext_coord[coord]
-                    };                          
+                    std::array<int,3> int_coord;
+                    int_coord[coord_l]=ext_coord[coord_l];
+                    int_coord[coord_u]=ext_coord[coord_u];
+                    int_coord[coord]=ext_coord[coord];
                     int_coord[X]=mod((int_coord[X]-e_low[X]), elx)+e_low[X];
                     int_coord[Y]=mod((int_coord[Y]-e_low[Y]), ely)+e_low[Y];
                     int_coord[Z]=mod((int_coord[Z]-e_low[Z]), elz)+e_low[Z];
@@ -242,7 +239,6 @@ void G_Theta_E(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab&
     }
 
     B.FillBoundary(geom.periodicity());
-
 
 }
 
