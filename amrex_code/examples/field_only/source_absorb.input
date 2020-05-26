@@ -1,21 +1,18 @@
 
-n_cell = 300 2 2
-max_grid_size = 300 2 2
+n_cell = 1000 500 1
+max_grid_size = 100 100 1
 x_periodic = 0
 
-nsteps = 2000
+nsteps = 4000
 start_step = 0 # If this is not zero we will try to do a restart from a plotfile
 output_interval = 10 ;
 checkpoint_interval = -1 ;
 dt = 0.5
 data_folder_name = "Field_Only_Data_out"
 
-E_init = 0 0 0
-B_init = 0 0 0
     
-source_pos = 150
-source_comp = 1
-E0 = 5
-omega = 0.06283185307
+sp = 4
+Es = 0.1
+omega = 0.02
 
 

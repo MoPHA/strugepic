@@ -25,23 +25,6 @@
 #include "particle_defs.hpp"
 #include "cmath"
 
-
-void set_sin_field(amrex::MultiFab &A){
-
-    for (amrex::MFIter mfi(A); mfi.isValid(); ++mfi){
-        const amrex::Box& box = mfi.validbox();
-        amrex::Array4<amrex::Real> const& a = A.array(mfi); 
-
-    amrex::ParallelFor(box,  [=] AMREX_GPU_DEVICE (int i,int j,int k ){
-
-                a(i,j,k,Y)= sin(2*i*2*3.14151962/300);
-
-            });
-
-    }
-}
-
-
 void main_main();
 
 int main(int argc, char* argv[])
@@ -57,20 +40,24 @@ void main_main()
     // Simulation parameters,  these should be read from a file quite soon
     amrex::ParmParse pp;
 
+    
     std::array<int,3> n_cell;
     std::array<int,3> max_grid_size;
     int x_periodic;
-    int Nghost = 3; 
+    int Nghost =WRANGE+1; 
 
     int nsteps;
     int start_step;
     double dt;
+    double q;
+    double m;
+    std::array<double,3> pos;
+    std::array<double,3>vel;
     int output_interval;
     int checkpoint_interval;
-    
-    double Es;
-    double omega;
-    int sp;
+
+    std::array<double,3> E_init;
+    std::array<double,3> B_init;
     int Ncomp  = 3;
 
     std::string data_folder_name;
@@ -83,16 +70,23 @@ void main_main()
     pp.get("x_periodic",x_periodic);
     pp.get("nsteps",nsteps);
     pp.get("start_step",start_step);
-    pp.get("sp",sp);
     pp.get("dt",dt);
-    pp.get("Es",Es);
-    pp.get("omega",omega);
+    pp.get("q",q);
+    pp.get("m",m);
+    pp.get("pos",pos);
+    pp.get("vel",vel);
+    pp.get("E_init",E_init);
+    pp.get("B_init",B_init);
     pp.get("data_folder_name",data_folder_name);
 
 
 
-    // Do a quite even load balancing
-   // amrex::DistributionMapping::strategy(amrex::DistributionMapping::KNAPSACK);
+    
+
+
+///////////7
+
+
 
     // Periodic
     amrex::Vector<int> is_periodic({x_periodic,1,1});     
@@ -131,16 +125,21 @@ void main_main()
     amrex::MultiFab E(ba,dm,Ncomp,Nghost);
     amrex::MultiFab B(ba,dm,Ncomp,Nghost);
     auto SimIO=SimulationIO(geom,ggeom,gba,E,B,P,dt,data_folder_name);
-    //set_sin_field(E);
+
+
+////////////7
+
     if(start_step !=0){
     SimIO.read(start_step);
     }
     else{
-    }
-
-    auto Source=E_source(geom,E,sp,Y,Es,omega,dt);
-   
     
+    set_uniform_field(E,E_init);
+    set_uniform_field(B,B_init);
+    //add_single_particle(P,pos,vel,m,q);
+    add_particle_density(geom,P,uniform_density,10,m,q,0.01); 
+    //set_two_stream_drift<X>(P,vd);
+    }
 
     E.FillBoundary(geom.periodicity());
     B.FillBoundary(geom.periodicity());
@@ -149,8 +148,8 @@ void main_main()
    
     P.Redistribute();
 
+    std::cout << P.TotalNumberOfParticles() << std::endl;
 
-    amrex::Print() << "Total number of particles: " << P.TotalNumberOfParticles() << std::endl;
 for(int step=start_step; step<nsteps;step++){ 
     amrex::Print() <<"Step:" <<step << std::endl;
     auto E_tot = get_total_energy(geom,P,E,B); 
@@ -161,17 +160,7 @@ for(int step=start_step; step<nsteps;step++){
     if(step % checkpoint_interval ==0 && checkpoint_interval  !=-1){
         SimIO.write(step,true,false);
     }
-    G_Theta_E(geom,P,E,B,dt/2);
-//G_Theta<X>(geom,ggeom,P,E,E_L,B,dt/2);
-//    G_Theta<Y>(geom,ggeom,P,E,E_L,B,dt/2);
-//    G_Theta<Z>(geom,ggeom,P,E,E_L,B,dt/2);
-    Source(dt*step);
-    G_Theta_B(geom,P,E,B,dt);
-//    G_Theta<Z>(geom,ggeom,P,E,E_L,B,dt);
-//    G_Theta<Y>(geom,ggeom,P,E,E_L,B,dt);
-//    G_Theta<X>(geom,ggeom,P,E,E_L,B,dt);
-    G_Theta_E(geom,P,E,B,dt/2);
-    
+    Theta_map<1>(geom,ggeom,P,E,E_L,B,dt);
 }
 
 
