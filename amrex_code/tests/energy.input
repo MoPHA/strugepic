@@ -1,0 +1,20 @@
+
+n_cell = 15 15 1
+max_grid_size = 15 15 1
+
+x_periodic = 1
+
+nsteps = 8000
+start_step = 0 # If this is not zero we will try to do a restart from a plotfile
+output_interval = -1 ;
+checkpoint_interval = -1 ;
+dt = 0.5
+data_folder_name = "Single_Particle_Data_out"
+
+q = -1
+m = 100
+pos = 1.1 1.1 0.5
+vel = 0.01 0.0 0
+
+E_init = 1 1 1
+B_init = 1 1 1

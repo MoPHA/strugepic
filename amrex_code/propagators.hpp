@@ -9,12 +9,13 @@
 #include "AMReX_MultiFab.H"
 #include "particle_defs.hpp"
 #include "amrex_util.hpp"
+#include<cmath>
 
 
 
 
 
-
+void fill_extra_halo(amrex::Geometry geom, amrex::Array4<amrex::Real> const& A,amrex::Box bx,int ng);
 
 class E_source
 {
@@ -41,8 +42,6 @@ void push_B_E(const amrex::Geometry geom, amrex::Box const& bx,  amrex::Array4<a
 
 void push_E_B(const amrex::Geometry geom, amrex::Box const& bx,  amrex::Array4<amrex::Real> const& E, amrex::Array4<amrex::Real const> const& B,double dt);
 
-void push_V_E( CParticles&particles, const amrex::Geometry geom,amrex::Array4<amrex::Real const> const& E ,double dt);
-
 void Theta_E(const amrex::Geometry geom,amrex::Box const& bx,amrex::Array4<amrex::Real const> const& E,amrex::Array4<amrex::Real> const& B,CParticles&particles,double dt );
 
 void Theta_B(const amrex::Geometry geom,amrex::Box const& bx,amrex::Array4<amrex::Real> const& E,amrex::Array4<amrex::Real const> const& B,double dt );
@@ -59,7 +58,9 @@ inline int mod(int a,int n){
 return (a%n+n)%n;
 }
 template<int comp>
-void update_E(const amrex::Geometry geom,amrex::Array4<amrex::Real> const& E,amrex::Array4<amrex::Real const> const& E_L ,amrex::Box box_L,amrex::Box box_S,int ng){
+void map_from_aux(const amrex::Geometry geom,amrex::Array4<amrex::Real> const& E,amrex::Array4<amrex::Real const> const& E_L ,amrex::Box box_L,amrex::Box box_S,int ng){
+
+
 
     auto Ll=amrex::lbound(box_L);
     auto Lu=amrex::ubound(box_L);
@@ -228,6 +229,81 @@ void update_E(const amrex::Geometry geom,amrex::Array4<amrex::Real> const& E,amr
         }
     }
 
+    // AMReX does not implement halo regions for narrow subgrids
+    // I.e. The halo region can not reach over two other subgrids
+    // This is ok as you never want very small subgrids 2x2 or 1x1
+    // except for when a subgrid shares a periodic boundary with itself
+    // 2D slab in 3D space.
+    // This is a quick and dirty fix for that
+    // So Nx1x1 domains are not working properly at the moment
+    
+    const auto domainLo = geom.Domain().loVect();
+    const auto subgridLo =box_S.loVect();
+    const auto domainHi = geom.Domain().hiVect();
+    const auto subgridHi = box_S.hiVect();
+    const auto auxgridLo = box_L.loVect();
+    const auto auxgridHi = box_L.hiVect();
+
+    for(auto coord: {X,Y,Z}){
+        auto coord_u = (coord+1)%3;
+        auto coord_l = (coord+2)%3;
+        auto missing_L =  ng-(domainHi[coord]-domainLo[coord]+1);
+        if(domainLo[coord] == subgridLo[coord] && domainHi[coord]==subgridHi[coord] && geom.isPeriodic(coord)
+                && missing_L > 0){
+          //  std::cout <<"Missing: " <<missing_L << std::endl;
+          //  std::cout <<"COORD: " << coord << std::endl;
+             for(int u=0; u<=(subgridHi[coord_u]-subgridLo[coord_u]);u++){
+            //     std::cout << "U: " << u << std::endl;
+                for(int l=0; l<=(subgridHi[coord_l]-subgridLo[coord_l]);l++){
+            //     std::cout << "L: " << l << std::endl;
+                   for(int c =0; c < missing_L ; c++){
+             //          std::cout << "C: "<< c << std::endl;
+                        std::array<int,3> ext_coord;
+                        ext_coord[coord_u] = u+auxgridLo[coord_u]+(ng);
+                        ext_coord[coord_l] = l+auxgridLo[coord_l]+(ng);
+                        ext_coord[coord] = c+auxgridHi[coord]-(missing_L-1);
+                    std::array<int,3> int_coord;
+                    int_coord[coord_l]=ext_coord[coord_l]-shift[coord_l];
+                    int_coord[coord_u]=ext_coord[coord_u]-shift[coord_u];
+                    int_coord[coord]=ext_coord[coord];
+                    
+                    int_coord[X]=mod((int_coord[X]-e_low[X]), elx)+e_low[X];
+                    int_coord[Y]=mod((int_coord[Y]-e_low[Y]), ely)+e_low[Y];
+                    int_coord[Z]=mod((int_coord[Z]-e_low[Z]), elz)+e_low[Z];
+            //std::cout << "PATH: " << int_coord[X]<< " "<<int_coord[Y]<< " "<<int_coord[Z]<< " "<<ext_coord[X]<< " "<<ext_coord[Y]<< " "<<ext_coord[Z] <<std::endl;
+              
+                    E(int_coord[X],int_coord[Y],int_coord[Z],comp)+=E_L(ext_coord[X],ext_coord[Y],ext_coord[Z],comp);
+                   } 
+                }
+             } 
+             for(int u=0; u<=(subgridHi[coord_u]-subgridLo[coord_u]);u++){
+              //  std::cout << "U: " << u << std::endl;
+                for(int l=0; l<=(subgridHi[coord_l]-subgridLo[coord_l]);l++){
+              //   std::cout << "L: " << l << std::endl;
+                   for(int c =0; c < missing_L ; c++){
+                //       std::cout << "C: " << c<< std::endl;
+                        std::array<int,3> ext_coord;
+                        ext_coord[coord_u] = u+auxgridLo[coord_u]+(ng);
+                        ext_coord[coord_l] = l+auxgridLo[coord_l]+(ng);
+                        ext_coord[coord] = c+auxgridLo[coord];
+                    std::array<int,3> int_coord;
+                    int_coord[coord_l]=ext_coord[coord_l]-shift[coord_l];
+                    int_coord[coord_u]=ext_coord[coord_u]-shift[coord_u];
+                    int_coord[coord]=ext_coord[coord];
+                    
+                    int_coord[X]=mod((int_coord[X]-e_low[X]), elx)+e_low[X];
+                    int_coord[Y]=mod((int_coord[Y]-e_low[Y]), ely)+e_low[Y];
+                    int_coord[Z]=mod((int_coord[Z]-e_low[Z]), elz)+e_low[Z];
+            //std::cout << "PATH: " << int_coord[X]<< " "<<int_coord[Y]<< " "<<int_coord[Z]<< " "<<ext_coord[X]<< " "<<ext_coord[Y]<< " "<<ext_coord[Z] <<std::endl;
+                    E(int_coord[X],int_coord[Y],int_coord[Z],comp)+=E_L(ext_coord[X],ext_coord[Y],ext_coord[Z],comp);
+                   } 
+                }
+             } 
+             
+
+        }
+
+    }
 
 }
 
@@ -236,8 +312,7 @@ void update_E(const amrex::Geometry geom,amrex::Array4<amrex::Real> const& E,amr
 // This is for one particle type
 // If there are several you need to do this again
 // 0 -> x  , 1-> y 2->z
-// Local and neighbour particle list are not the same data structure
-template<int comp>
+template<int comp,int W_range>
 void Theta(CParticles&particles, const amrex::Geometry geom,amrex::Array4<amrex::Real> const& E ,amrex::Array4<amrex::Real> const& B  ,amrex::Box box_L,amrex::Box box_S,int ng,double dt){ 
     const auto low = geom.ProbLo();
     const auto Ics = geom.InvCellSize();
@@ -271,36 +346,51 @@ void Theta(CParticles&particles, const amrex::Geometry geom,amrex::Array4<amrex:
         amrex::Real res_c1=0;
         amrex::Real res_c2=0;
 
+
+        constexpr int W1_r=W_range*2;
+        constexpr int W1_li=-W_range+1;
+        constexpr int W1_hi= W_range;
+        constexpr int Wp_li= W1_li;
+        constexpr int Wp_hi= W1_hi-1;
+        constexpr int Wp_r=W1_r-1;
+
         auto comp_u = (comp+1)%3;
         auto comp_l = (comp+2)%3;
         
-            std::array<double,4> comp_uW1={0,0,0,0};
-            std::array<double,4> comp_lW1={0,0,0,0};
-            std::array<double,4> comp_uW12={0,0,0,0};
-            std::array<double,4> comp_lW12={0,0,0,0};
+            std::array<double,W1_r> comp_uW1={0};
+            std::array<double,W1_r> comp_lW1={0};
+            std::array<double,W1_r> comp_uWp={0};
+            std::array<double,W1_r> comp_lWp={0};
 
 
 
 
             auto nl=(p.pos(comp_l)-low[comp_l])*Ics[comp_l];
-            for(int l=0; l<4;l++){
-                auto cl=coord[comp_l]+(l-1); 
-                comp_lW1[l]=W1(nl-cl);
+            int idx=0;
+            for(int l=W1_li; l<=W1_hi;l++){
+                auto cl=coord[comp_l]+(l); 
+                comp_lW1[idx]=W1(nl-cl);
+                idx++;
 
-            }
-            for(int l=0; l<3;l++){
-                auto cl=coord[comp_l]+(l-1); 
-                comp_lW12[l]=Wp(nl-cl);
+            }idx=0;
+            for(int l=Wp_li; l<=Wp_hi;l++){
+                auto cl=coord[comp_l]+(l); 
+                comp_lWp[idx]=Wp(nl-cl);
+                idx++;
 
-            }
+            }idx=0;
             auto nu=(p.pos(comp_u)-low[comp_u])*Ics[comp_u];
-            for(int  u=0; u<4;u++){
-                auto cu=coord[comp_u]+(u-1); 
-                comp_uW1[u]=W1(nu-cu);
-            }
-            for(int  u=0; u<3;u++){
-                auto cu=coord[comp_u]+(u-1); 
-                comp_uW12[u]=Wp(nu-cu);
+            for(int  u=W1_li; u<=W1_hi;u++){
+                auto cu=coord[comp_u]+(u); 
+                comp_uW1[idx]=W1(nu-cu);
+                idx++;
+            }idx=0;
+        
+
+            for(int  u=Wp_li; u<=Wp_hi;u++){
+                auto cu=coord[comp_u]+(u); 
+                comp_uWp[idx]=Wp(nu-cu);
+                idx++;
             }
 
         for(int seg=0;seg<num_segments;seg++){
@@ -309,47 +399,54 @@ void Theta(CParticles&particles, const amrex::Geometry geom,amrex::Array4<amrex:
             auto i_e = std::get<1>(segments[seg]);
             
 
-            std::array<double,4> compI_W12={0,0,0};
+            std::array<double,Wp_r> compI_W12={0};
            
            auto ncs=(i_s-low[comp])*Ics[comp];
            auto nce=(i_e-low[comp])*Ics[comp];
-            for(int c=0;c<3;c++){
-                auto cc=coord[comp]+(c-1);
-                compI_W12[c]=I_Wp(ncs- cc ,nce- cc);
+           idx=0;
+            for(int c=Wp_li;c<=Wp_hi;c++){
+                auto cc=coord[comp]+(c);
+                compI_W12[idx]=I_Wp(ncs- cc ,nce- cc);
+                idx++;
 
             }
 
 
-
-            for(int l=0;l<4; l++ ){
-                for(int u=0;u<4;u++){
-                double mul=comp_lW1[l]*comp_uW1[u];
-                double mulu12l1=comp_uW12[u]*comp_lW1[l];
-                double mull12u1=comp_lW12[l]*comp_uW1[u];
-                for(int c=0;c<3;c++){
+            int idl=0;
+            for(int l=W1_li;l<=W1_hi; l++ ){
+                int idu=0;
+                for(int u=W1_li;u<=W1_hi;u++){
+                   int  idc=0;
+                double mul=comp_lW1[idl]*comp_uW1[idu];
+                double mulu12l1=comp_uWp[idu]*comp_lW1[idl];
+                double mull12u1=comp_lWp[idl]*comp_uW1[idu];
+                for(int c=Wp_li;c<=Wp_hi;c++){
                     int cx,cy,cz;
 
                     if(comp==0){
-                     cx=coord[X]+(c-1);
-                     cy=coord[Y]+(u-1);
-                     cz=coord[Z]+(l-1);
+                     cx=coord[X]+(c);
+                     cy=coord[Y]+(u);
+                     cz=coord[Z]+(l);
                     }else if(comp==1){
-                     cx=coord[X]+(l-1);
-                     cy=coord[Y]+(c-1);
-                     cz=coord[Z]+(u-1);
+                     cx=coord[X]+(l);
+                     cy=coord[Y]+(c);
+                     cz=coord[Z]+(u);
 
                     }
                     else{
-                     cx=coord[X]+(u-1);
-                     cy=coord[Y]+(l-1);
-                     cz=coord[Z]+(c-1);
+                     cx=coord[X]+(u);
+                     cy=coord[Y]+(l);
+                     cz=coord[Z]+(c);
                     }
 
-                    E(cx+shift[X],cy+shift[Y],cz+shift[Z],comp)-=E_coef*mul*compI_W12[c];
-                    res_c1+=B(cx,cy,cz,comp_u)*mull12u1*compI_W12[c];
-                    res_c2-=B(cx,cy,cz,comp_l)*compI_W12[c]*mulu12l1;
+                    E(cx+shift[X],cy+shift[Y],cz+shift[Z],comp)-=E_coef*mul*compI_W12[idc];
+                    res_c1+=B(cx,cy,cz,comp_u)*mull12u1*compI_W12[idc];
+                    res_c2-=B(cx,cy,cz,comp_l)*compI_W12[idc]*mulu12l1;
+                    idc++;
                 }
+                idu++;
             }
+                idl++;
             }
 
 
@@ -374,6 +471,90 @@ void Theta(CParticles&particles, const amrex::Geometry geom,amrex::Array4<amrex:
 }
 
 
+template<int W_range>
+void push_V_E( CParticles&particles, const amrex::Geometry geom,amrex::Array4<amrex::Real const> const& E ,double dt){
+
+    // Basis functions are supported over two cells in each direction
+    const auto low =geom.ProbLo();
+    const auto Ics = geom.InvCellSize();
+    
+    for(auto& p : particles){
+    const double m= p.rdata(M);
+    const double q= p.rdata(Q);
+    const double coef = dt*q/m;
+    auto coord =get_point_cell(geom,{p.pos(X),p.pos(Y),p.pos(Z)}) ;
+       
+        double dvx=0;
+        double dvy=0;
+        double dvz=0;
+
+        constexpr int W1_r=W_range*2;
+        constexpr int W1_li=-W_range+1;
+        constexpr int W1_hi= W_range;
+        constexpr int Wp_li= W1_li;
+        constexpr int Wp_hi= W1_hi-1;
+
+        std::array<double,W1_r> W1X={0};
+        std::array<double,W1_r> W1Y={0};
+        std::array<double,W1_r> W1Z={0};
+        std::array<double,W1_r> WpX={0};
+        std::array<double,W1_r> WpY={0};
+        std::array<double,W1_r> WpZ={0};
+
+        // Particle coordinate shifted to cell
+        auto nz = (p.pos(Z)-low[Z])*Ics[Z]; 
+        auto ny = (p.pos(Y)-low[Y])*Ics[Y]; 
+        auto nx = (p.pos(X)-low[X])*Ics[X]; 
+      
+            int idx=0;
+            for(int  i=W1_li; i<=W1_hi;i++){
+                auto cx = coord[X]+i;
+                W1X[idx]=W1(nx-cx); 
+                auto cy = coord[Y]+i;
+                W1Y[idx]=W1(ny-cy);
+                auto cz = coord[Z]+i;
+                W1Z[idx]=W1(nz-cz);
+                idx++;
+            }
+            idx=0;
+            for(int i=Wp_li; i<=Wp_hi;i++){
+                auto cx = coord[X]+i;
+                WpX[idx]=Wp(nx-cx); 
+                auto cy = coord[Y]+i;
+                WpY[idx]=Wp(ny-cy);
+                auto cz = coord[Z]+i;
+                WpZ[idx]=Wp(nz-cz);
+                idx++;
+            
+            }
+
+        
+
+
+            int idk=0;
+        for(int  k=W1_li; k<=W1_hi;k++){
+            auto cz = coord[Z]+k;
+            int idj=0;
+            for(int  j=W1_li; j<=W1_hi;j++){
+                int idi=0;
+                  auto cy = coord[Y]+j;
+            for(int  i=W1_li; i<=W1_hi;i++){
+                  auto cx = coord[X]+i;
+                   dvx+= E(cx,cy,cz,X)*WpX[idi]*W1Y[idj]*W1Z[idk]; 
+                   dvy+= E(cx,cy,cz,Y)*W1X[idi]*WpY[idj]*W1Z[idk];
+                   dvz+= E(cx,cy,cz,Z)*W1X[idi]*W1Y[idj]*WpZ[idk];
+                   idi++;
+                }
+                idj++;
+            }
+            idk++;
+        }
+        p.rdata(VX)+=dvx*coef;
+        p.rdata(VY)+=dvy*coef;
+        p.rdata(VZ)+=dvz*coef;
+        
+    }
+}
 
 
 
@@ -384,16 +565,20 @@ void G_Theta(const amrex::Geometry geom,const amrex::Geometry ggeom,CParticleCon
     for (amrex::MFIter mfi(E_L); mfi.isValid(); ++mfi){
         auto box_L=mfi.validbox();
         auto box_S=E.box(mfi.index());
-    
+         
         // Each grid,tile has a their own local particle container
         auto& Part = P.GetParticles(0)[std::make_pair(mfi.index(),mfi.LocalTileIndex())];
         auto&  particles = Part.GetArrayOfStructs();
         amrex::FArrayBox& bfab =B[mfi];
         
         amrex::Array4<amrex::Real> const& B_loc = bfab.array(); 
+        //std::cout << B_loc(0,0,-3,0) <<std::endl;
+        //exit(0);
         amrex::Array4<amrex::Real> const& E_L_loc = E_L[mfi].array(); 
         int ng = E_L.nGrow();
-        Theta<coord>(particles,geom,E_L_loc,B_loc,box_L,box_S,ng,dt);
+         
+        Theta<coord,WRANGE>(particles,geom,E_L_loc,B_loc,box_L,box_S,ng,dt);
+        fill_extra_halo(geom,B_loc,box_S,E.nGrow());
     }
     E_L.FillBoundary(ggeom.periodicity());
   
@@ -403,8 +588,8 @@ void G_Theta(const amrex::Geometry geom,const amrex::Geometry ggeom,CParticleCon
         int ng = E_L.nGrow();
         amrex::Array4<amrex::Real > const& E_loc = E.array(mfi);
         amrex::Array4<amrex::Real const> const& E_L_loc = E_L.const_array(mfi); 
-
-        update_E<coord>(geom,E_loc,E_L_loc,box_L,box_S,ng);
+        map_from_aux<coord>(geom,E_loc,E_L_loc,box_L,box_S,ng);
+        fill_extra_halo(geom,E_loc,box_S,E.nGrow());
     }
 
 
@@ -416,5 +601,208 @@ void G_Theta(const amrex::Geometry geom,const amrex::Geometry ggeom,CParticleCon
     
 }
 
+
+template<int coord,int boundary_size>
+void construct_exterior_interior(const amrex::Geometry geom ,std::vector<std::array<int,3>> &exterior,amrex::Box &interior){
+   const auto domain=geom.Domain();
+   const auto Lo = domain.loVect();
+   const auto Hi = domain.hiVect();
+   const auto local_lo=interior.loVect();
+   const auto local_hi=interior.hiVect();
+   if(!geom.isPeriodic(coord) && boundary_size > 0){
+        std::array<int,3> point;
+        const int up_c =(coord+1) % 3;
+        const int lo_c =(coord+2) % 3;
+       if(interior.loVect()[coord]==Lo[coord]){
+           interior.growLo(coord,-boundary_size);
+            for(int k=local_lo[up_c]; k <= local_hi[up_c];k++){
+                for(int j=local_lo[lo_c]; j<=local_hi[lo_c];j++ ){
+                    for(int i=Lo[coord]; i < Lo[coord]+boundary_size;i++){
+                        point[up_c]=k;
+                        point[lo_c]=j;
+                        point[coord]=i;
+                        exterior.push_back(point);
+
+                    }
+                }
+            }
+       }
+        
+       if(interior.hiVect()[coord]==Hi[coord]){
+           interior.growHi(coord,-boundary_size);
+            for(int k=local_lo[up_c]; k <= local_hi[up_c];k++){
+                for(int j=local_lo[lo_c]; j<=local_hi[lo_c];j++ ){
+                    for(int i=Hi[coord]; i > Hi[coord]-boundary_size;i--){
+                        point[up_c]=k;
+                        point[lo_c]=j;
+                        point[coord]=i;
+                        exterior.push_back(point);
+                    }
+                }
+            }
+       }
+   }     
+}
+
+template<int coord>
+void MABC(const amrex::Geometry geom,amrex::Array4<amrex::Real> const& A,std::vector<std::array<int,3>> &exterior,double dt){
+   const auto domain=geom.Domain();
+   const auto Lo = domain.loVect();
+   const auto Hi = domain.hiVect();
+        for(auto point : exterior){
+          if(point[coord] == Lo[coord]){
+            const int i = point[X];
+            const int j = point[Y];
+            const int k = point[Z];
+            auto npoint=point;
+            npoint[coord]+=1;
+           A(i,j,k,X) = (1-dt)*A(i,j,k,X)+A(npoint[X],npoint[Y],npoint[Z],X)*dt;
+           A(i,j,k,Y) = (1-dt)*A(i,j,k,Y)+A(npoint[X],npoint[Y],npoint[Z],Y)*dt;
+           A(i,j,k,Z) = (1-dt)*A(i,j,k,Z)+A(npoint[X],npoint[Y],npoint[Z],Z)*dt; 
+          }
+          else if(point[coord] == Hi[coord]){ 
+            const int i = point[X];
+            const int j = point[Y];
+            const int k = point[Z];
+            auto npoint=point;
+            npoint[coord]-=1;
+           A(i,j,k,X) = (1-dt)*A(i,j,k,X)+A(npoint[X],npoint[Y],npoint[Z],X)*dt;
+           A(i,j,k,Y) = (1-dt)*A(i,j,k,Y)+A(npoint[X],npoint[Y],npoint[Z],Y)*dt;
+           A(i,j,k,Z) = (1-dt)*A(i,j,k,Z)+A(npoint[X],npoint[Y],npoint[Z],Z)*dt; 
+          }
+        }         
+
+}
+
+template<int boundary_size>
+void construct_exterior_interior_full(const amrex::Geometry geom ,std::vector<std::array<int,3>> &exterior,amrex::Box &interior){
+        construct_exterior_interior<X,boundary_size>(geom,exterior,interior);
+        construct_exterior_interior<Y,boundary_size>(geom,exterior,interior);
+        construct_exterior_interior<Z,boundary_size>(geom,exterior,interior);
+        std::sort(exterior.begin(),exterior.end());
+        exterior.erase( std::unique( exterior.begin(), exterior.end() ), exterior.end() );
+}
+
+template<int boundary_size,typename InteriorF,typename ExteriorF> 
+void push_ff(const amrex::Geometry geom, amrex::Box const& bx, amrex::Array4<amrex::Real const> const& Source,amrex::Array4<amrex::Real> const& Target, InteriorF update_interior,ExteriorF update_exterior,double dt){
+   
+   auto interior=bx;
+   std::vector<std::array<int,3>> exterior;
+
+    if(!geom.isAllPeriodic()){
+        construct_exterior_interior_full<boundary_size>(geom,exterior,interior);
+        update_exterior(geom,Target,exterior,dt);   
+    }
+
+   update_interior(geom,interior,Source,Target,dt);
+
+}
+
 #endif
 
+
+template<int order>
+inline void Theta_map(const amrex::Geometry geom,const amrex::Geometry ggeom,CParticleContainer&P, amrex::MultiFab &E,amrex::MultiFab &E_L, amrex::MultiFab &B,double dt ){
+   const int l=order/2-1;
+   const double alpha=1/(2-pow(2,1/(2*l+1)));
+   const double beta=1-2*alpha;
+   Theta_map<order-2>(geom,ggeom,P,E,E_L,B,alpha*dt);
+   Theta_map<order-2>(geom,ggeom,P,E,E_L,B,beta*dt);
+   Theta_map<order-2>(geom,ggeom,P,E,E_L,B,alpha*dt);
+}
+template<>
+inline void Theta_map<1>(const amrex::Geometry geom,const amrex::Geometry ggeom,CParticleContainer&P, amrex::MultiFab &E,amrex::MultiFab &E_L, amrex::MultiFab &B,double dt ){
+
+    G_Theta_B(geom,P,E,B,dt);
+    G_Theta_E(geom,P,E,B,dt);
+    G_Theta<Z>(geom,ggeom,P,E,E_L,B,dt);
+    G_Theta<Y>(geom,ggeom,P,E,E_L,B,dt);
+    G_Theta<X>(geom,ggeom,P,E,E_L,B,dt);
+
+}
+template<>
+inline void Theta_map<2>(const amrex::Geometry geom,const amrex::Geometry ggeom,CParticleContainer&P, amrex::MultiFab &E,amrex::MultiFab &E_L, amrex::MultiFab &B,double dt ){
+
+    G_Theta_E(geom,P,E,B,dt/2);
+    G_Theta<X>(geom,ggeom,P,E,E_L,B,dt/2);
+    G_Theta<Y>(geom,ggeom,P,E,E_L,B,dt/2);
+    G_Theta<Z>(geom,ggeom,P,E,E_L,B,dt/2);
+    G_Theta_B(geom,P,E,B,dt);
+    G_Theta<Z>(geom,ggeom,P,E,E_L,B,dt/2);
+    G_Theta<Y>(geom,ggeom,P,E,E_L,B,dt/2);
+    G_Theta<X>(geom,ggeom,P,E,E_L,B,dt/2);
+    G_Theta_E(geom,P,E,B,dt/2);
+
+}
+
+
+template<int W_range>
+void get_particle_number_density(const amrex::Geometry geom,const amrex::Geometry aux_geom,CParticleContainer&P, amrex::MultiFab &P_dens,amrex::MultiFab &P_dens_aux){
+    P_dens.setVal(0);
+    P_dens_aux.setVal(0);
+    
+    int ng=P_dens.nGrow(); 
+    for (amrex::MFIter mfi(P_dens_aux); mfi.isValid(); ++mfi){
+        auto box_L=mfi.validbox();
+        auto box_S=P_dens.box(mfi.index());
+    
+        // Each grid,tile has a their own local particle container
+        auto& Part = P.GetParticles(0)[std::make_pair(mfi.index(),mfi.LocalTileIndex())];
+        auto&  particles = Part.GetArrayOfStructs();
+        amrex::Array4<amrex::Real> const& P_dens_aux_loc = P_dens_aux[mfi].array(); 
+
+    const auto low = geom.ProbLo();
+    const auto Ics = geom.InvCellSize();
+    // Remote particle grid lower corner
+     const auto el_low=box_L.loVect();
+     const auto e_low=box_S.loVect();
+      std::array<int,3> shift;
+      shift[X]=(el_low[X]+ng)-e_low[X];
+      shift[Y]=(el_low[Y]+ng)-e_low[Y];
+      shift[Z]=(el_low[Z]+ng)-e_low[Z];
+
+     for(auto& p : particles){
+        int coord[3];
+        coord[X]=floor((p.pos(X) -low[X])*Ics[X]);
+        coord[Y]=floor((p.pos(Y) -low[Y])*Ics[Y]);
+        coord[Z]=floor((p.pos(Z) -low[Z])*Ics[Z]);
+        
+            
+
+        auto px=(p.pos(X)-low[X])*Ics[X];
+        auto py=(p.pos(Y)-low[Y])*Ics[Y];
+        auto pz=(p.pos(Z)-low[Z])*Ics[Z];
+        
+        constexpr int W1_li=-W_range+1;
+        constexpr int W1_hi= W_range;
+        constexpr int Wp_li= W1_li;
+        constexpr int Wp_hi= W1_hi-1;
+        
+        for(int i=Wp_li;i<=Wp_hi;i++){
+            auto nx=coord[X] +i;
+            for(int j=Wp_li;j<=Wp_hi;j++){
+                auto ny=coord[Y] +j;
+                for(int k=Wp_li;k<=Wp_hi;k++){
+                    auto nz=coord[Z] +k;
+                       P_dens_aux_loc(nx+shift[X],ny+shift[Y],nz+shift[Z],X)+=
+                          Wp(px-nx)*Wp(py-ny)*Wp(pz-nz);
+            }
+        }
+        }
+
+    }
+
+    }
+    P_dens_aux.FillBoundary(aux_geom.periodicity());
+  
+    for (amrex::MFIter mfi(P_dens_aux); mfi.isValid(); ++mfi){
+        auto box_L=mfi.validbox();
+        auto box_S=P_dens.box(mfi.index());
+        amrex::Array4<amrex::Real const > const& P_dens_aux_loc = P_dens_aux.const_array(mfi); 
+        amrex::Array4<amrex::Real > const& P_dens_loc = P_dens.array(mfi);
+        map_from_aux<0>(geom,P_dens_loc,P_dens_aux_loc,box_L,box_S,ng);
+    }
+
+   
+
+}

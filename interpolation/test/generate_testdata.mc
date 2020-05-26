@@ -1,5 +1,8 @@
-load("symbolic_interpolation.mc");
 
+load("symbolic_interpolation.mc");
+/*
+load("symbolic_interpolation_p_lin.mc");
+*/
 s1:make_random_state(true)$set_random_state(s1)$
 num_samples:1000$
 
@@ -13,12 +16,20 @@ array (W1_res,fixnum,num_samples)$
 array (IW12_res,fixnum,num_samples)$
 array (IW1_res,fixnum,num_samples)$
 
+Wrange:2;
+
 for i:0 thru num_samples step 1 do
     block(
-        x[i]:random(5.0)-2.5,
-        y[i]:random(5.0)-2.5,
-        z[i]:random(5.0)-2.5
+        x[i]:random(2*Wrange+1.0)-(2*Wrange+1.0)/2,
+        y[i]:random(2*Wrange+1.0)-(2*Wrange+1.0)/2,
+        z[i]:random(2*Wrange+1.0)-(2*Wrange+1.0)/2
     )$
+
+/*
+The extra [1] should be removed 
+if the refence is exact ie result is a number not 
+an array as with quad_qag
+*/
 for i:0 thru num_samples step 1 do
     (
         W_res[i]:W(x[i],y[i],z[i]),
