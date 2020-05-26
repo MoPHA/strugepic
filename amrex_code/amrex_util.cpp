@@ -128,8 +128,8 @@ void SimulationIO::read(int step){
 SimulationIO::SimulationIO(amrex::Geometry geom,amrex::Geometry aux_geom,amrex::BoxArray gba,amrex::MultiFab & E,amrex::MultiFab & B,CParticleContainer &P,double dt,std::string data_folder_name):
     geom(geom),aux_geom(aux_geom),E(E),B(B),P(P),dt(dt),data_folder_name(data_folder_name){
         int Nghost=E.nGrow();
-        this->Pdens=amrex::MultiFab(E.boxArray(),E.DistributionMap(),1,Nghost); 
-        this->Pdens_aux=amrex::MultiFab(gba,E.DistributionMap(),1,Nghost); 
+        this->Pdens=amrex::MultiFab(P.ParticleBoxArray(0),P.ParticleDistributionMap(0),1,Nghost); 
+        this->Pdens_aux=amrex::MultiFab(gba,P.ParticleDistributionMap(0),1,Nghost); 
 
     }
 
