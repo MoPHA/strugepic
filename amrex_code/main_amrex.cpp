@@ -40,20 +40,19 @@ void main_main()
     // Simulation parameters,  these should be read from a file quite soon
     amrex::ParmParse pp;
 
+    
     std::array<int,3> n_cell;
     std::array<int,3> max_grid_size;
     int x_periodic;
-    int Nghost = 3; 
+    int Nghost =WRANGE+1; 
 
     int nsteps;
     int start_step;
     double dt;
     double q;
     double m;
-    double v_min;
-    double v_max;
-    int ppc;
-    double gradient_std_dev;
+    std::array<double,3> pos;
+    std::array<double,3>vel;
     int output_interval;
     int checkpoint_interval;
 
@@ -74,18 +73,20 @@ void main_main()
     pp.get("dt",dt);
     pp.get("q",q);
     pp.get("m",m);
-    pp.get("ppc",ppc);
-    pp.get("v_min",v_min);
-    pp.get("v_max",v_max);
+    pp.get("pos",pos);
+    pp.get("vel",vel);
     pp.get("E_init",E_init);
     pp.get("B_init",B_init);
-    pp.get("gradient_std_dev",gradient_std_dev);
     pp.get("data_folder_name",data_folder_name);
 
 
 
-    // Do a quite even load balancing
-   // amrex::DistributionMapping::strategy(amrex::DistributionMapping::KNAPSACK);
+    
+
+
+///////////7
+
+
 
     // Periodic
     amrex::Vector<int> is_periodic({x_periodic,1,1});     
@@ -125,6 +126,9 @@ void main_main()
     amrex::MultiFab B(ba,dm,Ncomp,Nghost);
     auto SimIO=SimulationIO(geom,ggeom,gba,E,B,P,dt,data_folder_name);
 
+
+////////////7
+
     if(start_step !=0){
     SimIO.read(start_step);
     }
@@ -132,9 +136,9 @@ void main_main()
     
     set_uniform_field(E,E_init);
     set_uniform_field(B,B_init);
-    add_particle_density(geom,P,uniform_density,ppc,m,q,v_min); 
-    set_temprature_gradient_gaussian<X>(P,v_min,v_max,(double)n_cell[X]*0.5,gradient_std_dev,B_init[Z]);
-    set_field_gradient_gaussian_x(E,E_init[X],(double)n_cell[X]*0.5,gradient_std_dev);
+    //add_single_particle(P,pos,vel,m,q);
+    add_particle_density(geom,P,uniform_density,10,m,q,0.01); 
+    //set_two_stream_drift<X>(P,vd);
     }
 
     E.FillBoundary(geom.periodicity());
@@ -144,8 +148,8 @@ void main_main()
    
     P.Redistribute();
 
+    amrex::Print() << P.TotalNumberOfParticles() << std::endl;
 
-    amrex::Print() << "Total number of particles: " << P.TotalNumberOfParticles() << std::endl;
 for(int step=start_step; step<nsteps;step++){ 
     amrex::Print() <<"Step:" <<step << std::endl;
     auto E_tot = get_total_energy(geom,P,E,B); 
@@ -156,11 +160,7 @@ for(int step=start_step; step<nsteps;step++){
     if(step % checkpoint_interval ==0 && checkpoint_interval  !=-1){
         SimIO.write(step,true,false);
     }
-    G_Theta_B(geom,P,E,B,dt);
-    G_Theta_E(geom,P,E,B,dt);
-    G_Theta<Z>(geom,ggeom,P,E,E_L,B,dt);
-    G_Theta<Y>(geom,ggeom,P,E,E_L,B,dt);
-    G_Theta<X>(geom,ggeom,P,E,E_L,B,dt);
+    Theta_map<1>(geom,ggeom,P,E,E_L,B,dt);
 }
 
 
