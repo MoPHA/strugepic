@@ -148,7 +148,7 @@ void main_main()
    
     P.Redistribute();
 
-    std::cout << P.TotalNumberOfParticles() << std::endl;
+    amrex::Print() << P.TotalNumberOfParticles() << std::endl;
 
 for(int step=start_step; step<nsteps;step++){ 
     amrex::Print() <<"Step:" <<step << std::endl;
