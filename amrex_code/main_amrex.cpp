@@ -59,6 +59,7 @@ void main_main()
     std::array<double,3> E_init;
     std::array<double,3> B_init;
     int Ncomp  = 3;
+    int ppc;
 
     std::string data_folder_name;
 
@@ -76,6 +77,7 @@ void main_main()
     pp.get("pos",pos);
     pp.get("vel",vel);
     pp.get("E_init",E_init);
+    pp.get("ppc",ppc);
     pp.get("B_init",B_init);
     pp.get("data_folder_name",data_folder_name);
 
@@ -137,7 +139,7 @@ void main_main()
     set_uniform_field(E,E_init);
     set_uniform_field(B,B_init);
     //add_single_particle(P,pos,vel,m,q);
-    add_particle_density(geom,P,uniform_density,10,m,q,0.01); 
+    add_particle_density(geom,P,uniform_density,ppc,m,q,vel[X]); 
     //set_two_stream_drift<X>(P,vd);
     }
 
