@@ -302,7 +302,7 @@ void push_V_E( CParticles&particles, const amrex::Geometry geom,amrex::Array4<am
 
 
 template <int coord>
-void G_Theta(const amrex::Geometry geom,const amrex::Geometry ggeom,CParticleContainer&P, amrex::MultiFab &E,amrex::MultiFab &E_L, amrex::MultiFab &B,double dt ){
+void G_Theta(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &E, amrex::MultiFab &B,double dt ){
 
     E.setBndry(0);
     for (amrex::MFIter mfi(E); mfi.isValid(); ++mfi){
@@ -314,25 +314,16 @@ void G_Theta(const amrex::Geometry geom,const amrex::Geometry ggeom,CParticleCon
         amrex::FArrayBox& bfab =B[mfi];
         
         amrex::Array4<amrex::Real> const& B_loc = bfab.array(); 
-        //std::cout << B_loc(0,0,-3,0) <<std::endl;
-        //exit(0);
         amrex::Array4<amrex::Real> const& E_loc = E[mfi].array(); 
-        int ng = E_L.nGrow();
-         
+        int ng = E.nGrow();
         Theta<coord,WRANGE>(particles,geom,E_loc,B_loc,box,ng,dt);
     }
     
     E.SumBoundary(geom.periodicity());
-    for (amrex::MFIter mfi(E); mfi.isValid(); ++mfi){
-        auto box=E.box(mfi.index());
-        amrex::Array4<amrex::Real > const& E_loc = E.array(mfi);
-    }
-
-
-
     P.Redistribute();
     E.FillBoundary(geom.periodicity());
     B.FillBoundary(geom.periodicity());
+    
 
     
 }
@@ -438,90 +429,37 @@ void push_ff(const amrex::Geometry geom, amrex::Box const& bx, amrex::Array4<amr
 
 
 template<int order>
-inline void Theta_map(const amrex::Geometry geom,const amrex::Geometry ggeom,CParticleContainer&P, amrex::MultiFab &E,amrex::MultiFab &E_L, amrex::MultiFab &B,double dt ){
+inline void Theta_map(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &E, amrex::MultiFab &B,double dt ){
    const int l=order/2-1;
    const double alpha=1/(2-pow(2,1/(2*l+1)));
    const double beta=1-2*alpha;
-   Theta_map<order-2>(geom,ggeom,P,E,E_L,B,alpha*dt);
-   Theta_map<order-2>(geom,ggeom,P,E,E_L,B,beta*dt);
-   Theta_map<order-2>(geom,ggeom,P,E,E_L,B,alpha*dt);
+   Theta_map<order-2>(geom,P,E,B,alpha*dt);
+   Theta_map<order-2>(geom,P,E,B,beta*dt);
+   Theta_map<order-2>(geom,P,E,B,alpha*dt);
 }
 template<>
-inline void Theta_map<1>(const amrex::Geometry geom,const amrex::Geometry ggeom,CParticleContainer&P, amrex::MultiFab &E,amrex::MultiFab &E_L, amrex::MultiFab &B,double dt ){
+inline void Theta_map<1>(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &E, amrex::MultiFab &B,double dt ){
 
     G_Theta_B(geom,P,E,B,dt);
     G_Theta_E(geom,P,E,B,dt);
-    G_Theta<Z>(geom,ggeom,P,E,E_L,B,dt);
-    G_Theta<Y>(geom,ggeom,P,E,E_L,B,dt);
-    G_Theta<X>(geom,ggeom,P,E,E_L,B,dt);
+    G_Theta<Z>(geom,P,E,B,dt);
+    G_Theta<Y>(geom,P,E,B,dt);
+    G_Theta<X>(geom,P,E,B,dt);
 
 }
 template<>
-inline void Theta_map<2>(const amrex::Geometry geom,const amrex::Geometry ggeom,CParticleContainer&P, amrex::MultiFab &E,amrex::MultiFab &E_L, amrex::MultiFab &B,double dt ){
+inline void Theta_map<2>(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &E, amrex::MultiFab &B,double dt ){
 
     G_Theta_E(geom,P,E,B,dt/2);
-    G_Theta<X>(geom,ggeom,P,E,E_L,B,dt/2);
-    G_Theta<Y>(geom,ggeom,P,E,E_L,B,dt/2);
-    G_Theta<Z>(geom,ggeom,P,E,E_L,B,dt/2);
+    G_Theta<X>(geom,P,E,B,dt/2);
+    G_Theta<Y>(geom,P,E,B,dt/2);
+    G_Theta<Z>(geom,P,E,B,dt/2);
     G_Theta_B(geom,P,E,B,dt);
-    G_Theta<Z>(geom,ggeom,P,E,E_L,B,dt/2);
-    G_Theta<Y>(geom,ggeom,P,E,E_L,B,dt/2);
-    G_Theta<X>(geom,ggeom,P,E,E_L,B,dt/2);
+    G_Theta<Z>(geom,P,E,B,dt/2);
+    G_Theta<Y>(geom,P,E,B,dt/2);
+    G_Theta<X>(geom,P,E,B,dt/2);
     G_Theta_E(geom,P,E,B,dt/2);
 
 }
 
 
-template<int W_range>
-void get_particle_number_density(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &P_dens){
-    P_dens.setVal(0);
-     
-    int ng=P_dens.nGrow(); 
-    for (amrex::MFIter mfi(P_dens); mfi.isValid(); ++mfi){
-    
-        // Each grid,tile has a their own local particle container
-        auto& Part = P.GetParticles(0)[std::make_pair(mfi.index(),mfi.LocalTileIndex())];
-        auto&  particles = Part.GetArrayOfStructs();
-        amrex::Array4<amrex::Real> const& P_dens_loc = P_dens[mfi].array(); 
-
-    const auto low = geom.ProbLo();
-    const auto Ics = geom.InvCellSize();
-    // Remote particle grid lower corner
-
-     for(auto& p : particles){
-        int coord[3];
-        coord[X]=floor((p.pos(X) -low[X])*Ics[X]);
-        coord[Y]=floor((p.pos(Y) -low[Y])*Ics[Y]);
-        coord[Z]=floor((p.pos(Z) -low[Z])*Ics[Z]);
-        
-            
-
-        auto px=(p.pos(X)-low[X])*Ics[X];
-        auto py=(p.pos(Y)-low[Y])*Ics[Y];
-        auto pz=(p.pos(Z)-low[Z])*Ics[Z];
-        
-        constexpr int W1_li=-W_range+1;
-        constexpr int W1_hi= W_range;
-        constexpr int Wp_li= W1_li;
-        constexpr int Wp_hi= W1_hi-1;
-        
-        for(int i=Wp_li;i<=Wp_hi;i++){
-            auto nx=coord[X] +i;
-            for(int j=Wp_li;j<=Wp_hi;j++){
-                auto ny=coord[Y] +j;
-                for(int k=Wp_li;k<=Wp_hi;k++){
-                    auto nz=coord[Z] +k;
-                       P_dens_loc(nx,ny,nz,X)+=
-                          Wp(px-nx)*Wp(py-ny)*Wp(pz-nz);
-            }
-        }
-        }
-
-    }
-
-    }
-    P_dens.SumBoundary(geom.periodicity());  
-
-   
-
-}
