@@ -60,7 +60,7 @@ void set_uniform_field(amrex::MultiFab &A, std::array<double,3> vals){
 
 void SimulationIO::dump_pdens(std::string filename){
 
-    get_particle_number_density<WRANGE>(geom,aux_geom,P,Pdens,Pdens_aux); 
+    get_particle_number_density<WRANGE>(geom,P,Pdens); 
     for (amrex::MFIter mfi(Pdens); mfi.isValid(); ++mfi){
         const amrex::Box& box = mfi.validbox();
         amrex::Array4<amrex::Real> const& pd = Pdens.array(mfi); 
@@ -103,7 +103,7 @@ void SimulationIO::write(int step,bool checkpoint,bool particles){
     P.Checkpoint(amrex::Concatenate(data_folder_name+std::string("/P_CP"),step,0),"Particle0");
     }
     else{
-    get_particle_number_density<WRANGE>(geom,aux_geom,P,Pdens,Pdens_aux);
+    get_particle_number_density<WRANGE>(geom,P,Pdens);
     int n=step;
     amrex::Real time=step*dt;
     const std::string& pltfile_E = amrex::Concatenate(data_folder_name+std::string("/plt_E"),n,0);
