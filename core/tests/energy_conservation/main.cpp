@@ -20,10 +20,9 @@
 // std c++
 #include <iostream>
 // Own
-#include "amrex_util.hpp"
-#include "propagators.hpp"
-#include "particle_defs.hpp"
-#include "cmath"
+#include <amrex_util.hpp>
+#include <propagators.hpp>
+#include <particle_defs.hpp>
 
 void main_main();
 
