@@ -33,6 +33,9 @@ class E_source
 
 
 
+inline int mod(int a,int n){
+return (a%n+n)%n;
+}
 
 
 // These are All local update functions, I.e they operate only on local data 
@@ -53,9 +56,6 @@ void G_Theta_B(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab 
 inline int sign(int x) {
     return (x > 0) - (x < 0);
 }
-inline int mod(int a,int n){
-return (a%n+n)%n;
-}
 
 
 
@@ -68,7 +68,6 @@ void Theta(CParticles&particles, const amrex::Geometry geom,amrex::Array4<amrex:
     const auto Ics = geom.InvCellSize();
     // Remote particle grid lower corner
     for(auto& p : particles){
-
 
     const double m= p.rdata(M);
     const double q= p.rdata(Q);
@@ -181,7 +180,6 @@ void Theta(CParticles&particles, const amrex::Geometry geom,amrex::Array4<amrex:
                      cy=coord[Y]+(l);
                      cz=coord[Z]+(c);
                     }
-
                     E(cx,cy,cz,comp)-=E_coef*mul*compI_W12[idc];
                     res_c1+=B(cx,cy,cz,comp_u)*mull12u1*compI_W12[idc];
                     res_c2-=B(cx,cy,cz,comp_l)*compI_W12[idc]*mulu12l1;
@@ -304,7 +302,9 @@ void push_V_E( CParticles&particles, const amrex::Geometry geom,amrex::Array4<am
 template <int coord>
 void G_Theta(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &E, amrex::MultiFab &B,double dt ){
 
+    B.FillBoundary(geom.periodicity());
     E.setBndry(0);
+    E.setDomainBndry(0,geom);
     for (amrex::MFIter mfi(E); mfi.isValid(); ++mfi){
         auto box=E.box(mfi.index());
          
@@ -321,8 +321,6 @@ void G_Theta(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &E
     
     E.SumBoundary(geom.periodicity());
     P.Redistribute();
-    E.FillBoundary(geom.periodicity());
-    B.FillBoundary(geom.periodicity());
     
 
     
