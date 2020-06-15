@@ -4,6 +4,7 @@
 #include "AMReX_Geometry.H"
 #include "AMReX_MultiFab.H"
 #include "particle_defs.hpp"
+#include "w_defs.hpp"
 #include <tuple>
 #include <math.h>
 // What cell index is a given point in?
@@ -24,35 +25,55 @@ double gaussian_dist(double pos,double center,double std_dev);
 void set_field_gradient_gaussian_x(amrex::MultiFab &A,double A_max,double center,double std_dev);
 
 
-
-
-
-template<int comp>
-void shift_and_grow(amrex::BoxArray &ba, int nghost){
-    // Create a list of 
-    // box index and coordinate of lower left corner
-    // no-overlaps in the input box array
-    std::vector<std::pair<int,int>> cc;
-    for(int i=0;i<ba.size();i++){
-        cc.push_back({ba[i].loVect3d()[comp],i});
-
-    }
-    std::sort(cc.begin(),cc.end());
+template<int W_range>
+void get_particle_number_density(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &P_dens){
+    P_dens.setVal(0); 
+    P_dens.setBndry(0);
+    for (amrex::MFIter mfi(P_dens); mfi.isValid(); ++mfi){
     
-    // Shift the coordinates
-    int num_box=0;
-    int cval=cc[0].first;
-    for(auto e:cc){
-       if(e.first > cval){
-            num_box+=1;
-            cval=e.first;
-       } 
-        ba.set(e.second,ba[e.second].shift(comp,2*nghost*num_box).grow(comp,nghost));
+        // Each grid,tile has a their own local particle container
+        auto& Part = P.GetParticles(0)[std::make_pair(mfi.index(),mfi.LocalTileIndex())];
+        auto&  particles = Part.GetArrayOfStructs();
+        amrex::Array4<amrex::Real> const& P_dens_loc = P_dens[mfi].array(); 
+
+    const auto low = geom.ProbLo();
+    const auto Ics = geom.InvCellSize();
+    // Remote particle grid lower corner
+
+     for(auto& p : particles){
+        int coord[3];
+        coord[X]=floor((p.pos(X) -low[X])*Ics[X]);
+        coord[Y]=floor((p.pos(Y) -low[Y])*Ics[Y]);
+        coord[Z]=floor((p.pos(Z) -low[Z])*Ics[Z]);
+        
+            
+
+        auto px=(p.pos(X)-low[X])*Ics[X];
+        auto py=(p.pos(Y)-low[Y])*Ics[Y];
+        auto pz=(p.pos(Z)-low[Z])*Ics[Z];
+        
+        constexpr int W1_li=-W_range+1;
+        constexpr int W1_hi= W_range;
+        constexpr int Wp_li= W1_li;
+        constexpr int Wp_hi= W1_hi-1;
+        
+        for(int i=Wp_li;i<=Wp_hi;i++){
+            auto nx=coord[X] +i;
+            for(int j=Wp_li;j<=Wp_hi;j++){
+                auto ny=coord[Y] +j;
+                for(int k=Wp_li;k<=Wp_hi;k++){
+                    auto nz=coord[Z] +k;
+                       P_dens_loc(nx,ny,nz,X)+=
+                          Wp(px-nx)*Wp(py-ny)*Wp(pz-nz);
+            }
+        }
+        }
 
     }
+
+    }
+    P_dens.SumBoundary(geom.periodicity());  
 }
-
-
 
 template<int comp>
 void shift_periodic(const amrex::Geometry geom ,CParticle &particle){
@@ -75,7 +96,7 @@ void shift_periodic(const amrex::Geometry geom ,CParticle &particle){
 class SimulationIO
 {
     public:
-    SimulationIO(amrex::Geometry geom,amrex::Geometry aux_geom,amrex::BoxArray gba,amrex::MultiFab & E,amrex::MultiFab & B,CParticleContainer &P,double dt,std::string data_folder_name);
+    SimulationIO(amrex::Geometry geom,amrex::MultiFab & E,amrex::MultiFab & B,CParticleContainer &P,double dt,std::string data_folder_name);
     void write(int step,bool checkpoint=false,bool particles=false);
     void read(int step);
     void dump_pdens(std::string filename);
@@ -83,11 +104,9 @@ class SimulationIO
     void dump_B_field(std::string filename);
     private:
         amrex::Geometry geom;
-        amrex::Geometry aux_geom;
         amrex::MultiFab & E;
         amrex::MultiFab & B;
         amrex::MultiFab  Pdens;
-        amrex::MultiFab  Pdens_aux;
         CParticleContainer &P;
         double dt;
         std::string data_folder_name; 

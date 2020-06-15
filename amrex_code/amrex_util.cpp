@@ -20,23 +20,6 @@
 #include "w_defs.hpp"
 #include "propagators.hpp"
 
-
-void print_boxes(amrex::BoxArray ba){
-    std::ofstream myfile;
-  myfile.open("boxes.txt");
-    for(int i=0;i<ba.size(); i++){
-        auto lc= ba[i].loVect3d();
-        auto hc=ba[i].hiVect3d();
-        std::array<int,3> s;
-        s[X]=hc[X]-lc[X]+1;
-        s[Y]=hc[Y]-lc[Y]+1;
-        s[Z]=hc[Z]-lc[Z]+1; 
-        myfile << lc[X] << "," << lc[Y] << "," << lc[Z] << ","; 
-        myfile << s[X] << "," << s[Y] << "," << s[Z]<<std::endl; 
-    }
-    myfile.close();
-}
-
 // Init external dirichle boundary condition
 
 // Either periodic or dirichle
@@ -60,7 +43,7 @@ void set_uniform_field(amrex::MultiFab &A, std::array<double,3> vals){
 
 void SimulationIO::dump_pdens(std::string filename){
 
-    get_particle_number_density<WRANGE>(geom,aux_geom,P,Pdens,Pdens_aux); 
+    get_particle_number_density<WRANGE>(geom,P,Pdens); 
     for (amrex::MFIter mfi(Pdens); mfi.isValid(); ++mfi){
         const amrex::Box& box = mfi.validbox();
         amrex::Array4<amrex::Real> const& pd = Pdens.array(mfi); 
@@ -103,7 +86,7 @@ void SimulationIO::write(int step,bool checkpoint,bool particles){
     P.Checkpoint(amrex::Concatenate(data_folder_name+std::string("/P_CP"),step,0),"Particle0");
     }
     else{
-    get_particle_number_density<WRANGE>(geom,aux_geom,P,Pdens,Pdens_aux);
+    get_particle_number_density<WRANGE>(geom,P,Pdens);
     int n=step;
     amrex::Real time=step*dt;
     const std::string& pltfile_E = amrex::Concatenate(data_folder_name+std::string("/plt_E"),n,0);
@@ -125,12 +108,10 @@ void SimulationIO::read(int step){
 
 
 
-SimulationIO::SimulationIO(amrex::Geometry geom,amrex::Geometry aux_geom,amrex::BoxArray gba,amrex::MultiFab & E,amrex::MultiFab & B,CParticleContainer &P,double dt,std::string data_folder_name):
-    geom(geom),aux_geom(aux_geom),E(E),B(B),P(P),dt(dt),data_folder_name(data_folder_name){
+SimulationIO::SimulationIO(amrex::Geometry geom,amrex::MultiFab & E,amrex::MultiFab & B,CParticleContainer &P,double dt,std::string data_folder_name):
+    geom(geom),E(E),B(B),P(P),dt(dt),data_folder_name(data_folder_name){
         int Nghost=E.nGrow();
-        this->Pdens=amrex::MultiFab(P.ParticleBoxArray(0),P.ParticleDistributionMap(0),1,Nghost); 
-        this->Pdens_aux=amrex::MultiFab(gba,P.ParticleDistributionMap(0),1,Nghost); 
-
+        this->Pdens=amrex::MultiFab(P.ParticleBoxArray(0),P.ParticleDistributionMap(0),1,Nghost);
     }
 
 void FillDirichletBoundary(const amrex::Geometry geom, amrex::MultiFab &A,const amrex::Real b_val){

@@ -7,69 +7,6 @@
 #include "propagators.hpp"
 
 
-void fill_extra_halo(amrex::Geometry geom, amrex::Array4<amrex::Real> const& A,amrex::Box bx,int ng){
-    for(auto coord: {X,Y,Z}){
-        auto coord_u = (coord+1)%3;
-        auto coord_l = (coord+2)%3;
-        const auto domainLo = geom.Domain().loVect();
-        const auto subgridLo =bx.loVect();
-        const auto domainHi = geom.Domain().hiVect();
-        const auto subgridHi = bx.hiVect();
-        auto missing_L =  ng-(domainHi[coord]-domainLo[coord]+1);
-        if(domainLo[coord] == subgridLo[coord] && domainHi[coord]==subgridHi[coord] && geom.isPeriodic(coord)
-                && missing_L > 0){
-                const auto e_low=bx.loVect();
-                const auto e_high=bx.hiVect();
-                auto elx=e_high[X]-e_low[X] +1;
-                auto ely=e_high[Y]-e_low[Y] +1;
-                auto elz=e_high[Z]-e_low[Z] +1;
-        
-             for(int u=0; u<=(subgridHi[coord_u]-subgridLo[coord_u]);u++){
-                for(int l=0; l<=(subgridHi[coord_l]-subgridLo[coord_l]);l++){
-                   for(int c =0; c < missing_L ; c++){
-                        
-                        std::array<int,3> ext_coord;
-                        ext_coord[coord_u] = u+subgridLo[coord_u];
-                        ext_coord[coord_l] = l+subgridLo[coord_l];
-                        ext_coord[coord] = c+subgridHi[coord]+1+(subgridHi[coord]-subgridLo[coord]+1);
-                    std::array<int,3> int_coord;
-                    int_coord[coord_l]=ext_coord[coord_l];
-                    int_coord[coord_u]=ext_coord[coord_u];
-                    int_coord[coord]=ext_coord[coord];
-                    int_coord[X]=mod((int_coord[X]-e_low[X]), elx)+e_low[X];
-                    int_coord[Y]=mod((int_coord[Y]-e_low[Y]), ely)+e_low[Y];
-                    int_coord[Z]=mod((int_coord[Z]-e_low[Z]), elz)+e_low[Z];
-                A(ext_coord[X],ext_coord[Y],ext_coord[Z],X)=A(int_coord[X],int_coord[Y],int_coord[Z],X);
-                A(ext_coord[X],ext_coord[Y],ext_coord[Z],Y)=A(int_coord[X],int_coord[Y],int_coord[Z],Y);
-                A(ext_coord[X],ext_coord[Y],ext_coord[Z],Z)=A(int_coord[X],int_coord[Y],int_coord[Z],Z);
-                   }
-                }
-             }
-             for(int u=0; u<=(subgridHi[coord_u]-subgridLo[coord_u]);u++){
-                for(int l=0; l<=(subgridHi[coord_l]-subgridLo[coord_l]);l++){
-                   for(int c =0; c < missing_L ; c++){
-                        
-                        std::array<int,3> ext_coord;
-                        ext_coord[coord_u] = u+subgridLo[coord_u];
-                        ext_coord[coord_l] = l+subgridLo[coord_l];
-                        ext_coord[coord] = c+subgridLo[coord]-ng;
-                    std::array<int,3> int_coord;
-                    int_coord[coord_l]=ext_coord[coord_l];
-                    int_coord[coord_u]=ext_coord[coord_u];
-                    int_coord[coord]=ext_coord[coord];
-                    int_coord[X]=mod((int_coord[X]-e_low[X]), elx)+e_low[X];
-                    int_coord[Y]=mod((int_coord[Y]-e_low[Y]), ely)+e_low[Y];
-                    int_coord[Z]=mod((int_coord[Z]-e_low[Z]), elz)+e_low[Z];
-                A(ext_coord[X],ext_coord[Y],ext_coord[Z],X)=A(int_coord[X],int_coord[Y],int_coord[Z],X);
-                A(ext_coord[X],ext_coord[Y],ext_coord[Z],Y)=A(int_coord[X],int_coord[Y],int_coord[Z],Y);
-                A(ext_coord[X],ext_coord[Y],ext_coord[Z],Z)=A(int_coord[X],int_coord[Y],int_coord[Z],Z);
-                   }
-                }
-             }
-
-        }
-    }    
-}
 
 
 // Soft sine plane wave source in x-direction
@@ -94,9 +31,6 @@ void E_source::operator()(double t){
     }
     E.FillBoundary(geom.periodicity());
  }
-
-
-
 
 // Central difference first order
  std::array<amrex::Real,3> curl_cdiff_1(amrex::Array4<amrex::Real const> const& a ,int i , int j ,int k, const double* ics){
@@ -159,36 +93,32 @@ void push_E_B(const amrex::Geometry geom, amrex::Box const& bx,  amrex::Array4<a
 void G_Theta_E(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab&E, amrex::MultiFab&B,double dt ){
 
 
+    E.FillBoundary(geom.periodicity());
     for (CParIter pti(P, 0); pti.isValid(); ++pti) {
         auto&  particles = pti.GetArrayOfStructs();
         amrex::Array4<amrex::Real const> const& E_loc = E.const_array(pti);
-         
         push_V_E<WRANGE>(particles,geom,E_loc,dt);
     }
-
     for (amrex::MFIter mfi(E); mfi.isValid(); ++mfi){
         const amrex::Box& box = mfi.validbox();
         amrex::Array4<amrex::Real const> const& E_loc = E.const_array(mfi);
         amrex::Array4<amrex::Real> const& B_loc = B.array(mfi); 
         push_B_E(geom,box, B_loc,E_loc,dt);
-        fill_extra_halo(geom,B_loc,box,B.nGrow());
     }
 
-    B.FillBoundary(geom.periodicity());
 
 }
 
 
  void G_Theta_B(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &E, amrex::MultiFab &B,double dt ){
     
+    B.FillBoundary(geom.periodicity());
     for (amrex::MFIter mfi(E); mfi.isValid(); ++mfi){
         const amrex::Box& box = mfi.validbox();
         auto const& E_loc = E.array(mfi);
         auto const& B_loc = B.const_array(mfi);  
         push_E_B(geom,box,E_loc,B_loc,dt);
-        fill_extra_halo(geom,E_loc,box,B.nGrow());
     }
 
-    E.FillBoundary(geom.periodicity());
 
 }
