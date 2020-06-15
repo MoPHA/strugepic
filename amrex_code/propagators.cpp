@@ -32,9 +32,6 @@ void E_source::operator()(double t){
     E.FillBoundary(geom.periodicity());
  }
 
-
-
-
 // Central difference first order
  std::array<amrex::Real,3> curl_cdiff_1(amrex::Array4<amrex::Real const> const& a ,int i , int j ,int k, const double* ics){
     return {
@@ -96,13 +93,12 @@ void push_E_B(const amrex::Geometry geom, amrex::Box const& bx,  amrex::Array4<a
 void G_Theta_E(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab&E, amrex::MultiFab&B,double dt ){
 
 
+    E.FillBoundary(geom.periodicity());
     for (CParIter pti(P, 0); pti.isValid(); ++pti) {
         auto&  particles = pti.GetArrayOfStructs();
         amrex::Array4<amrex::Real const> const& E_loc = E.const_array(pti);
-         
         push_V_E<WRANGE>(particles,geom,E_loc,dt);
     }
-
     for (amrex::MFIter mfi(E); mfi.isValid(); ++mfi){
         const amrex::Box& box = mfi.validbox();
         amrex::Array4<amrex::Real const> const& E_loc = E.const_array(mfi);
@@ -110,13 +106,13 @@ void G_Theta_E(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab&
         push_B_E(geom,box, B_loc,E_loc,dt);
     }
 
-    B.FillBoundary(geom.periodicity());
 
 }
 
 
  void G_Theta_B(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &E, amrex::MultiFab &B,double dt ){
     
+    B.FillBoundary(geom.periodicity());
     for (amrex::MFIter mfi(E); mfi.isValid(); ++mfi){
         const amrex::Box& box = mfi.validbox();
         auto const& E_loc = E.array(mfi);
@@ -124,6 +120,5 @@ void G_Theta_E(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab&
         push_E_B(geom,box,E_loc,B_loc,dt);
     }
 
-    E.FillBoundary(geom.periodicity());
 
 }
