@@ -16,7 +16,7 @@ clean:
 	cd src && rm -f *.o
 .PHONY: tests
 tests:
-	cd tests && make
+	cd tests && $(MAKE)
 
 .PHONY: install
 install:

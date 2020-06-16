@@ -1,6 +1,6 @@
 
 
-all: libs tests 
+all: libs 
 
 libs:
 	mkdir -p lib
