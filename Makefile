@@ -30,7 +30,7 @@ install:
 	cd core && $(MAKE) install
 ifeq ($(INTERPOLATION_PATH),interpolation/lib)
 	@echo "Installing default interpolation library"
-	cp interpolation/lib/lib$(INTERPOLATION_NAME) $(PREFIX)/lib
+	cp interpolation/lib/lib$(INTERPOLATION_NAME).so $(PREFIX)/lib
 endif
 
 clean:
