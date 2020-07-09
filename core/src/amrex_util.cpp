@@ -97,7 +97,7 @@ void SimulationIO::write(int step,bool checkpoint,bool particles){
     WriteSingleLevelPlotfile(pltfile_Pdens, Pdens, {"n"}, geom, time, n);
     }
     if(particles){
-        P.WriteBinaryParticleData(amrex::Concatenate(data_folder_name+std::string("/plt_P"),step,0),"Particle0",{1,1,1,1,1},{},{"Mass","Charge","VX","VY","VZ"},{});
+        amrex::Print() << "Writing binary particle data not implemented due to change in amrex api" << std::endl;
     }
 }
 void SimulationIO::read(int step){
