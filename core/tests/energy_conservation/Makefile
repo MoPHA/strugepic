@@ -1,6 +1,6 @@
-LFLAGS=-lamrex -lstrugepic -L ../../lib   -Wl,-rpath=$(INTERPOLATION_FULL_PATH) -L$(INTERPOLATION_FULL_PATH) -l$(INTERPOLATION_NAME) -I ../../include -Wl,-rpath=\$$ORIGIN/../../lib 
+LFLAGS= -L ../../lib   -Wl,-rpath=$(INTERPOLATION_FULL_PATH) -L$(INTERPOLATION_FULL_PATH) -l$(INTERPOLATION_NAME) -I ../../include -Wl,-rpath=\$$ORIGIN/../../lib -lgfortran -lamrex -lstrugepic 
 all:
-	$(MPICXX) $(LFLAGS) $(CXXFLAGS) *.cpp -o energy_main
+	$(MPICXX) *.cpp -o energy_main $(CXXFLAGS) $(LFLAGS)
 clean: cexe cdata
 
 cexe:
