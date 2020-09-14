@@ -2,7 +2,7 @@ export
 
 INTERPOLATION_NAME=interpol
 INTERPOLATION_PATH=interpolation/lib
-INTERPOLATION_RANGE=2
+
 INTERPOLATION_FUNC=poly8_range2
 
 

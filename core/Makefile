@@ -1,5 +1,5 @@
 DEPS=src/propagators.o src/amrex_util.o 
-CXXFLAGS+=-fPIC -I ./include -DWRANGE=$(INTERPOLATION_RANGE)
+CXXFLAGS+=-fPIC -I ./include 
 
 lib/lib$(LNAME).so: $(DEPS) 
 	mkdir -p lib

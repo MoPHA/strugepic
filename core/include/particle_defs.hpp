@@ -24,6 +24,12 @@
 #define C_NUM_SOA_REALS 0 
 #define C_NUM_SOA_INTS 0 
 
+
+#ifndef WRANGE
+#define WRANGE 2
+#endif
+
+
 // Pos variable indices
 #define X 0
 #define Y 1
