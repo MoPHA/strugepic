@@ -1,4 +1,4 @@
-LFLAGS= -L ../../lib   -Wl,-rpath=$(INTERPOLATION_FULL_PATH) -L$(INTERPOLATION_FULL_PATH) -l$(INTERPOLATION_NAME) -I ../../include -Wl,-rpath=\$$ORIGIN/../../lib -lgfortran -lamrex -lstrugepic 
+LFLAGS= -L ../../lib   -Wl,-rpath=$(INTERPOLATION_FULL_PATH) -L$(INTERPOLATION_FULL_PATH) -l$(INTERPOLATION_NAME) -I ../../include -Wl,-rpath=\$$ORIGIN/../../lib -lgfortran  -lstrugepic -lamrex
 
 all:
 	$(MPICXX)  *.cpp -o single_particle_main $(CXXFLAGS) $(LFLAGS) 

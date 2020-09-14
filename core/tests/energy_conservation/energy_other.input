@@ -1,6 +1,6 @@
 
-n_cell = 6 6 1
-max_grid_size = 6 6 1
+n_cell = 6 6 2
+max_grid_size = 6 6 2
 
 x_periodic = 1
 
