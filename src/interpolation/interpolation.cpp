@@ -1,7 +1,16 @@
 #include<math.h>
 #include"poly_util.hpp"
 
+#ifndef REAL
 #define REAL double
+#endif
+
+
+
+
+#ifdef WITH_INTERPOLATION
+#ifdef INTERPOLATION_P8R2
+extern const int __attribute__((weak)) interpolation_range=2;
 // 8th order piecewise polynominal coefficients, from highest to lowest, comments indicate the range
 // Function is zero outside the range
 constexpr  REAL P8_coeffs[36]={
@@ -42,27 +51,104 @@ constexpr  REAL P8I_coeffs[40]={
         };
 
 
-REAL W1(REAL x){
+REAL __attribute__((weak)) W1(REAL x){
     return P<REAL,8,-2,2>(x,P8_coeffs); 
 }
 
-REAL W(REAL x,REAL y, REAL z){
+REAL __attribute__((weak)) W(REAL x,REAL y, REAL z){
     return W1(x)*W1(y)*W1(z);
 }
 
-REAL W1d(REAL x){
+REAL __attribute__((weak)) W1d(REAL x){
     return P<REAL,7,-2,2>(x,P8d_coeffs);
 }
 
-REAL I_W1(REAL a,REAL b ){
+REAL __attribute__((weak)) I_W1(REAL a,REAL b ){
     return IP<REAL,8,-2,2>(b,P8I_coeffs)-IP<REAL,8,-2,2>(a,P8I_coeffs);    
 }
 
-REAL Wp(REAL x){
+REAL __attribute__((weak)) Wp(REAL x){
     return P<REAL,7,-1,2>(x,P8d_agregate_coeffs);    
 }
 
-REAL I_Wp(REAL a,REAL b){
+REAL __attribute__((weak)) I_Wp(REAL a,REAL b){
         return IP<REAL,7,-1,2>(b,P8_agregate_coeffs)-IP<REAL,7,-1,2>(a,P8_agregate_coeffs);
 }
+#endif
 
+
+#ifdef INTERPOLATION_PWL
+
+extern const int __attribute__((weak)) interpolation_range=1;
+
+REAL __attribute__((weak)) W1(REAL x){
+    const auto fx=fabs(x);
+    if(fx >=1 ){
+            return 0;
+    }
+    else{
+        return 1-fx;
+    }
+}
+
+REAL __attribute__((weak)) W(REAL x,REAL y, REAL z){
+    return W1(x)*W1(y)*W1(z);
+}
+
+REAL __attribute__((weak)) W1d(REAL x){
+    if(x <1 && x >0){
+        return -1;
+    }
+    else if( x > -1 &&  x< 0){
+        return 1;
+    }
+    else{
+        return 0;
+    }
+
+}
+
+REAL __attribute__((weak)) IH_W1(REAL x){
+    if(x > 1){
+        return 1;
+    }
+    else if(x < -1){
+        return 0;
+    }
+    else{
+        return -(x*fabs(x)-2*x-1)*0.5;
+    }
+}
+
+REAL __attribute__((weak)) I_W1(REAL a,REAL b ){
+    return IH_W1(b)-IH_W1(a); 
+}
+
+REAL __attribute__((weak)) Wp(REAL x){
+    if(x <1 && x >=0){
+        return 1;
+    }
+    else{
+        return 0;
+    }
+}
+
+REAL IH_wp(REAL x){
+    if(x < 0){
+    return 0;
+    }
+    else if(x > 1){
+     return 1;       
+    }
+    else{
+    return x;
+    }
+}
+
+REAL __attribute__((weak)) I_Wp(REAL a,REAL b){
+    return IH_wp(b)-IH_wp(a);
+}
+#endif
+
+
+#endif

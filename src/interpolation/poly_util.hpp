@@ -1,12 +1,19 @@
 #ifndef POLYUTIL
 #define POLYUTIL
 
+
+
 #include<iostream>
 
 // Some quick utility functions 
-// To evalute piecewise polynomials in a compact region
+// To evaluate piecewise polynomials in a compact region
 // with integer limits and integer bins
 // Polynomial is also normalized over the range
+
+// Only meant for compiling the default interpolation function
+// and not exposed anywhere else, that's why it's not placed in the 
+// top include directory
+
 
     template <class T,int Poly_degree,int lower_limit>
     inline T P_eval(T x,const T* coeffs){
