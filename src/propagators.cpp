@@ -89,27 +89,6 @@ void push_E_B(const amrex::Geometry geom, amrex::Box const& bx,  amrex::Array4<a
     }
 
 
-
-void G_Theta_E(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab&E, amrex::MultiFab&B,double dt ){
-
-
-    E.FillBoundary(geom.periodicity());
-    for (CParIter pti(P, 0); pti.isValid(); ++pti) {
-        auto&  particles = pti.GetArrayOfStructs();
-        amrex::Array4<amrex::Real const> const& E_loc = E.const_array(pti);
-        push_V_E<WRANGE>(particles,geom,E_loc,dt);
-    }
-    for (amrex::MFIter mfi(E); mfi.isValid(); ++mfi){
-        const amrex::Box& box = mfi.validbox();
-        amrex::Array4<amrex::Real const> const& E_loc = E.const_array(mfi);
-        amrex::Array4<amrex::Real> const& B_loc = B.array(mfi); 
-        push_B_E(geom,box, B_loc,E_loc,dt);
-    }
-
-
-}
-
-
  void G_Theta_B(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &E, amrex::MultiFab &B,double dt ){
     
     B.FillBoundary(geom.periodicity());

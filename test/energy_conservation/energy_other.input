@@ -4,7 +4,7 @@ max_grid_size = 6 6 2
 
 x_periodic = 1
 
-nsteps = 90000
+nsteps = 300000
 start_step = 0 # If this is not zero we will try to do a restart from a plotfile
 output_interval = -1 ;
 checkpoint_interval = -1 ;

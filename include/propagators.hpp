@@ -48,14 +48,38 @@ void Theta_E(const amrex::Geometry geom,amrex::Box const& bx,amrex::Array4<amrex
 
 void Theta_B(const amrex::Geometry geom,amrex::Box const& bx,amrex::Array4<amrex::Real> const& E,amrex::Array4<amrex::Real const> const& B,double dt );
 
+template<int W_range>
+void push_V_E( CParticles&particles, const amrex::Geometry geom,amrex::Array4<amrex::Real const> const& E ,double dt);
 
 // Global update, they also handle triggering global communication
-void G_Theta_E(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &E, amrex::MultiFab &B,double dt );
 void G_Theta_B(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &E, amrex::MultiFab &B,double dt );
 
 inline int sign(int x) {
     return (x > 0) - (x < 0);
 }
+
+
+
+template<int W_range>
+void G_Theta_E(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab&E, amrex::MultiFab&B,double dt ){
+
+
+    E.FillBoundary(geom.periodicity());
+    for (CParIter pti(P, 0); pti.isValid(); ++pti) {
+        auto&  particles = pti.GetArrayOfStructs();
+        amrex::Array4<amrex::Real const> const& E_loc = E.const_array(pti);
+        push_V_E<W_range>(particles,geom,E_loc,dt);
+    }
+    for (amrex::MFIter mfi(E); mfi.isValid(); ++mfi){
+        const amrex::Box& box = mfi.validbox();
+        amrex::Array4<amrex::Real const> const& E_loc = E.const_array(mfi);
+        amrex::Array4<amrex::Real> const& B_loc = B.array(mfi); 
+        push_B_E(geom,box, B_loc,E_loc,dt);
+    }
+
+
+}
+
 
 
 
@@ -299,7 +323,7 @@ void push_V_E( CParticles&particles, const amrex::Geometry geom,amrex::Array4<am
 
 
 
-template <int coord>
+template <int coord,int W_range>
 void G_Theta(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &E, amrex::MultiFab &B,double dt ){
 
     B.FillBoundary(geom.periodicity());
@@ -316,7 +340,7 @@ void G_Theta(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &E
         amrex::Array4<amrex::Real> const& B_loc = bfab.array(); 
         amrex::Array4<amrex::Real> const& E_loc = E[mfi].array(); 
         int ng = E.nGrow();
-        Theta<coord,WRANGE>(particles,geom,E_loc,B_loc,box,ng,dt);
+        Theta<coord,W_range>(particles,geom,E_loc,B_loc,box,ng,dt);
     }
     
     E.SumBoundary(geom.periodicity());
@@ -425,8 +449,11 @@ void push_ff(const amrex::Geometry geom, amrex::Box const& bx, amrex::Array4<amr
 
 #endif
 
-
-template<int order>
+/* Partial specializations are not possible in c++
+ * But here is the code for an arbitrary order iterator, probably no one wants to do more than a couple
+ * of orders, so creating them by hand should be ok
+ 
+template<int order,int W_range>
 inline void Theta_map(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &E, amrex::MultiFab &B,double dt ){
    const int l=order/2-1;
    const double alpha=1/(2-pow(2,1/(2*l+1)));
@@ -435,29 +462,45 @@ inline void Theta_map(const amrex::Geometry geom,CParticleContainer&P, amrex::Mu
    Theta_map<order-2>(geom,P,E,B,beta*dt);
    Theta_map<order-2>(geom,P,E,B,alpha*dt);
 }
-template<>
-inline void Theta_map<1>(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &E, amrex::MultiFab &B,double dt ){
+*/
+
+
+
+
+template<int W_range>
+inline void Theta_map1(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &E, amrex::MultiFab &B,double dt ){
 
     G_Theta_B(geom,P,E,B,dt);
-    G_Theta_E(geom,P,E,B,dt);
-    G_Theta<Z>(geom,P,E,B,dt);
-    G_Theta<Y>(geom,P,E,B,dt);
-    G_Theta<X>(geom,P,E,B,dt);
-
-}
-template<>
-inline void Theta_map<2>(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &E, amrex::MultiFab &B,double dt ){
-
-    G_Theta_E(geom,P,E,B,dt/2);
-    G_Theta<X>(geom,P,E,B,dt/2);
-    G_Theta<Y>(geom,P,E,B,dt/2);
-    G_Theta<Z>(geom,P,E,B,dt/2);
-    G_Theta_B(geom,P,E,B,dt);
-    G_Theta<Z>(geom,P,E,B,dt/2);
-    G_Theta<Y>(geom,P,E,B,dt/2);
-    G_Theta<X>(geom,P,E,B,dt/2);
-    G_Theta_E(geom,P,E,B,dt/2);
+    G_Theta_E<W_range>(geom,P,E,B,dt);
+    G_Theta<Z,W_range>(geom,P,E,B,dt);
+    G_Theta<Y,W_range>(geom,P,E,B,dt);
+    G_Theta<X,W_range>(geom,P,E,B,dt);
 
 }
 
+template<int W_range>
+inline void Theta_map2(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &E, amrex::MultiFab &B,double dt ){
+
+    G_Theta_E<W_range>(geom,P,E,B,dt/2);
+    G_Theta<X,W_range>(geom,P,E,B,dt/2);
+    G_Theta<Y,W_range>(geom,P,E,B,dt/2);
+    G_Theta<Z,W_range>(geom,P,E,B,dt/2);
+    G_Theta_B(geom,P,E,B,dt);
+    G_Theta<Z,W_range>(geom,P,E,B,dt/2);
+    G_Theta<Y,W_range>(geom,P,E,B,dt/2);
+    G_Theta<X,W_range>(geom,P,E,B,dt/2);
+    G_Theta_E<W_range>(geom,P,E,B,dt/2);
+
+}
+
+template<int W_range>
+inline void Theta_map4(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &E, amrex::MultiFab &B,double dt ){
+   int order=4;
+   const int l=order/2-1;
+   const double alpha=1/(2-pow(2,1/(2*l+1)));
+   const double beta=1-2*alpha;
+   Theta_map2<W_range>(geom,P,E,B,alpha*dt);
+   Theta_map2<W_range>(geom,P,E,B,beta*dt);
+   Theta_map2<W_range>(geom,P,E,B,alpha*dt);
+}
 

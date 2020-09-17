@@ -1,39 +1,40 @@
 export
 
-INTERPOLATION_NAME=interpol
-INTERPOLATION_PATH=interpolation/lib
-
-INTERPOLATION_FUNC=poly8_range2
-
-
-INTERPOLATION_FULL_PATH=$(shell readlink -f $(INTERPOLATION_PATH) )
-
-
-CXXFLAGS+= -std=c++14 -Ofast -mavx2  -march=native   
+CXXFLAGS+= -std=c++14 -O3 -mavx2  -march=native   
 MPICXX=mpic++
-CXX=g++
 LNAME=strugepic
 
+SRCS := $(wildcard src/*.cpp src/interpolation/*.cpp )
+OBJS := $(patsubst %.cpp,%.o,$(SRCS))
 
+INTERPOLATION_NAME=-DINTERPOLATION_PWL
+TEST_WRANGE=1
 
 all:
-	cd core && $(MAKE)
-ifeq ($(INTERPOLATION_PATH),interpolation/lib)
-	@echo "Compiling default interpolation library"
-	cd interpolation && make
-endif
-
-tests:
-	cd core && $(MAKE) tests
+	@echo $(INTERPOLATION_NAME)
+	cd src && $(MAKE)
+	cd src/interpolation && $(MAKE)
+	mkdir -p lib
+	$(MPICXX) -shared  $(OBJS) $(CXXFLAGS) -o lib/lib$(LNAME).so
 
 install:
-	cd core && $(MAKE) install
-ifeq ($(INTERPOLATION_PATH),interpolation/lib)
-	@echo "Installing default interpolation library"
-	cp interpolation/lib/lib$(INTERPOLATION_NAME).so $(PREFIX)/lib
-endif
+	mkdir $(PREFIX)/lib
+	mkdir $(PREFIX)/include
+	cp include/*.hpp $(PREFIX)/include
+	cp lib/lib$(LNAME).so $(PREFIX)/lib
 
+
+.PHONY: test
+test:
+	cd test && $(MAKE)
+
+.PHONY: test-clean
+test-clean:
+	cd test && $(MAKE) clean
+
+.PHONY: clean
 clean:
-	cd core && $(MAKE) clean
-	cd interpolation && $(MAKE) clean 
-
+	cd src && $(MAKE) clean
+	cd src/interpolation && $(MAKE) clean 
+.PHONY: clean-all
+clean-all: clean test-clean

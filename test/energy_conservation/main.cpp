@@ -23,6 +23,8 @@
 #include <amrex_util.hpp>
 #include <propagators.hpp>
 #include <particle_defs.hpp>
+#include <w_defs.hpp>
+
 
 void main_main();
 
@@ -38,12 +40,12 @@ void main_main()
 {
     // Simulation parameters,  these should be read from a file quite soon
     amrex::ParmParse pp;
-
+    std::cout << interpolation_range << std::endl;
     
     std::array<int,3> n_cell;
     std::array<int,3> max_grid_size;
     int x_periodic;
-    int Nghost =WRANGE+1; 
+    int Nghost =interpolation_range+1; 
 
     int nsteps;
     int start_step;
@@ -148,12 +150,12 @@ for(int step=start_step; step<nsteps;step++){
     auto E_tot = get_total_energy(geom,P,E,B); 
     amrex::Print() <<"ENERGY: "<<E_tot.first <<" "<< E_tot.second << std::endl;
     if(step % output_interval ==0 && output_interval != -1){
-        SimIO.write(step);
+        SimIO.write<WRANGE>(step);
     }
     if(step % checkpoint_interval ==0 && checkpoint_interval  !=-1){
-        SimIO.write(step,true,false);
+        SimIO.write<WRANGE>(step,true,false);
     }
-    Theta_map<1>(geom,P,E,B,dt);
+    Theta_map1<WRANGE>(geom,P,E,B,dt);
 }
 
 

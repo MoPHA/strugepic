@@ -8,7 +8,6 @@
 
 
 
-#ifdef WITH_INTERPOLATION
 #ifdef INTERPOLATION_P8R2
 extern const int __attribute__((weak)) interpolation_range=2;
 // 8th order piecewise polynominal coefficients, from highest to lowest, comments indicate the range
@@ -148,7 +147,4 @@ REAL IH_wp(REAL x){
 REAL __attribute__((weak)) I_Wp(REAL a,REAL b){
     return IH_wp(b)-IH_wp(a);
 }
-#endif
-
-
 #endif

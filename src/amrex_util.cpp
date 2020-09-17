@@ -41,22 +41,6 @@ void set_uniform_field(amrex::MultiFab &A, std::array<double,3> vals){
     }
 }
 
-void SimulationIO::dump_pdens(std::string filename){
-
-    get_particle_number_density<WRANGE>(geom,P,Pdens); 
-    for (amrex::MFIter mfi(Pdens); mfi.isValid(); ++mfi){
-        const amrex::Box& box = mfi.validbox();
-        amrex::Array4<amrex::Real> const& pd = Pdens.array(mfi); 
-
-    amrex::ParallelFor(box,  [=] AMREX_GPU_DEVICE (int i,int j,int k ){
-
-            amrex::AllPrintToFile(filename) <<i << " "<< j << " " << k << " "  <<  pd(i,j,k,0) << "\n";
-
-            });
-
-    }
-
-}
 
 inline void dump_field(amrex::MultiFab & A , std::string filename){
     for (amrex::MFIter mfi(A); mfi.isValid(); ++mfi){
@@ -79,27 +63,6 @@ void SimulationIO::dump_B_field(std::string filename){
 
 
 
-void SimulationIO::write(int step,bool checkpoint,bool particles){
-    if(checkpoint){
-    amrex::VisMF::Write(E,amrex::Concatenate(data_folder_name+std::string("/E_CP"),step,0));
-    amrex::VisMF::Write(B,amrex::Concatenate(data_folder_name+std::string("/B_CP"),step,0));
-    P.Checkpoint(amrex::Concatenate(data_folder_name+std::string("/P_CP"),step,0),"Particle0");
-    }
-    else{
-    get_particle_number_density<WRANGE>(geom,P,Pdens);
-    int n=step;
-    amrex::Real time=step*dt;
-    const std::string& pltfile_E = amrex::Concatenate(data_folder_name+std::string("/plt_E"),n,0);
-    WriteSingleLevelPlotfile(pltfile_E, E, {"E_x","E_y","E_z"}, geom, time, n);
-    const std::string& pltfile_B = amrex::Concatenate(data_folder_name+std::string("/plt_B"),n,0);
-    WriteSingleLevelPlotfile(pltfile_B, B, {"B_x","B_y","B_z"}, geom, time, n);
-    const std::string& pltfile_Pdens = amrex::Concatenate(data_folder_name+std::string("/plt_Pdens"),n,0);
-    WriteSingleLevelPlotfile(pltfile_Pdens, Pdens, {"n"}, geom, time, n);
-    }
-    if(particles){
-        amrex::Print() << "Writing binary particle data not implemented due to change in amrex api" << std::endl;
-    }
-}
 void SimulationIO::read(int step){
     amrex::VisMF::Read(E,amrex::Concatenate(data_folder_name+std::string("/E_CP"),step,0));
     amrex::VisMF::Read(B,amrex::Concatenate(data_folder_name+std::string("/B_CP"),step,0));

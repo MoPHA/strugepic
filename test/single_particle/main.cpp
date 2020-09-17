@@ -148,12 +148,12 @@ for(int step=start_step; step<nsteps;step++){
     auto E_tot = get_total_energy(geom,P,E,B); 
     amrex::Print() <<"ENERGY: "<<E_tot.first <<" "<< E_tot.second << std::endl;
     if(step % output_interval ==0 && output_interval != -1){
-        SimIO.write(step);
+        SimIO.write<WRANGE>(step);
     }
     if(step % checkpoint_interval ==0 && checkpoint_interval  !=-1){
-        SimIO.write(step,true,false);
+        SimIO.write<WRANGE>(step,true,false);
     }
-    Theta_map<1>(geom,P,E,B,dt);
+    Theta_map1<WRANGE>(geom,P,E,B,dt);
 }
 
 

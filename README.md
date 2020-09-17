@@ -15,6 +15,15 @@ Install AMReX with `--dim=3`, MPI and particles enabled (Should be on by default
 A reasonably new compiler should work (at least `-std=c++11` support).
 
 
-## Interpolation function
 
-By default, the program uses a piecewise 
+
+
+
+
+## Testing
+
+
+## Correctness 
+
+
+## Meta
