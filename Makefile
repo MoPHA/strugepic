@@ -7,11 +7,9 @@ LNAME=strugepic
 SRCS := $(wildcard src/*.cpp src/interpolation/*.cpp )
 OBJS := $(patsubst %.cpp,%.o,$(SRCS))
 
-INTERPOLATION_NAME=-DINTERPOLATION_PWL
-TEST_WRANGE=1
+INTERPOLATION_FUNC=P8R2
 
 all:
-	@echo $(INTERPOLATION_NAME)
 	cd src && $(MAKE)
 	cd src/interpolation && $(MAKE)
 	mkdir -p lib
