@@ -1,6 +1,6 @@
 
-n_cell = 1000 500 1
-max_grid_size = 100 100 1
+n_cell = 1000 10 1
+max_grid_size = 100 10 1
 x_periodic = 0
 
 nsteps = 4000

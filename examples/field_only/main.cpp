@@ -25,7 +25,6 @@
 #include "particle_defs.hpp"
 #include "cmath"
 
-
 void set_sin_field(amrex::MultiFab &A){
 
     for (amrex::MFIter mfi(A); mfi.isValid(); ++mfi){
@@ -41,7 +40,6 @@ void set_sin_field(amrex::MultiFab &A){
     }
 }
 
-
 void main_main();
 
 int main(int argc, char* argv[])
@@ -54,7 +52,6 @@ int main(int argc, char* argv[])
 }
 void main_main()
 {
-    // Simulation parameters,  these should be read from a file quite soon
     amrex::ParmParse pp;
 
     std::array<int,3> n_cell;
@@ -91,8 +88,16 @@ void main_main()
 
 
 
-    // Do a quite even load balancing
-   // amrex::DistributionMapping::strategy(amrex::DistributionMapping::KNAPSACK);
+
+
+
+
+    
+
+
+///////////7
+
+
 
     // Periodic
     amrex::Vector<int> is_periodic({x_periodic,1,1});     
@@ -104,12 +109,10 @@ void main_main()
     amrex::IntVect dom_hi(AMREX_D_DECL(n_cell[X]-1, n_cell[Y]-1, n_cell[Z]-1));
     amrex::Box domain(dom_lo, dom_hi,typ);
     amrex::BoxArray ba(domain);
-    amrex::BoxArray gba(domain);
 
     // Initialize the boxarray "ba" from the single box "bx"
     // Break up boxarray "ba" into chunks no larger than "max_grid_size" along a direction
     ba.maxSize({max_grid_size[X],max_grid_size[Y],max_grid_size[Z]});
-    gba.maxSize({max_grid_size[X],max_grid_size[Y],max_grid_size[Z]});
     // This defines the physical box, [-1,1] in each direction.
     amrex::RealBox real_box({AMREX_D_DECL(0,0,0)},
                      {AMREX_D_DECL((double)n_cell[X] , (double)n_cell[Y],(double)n_cell[Z])});
@@ -120,58 +123,40 @@ void main_main()
     amrex::DistributionMapping dm(ba);
     CParticleContainer P(geom,dm,ba);
     //distribute_processes_pdens(dm,geom,ba,bernstein_density,"SFC");    
-    shift_and_grow<X>(gba,Nghost);
-    shift_and_grow<Y>(gba,Nghost);
-    shift_and_grow<Z>(gba,Nghost);
-    auto gdomain=gba.minimalBox(); 
-    amrex::Geometry ggeom(gdomain,&real_box,amrex::CoordSys::cartesian,is_periodic.data());
 
 
-    amrex::MultiFab E_L(gba,dm,Ncomp,Nghost); 
     amrex::MultiFab E(ba,dm,Ncomp,Nghost);
     amrex::MultiFab B(ba,dm,Ncomp,Nghost);
-    auto SimIO=SimulationIO(geom,ggeom,gba,E,B,P,dt,data_folder_name);
-    //set_sin_field(E);
+    auto SimIO=SimulationIO(geom,E,B,P,dt,data_folder_name);
+    auto Source=E_source(geom,E,sp,Y,Es,omega,dt);
+
+
+////////////7
+
     if(start_step !=0){
     SimIO.read(start_step);
     }
-    else{
-    }
-
-    auto Source=E_source(geom,E,sp,Y,Es,omega,dt);
-   
-    
 
     E.FillBoundary(geom.periodicity());
     B.FillBoundary(geom.periodicity());
 
 
-   
-    P.Redistribute();
-
-
-    amrex::Print() << "Total number of particles: " << P.TotalNumberOfParticles() << std::endl;
 for(int step=start_step; step<nsteps;step++){ 
+    print_Particle_info(geom,P);
     amrex::Print() <<"Step:" <<step << std::endl;
     auto E_tot = get_total_energy(geom,P,E,B); 
     amrex::Print() <<"ENERGY: "<<E_tot.first <<" "<< E_tot.second << std::endl;
     if(step % output_interval ==0 && output_interval != -1){
-        SimIO.write(step);
+        SimIO.write<WRANGE>(step);
     }
     if(step % checkpoint_interval ==0 && checkpoint_interval  !=-1){
-        SimIO.write(step,true,false);
+        SimIO.write<WRANGE>(step,true,false);
     }
-    G_Theta_E(geom,P,E,B,dt/2);
-//G_Theta<X>(geom,ggeom,P,E,E_L,B,dt/2);
-//    G_Theta<Y>(geom,ggeom,P,E,E_L,B,dt/2);
-//    G_Theta<Z>(geom,ggeom,P,E,E_L,B,dt/2);
+
+    G_Theta_E<WRANGE>(geom,P,E,B,dt/2);
     Source(dt*step);
     G_Theta_B(geom,P,E,B,dt);
-//    G_Theta<Z>(geom,ggeom,P,E,E_L,B,dt);
-//    G_Theta<Y>(geom,ggeom,P,E,E_L,B,dt);
-//    G_Theta<X>(geom,ggeom,P,E,E_L,B,dt);
-    G_Theta_E(geom,P,E,B,dt/2);
-    
+    G_Theta_E<WRANGE>(geom,P,E,B,dt/2);
 }
 
 

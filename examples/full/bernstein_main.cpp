@@ -43,7 +43,7 @@ void main_main()
     std::array<int,3> n_cell;
     std::array<int,3> max_grid_size;
     int x_periodic;
-    int Nghost = 3; 
+    int Nghost = interpolation_range; 
 
     int nsteps;
     int start_step;
@@ -101,12 +101,10 @@ void main_main()
     amrex::IntVect dom_hi(AMREX_D_DECL(n_cell[X]-1, n_cell[Y]-1, n_cell[Z]-1));
     amrex::Box domain(dom_lo, dom_hi,typ);
     amrex::BoxArray ba(domain);
-    amrex::BoxArray gba(domain);
 
     // Initialize the boxarray "ba" from the single box "bx"
     // Break up boxarray "ba" into chunks no larger than "max_grid_size" along a direction
     ba.maxSize({max_grid_size[X],max_grid_size[Y],max_grid_size[Z]});
-    gba.maxSize({max_grid_size[X],max_grid_size[Y],max_grid_size[Z]});
 
     // This defines the physical box, [-1,1] in each direction.
     amrex::RealBox real_box({AMREX_D_DECL(0,0,0)},
@@ -116,16 +114,10 @@ void main_main()
     amrex::Geometry geom(domain,&real_box,amrex::CoordSys::cartesian,is_periodic.data());
     // How Boxes are distrubuted among MPI processes
     amrex::DistributionMapping dm(ba);
-    CParticleContainer P(geom,dm,ba,3);
+    CParticleContainer P(geom,dm,ba);
     distribute_processes_pdens(dm,geom,ba,bernstein_density,"SFC");    
-    shift_and_grow<X>(gba,Nghost);
-    shift_and_grow<Y>(gba,Nghost);
-    shift_and_grow<Z>(gba,Nghost);
-    auto gdomain=gba.minimalBox(); 
-    amrex::Geometry ggeom(gdomain,&real_box,amrex::CoordSys::cartesian,is_periodic.data());
 
 
-    amrex::MultiFab E_L(gba,dm,Ncomp,Nghost); 
     amrex::MultiFab E(ba,dm,Ncomp,Nghost);
     amrex::MultiFab B(ba,dm,Ncomp,Nghost);
     auto SimIO=SimulationIO(geom,E,B,P,dt,data_folder_name);
@@ -155,17 +147,13 @@ for(int step=start_step; step<nsteps;step++){
     auto E_tot = get_total_energy(geom,P,E,B); 
     amrex::Print() <<"ENERGY: "<<E_tot.first <<" "<< E_tot.second << std::endl;
     if(step % output_interval ==0 && output_interval != -1){
-        SimIO.write(step);
+        SimIO.write<WRANGE>(step);
     }
     if(step % checkpoint_interval ==0 && checkpoint_interval  !=-1){
-        SimIO.write(step,true,false);
+        SimIO.write<WRANGE>(step,true,false);
     }
     Es(step*dt);
-    G_Theta_B(geom,P,E,B,dt);
-    G_Theta_E(geom,P,E,B,dt);
-    G_Theta<Z>(geom,ggeom,P,E,E_L,B,dt);
-    G_Theta<Y>(geom,ggeom,P,E,E_L,B,dt);
-    G_Theta<X>(geom,ggeom,P,E,E_L,B,dt);
+    Theta_map1<WRANGE>(geom,P,E,B,dt);
 }
 
 

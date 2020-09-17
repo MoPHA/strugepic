@@ -26,6 +26,14 @@ install:
 test:
 	cd test && $(MAKE)
 
+
+.PHONY: examples
+examples:
+	cd examples && $(MAKE)
+.PHONY: examples-clean
+examples-clean:
+	cd examples && $(MAKE) clean
+
 .PHONY: test-clean
 test-clean:
 	cd test && $(MAKE) clean
@@ -35,4 +43,4 @@ clean:
 	cd src && $(MAKE) clean
 	cd src/interpolation && $(MAKE) clean 
 .PHONY: clean-all
-clean-all: clean test-clean
+clean-all: clean test-clean examples-clean
