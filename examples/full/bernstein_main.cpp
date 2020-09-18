@@ -115,7 +115,7 @@ void main_main()
     // How Boxes are distrubuted among MPI processes
     amrex::DistributionMapping dm(ba);
     CParticleContainer P(geom,dm,ba);
-    distribute_processes_pdens(dm,geom,ba,bernstein_density,"SFC");    
+    // distribute_processes_pdens(dm,geom,ba,bernstein_density,"SFC");    
 
 
     amrex::MultiFab E(ba,dm,Ncomp,Nghost);

@@ -32,13 +32,17 @@ v_std=v/c
 E0_n=E0/(c**2)*sqrt(dx**3/(m_e*mu0))
 B_n=B/c*sqrt(dx**3/(mu0*m_e))
 w_n=w*dx/c
-q_dens=q_e*N0*(dx**3)*sqrt(mu0/(m_e*dx))
-m_dens=m_e*N0*(dx**3)/m_e
+
+epc = N0*dx**3 
+s_q=q_e/(sqrt(m_e*dx/mu0))*epc
+s_m=m_e/m_e*epc
+q_dens=q_e*epc*sqrt(mu0/(m_e*dx))
+m_dens=m_e*epc/m_e
 
 
 print("Source E-field strength",E0_n)
 print("Static B-field strength",B_n)
 print("Angular frequency ", w_n)
 print("Standard deviation for velocity",v_std)
-print("Mass density per cell",q_dens)
-print("Charge density per cell",m_dens)
+print("Mass density per cell",m_dens)
+print("Charge density per cell",q_dens)
