@@ -28,7 +28,6 @@ for step in steps:
     E_y=data[:,3].reshape(2,1800,2)
     E_y_l=E_y[1,:,1]
     evolution[i,:]=E_y_l
-    if( i % 10 == 0):
-        save('data.npy', evolution)
     print(i) 
     i=i+1
+save('data.npy', evolution)
