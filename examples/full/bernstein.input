@@ -1,3 +1,8 @@
+# This should complete
+# in about 1h using 75 cores
+# Tested on mahti.csc.fi
+
+
 
 n_cell = 1800 2 2
 max_grid_size = 24 2 2
