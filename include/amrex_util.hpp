@@ -141,8 +141,6 @@ void SimulationIO::write(int step,bool checkpoint,bool particles){
 
 
 
-double wrapMax(double x, double max);
-double wrapMinMax(double x , double min ,double max);
 template <typename T> int sgn(T val) {
     return (T(0) < val) - (val < T(0));
 }
@@ -221,7 +219,6 @@ void get_segment_list(const amrex::Geometry geom,
 }
 
 std::pair<amrex::Real,amrex::Real> get_total_energy(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &E, amrex::MultiFab &B );
-std::pair<std::array<amrex::Real,3>,std::array<amrex::Real,3>> get_total_momentum(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &E, amrex::MultiFab &B);
 void add_particle_n_per_cell(const amrex::Geometry geom, CParticleContainer&P,double m,double q,double v,int n);
 template <int comp>
 void set_two_stream_drift(CParticleContainer &P,double v){

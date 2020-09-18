@@ -20,9 +20,6 @@
 #include "w_defs.hpp"
 #include "propagators.hpp"
 
-// Init external dirichle boundary condition
-
-// Either periodic or dirichle
 
 void set_uniform_field(amrex::MultiFab &A, std::array<double,3> vals){
 
@@ -160,7 +157,6 @@ std::array<int,3> get_num_segments(const amrex::Geometry geom,const amrex::RealA
 void add_single_particle(CParticleContainer&P,amrex::RealArray pos , amrex::RealArray vel, double m,double q){
 for(amrex::MFIter mfi= P.MakeMFIter(0) ;mfi.isValid();++mfi){
     
-    // Each grid,tile has a their own local particle container
     auto& particles = P.GetParticles(0)[std::make_pair(mfi.index(),mfi.tileIndex())];
         if(mfi.index()==0){
             add_single_particle(particles,pos,vel,m,q);
@@ -379,60 +375,3 @@ std::pair<amrex::Real,amrex::Real> get_total_energy(const amrex::Geometry geom,C
 }
 
 
-
-std::pair<std::array<amrex::Real,3>,std::array<amrex::Real,3>> get_total_momentum(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &E, amrex::MultiFab &B){
-    
-    std::array<amrex::Real,3> P_part={0,0,0};
-    std::array<amrex::Real,3> P_field={0,0,0};
-    for (CParIter pti(P, 0); pti.isValid(); ++pti) {
-        auto&  particles = pti.GetArrayOfStructs();
-        for(auto p : particles ){
-            P_part[X]+=p.rdata(M)*p.rdata(VX);
-            P_part[Y]+=p.rdata(M)*p.rdata(VY);
-            P_part[Z]+=p.rdata(M)*p.rdata(VZ);
-        }
-    }
-    for (amrex::MFIter mfi(E); mfi.isValid(); ++mfi){
-        const amrex::Box& box = mfi.validbox();
-        amrex::FArrayBox& fab = E[mfi];
-        amrex::FArrayBox& fabB = B[mfi];
-        amrex::Array4<amrex::Real> const& E_loc = fab.array();
-        amrex::Array4<amrex::Real> const& B_loc = fabB.array(); 
-
-        const auto lo = amrex::lbound(box);
-        const auto hi = amrex::ubound(box);
-        for     (int k = lo.z; k <= hi.z; ++k) {
-            for   (int j = lo.y; j <= hi.y; ++j) {
-                for (int i = lo.x; i <= hi.x; ++i) { 
-                P_field[X]+=E_loc(i,j,k,Y)*B_loc(i,j,k,Z)-E_loc(i,j,k,Z)*B_loc(i,j,k,Y);
-                P_field[Y]+=E_loc(i,j,k,Z)*B_loc(i,j,k,X)-E_loc(i,j,k,X)*B_loc(i,j,k,Z);
-                P_field[Z]+=E_loc(i,j,k,X)*B_loc(i,j,k,Y)-E_loc(i,j,k,Y)*B_loc(i,j,k,X);
-                }
-            }
-        }
-
-    }
-    P_field[X]*=geom.CellSize(X)*geom.CellSize(Y)*geom.CellSize(Z);
-    P_field[Y]*=geom.CellSize(X)*geom.CellSize(Y)*geom.CellSize(Z);
-    P_field[Z]*=geom.CellSize(X)*geom.CellSize(Y)*geom.CellSize(Z);
-    return std::make_pair(P_field,P_part);
-
-}
-
-
-
-
-//
-// From
-// https://stackoverflow.com/questions/4633177/c-how-to-wrap-a-float-to-the-interval-pi-pi
-
-double wrapMax(double x, double max)
-{
-    /* integer math: `(max + x % max) % max` */
-    return fmod(max + fmod(x, max), max);
-}
-/* wrap x -> [min,max) */
-double wrapMinMax(double x, double min, double max)
-{
-    return min + wrapMax(x - min, max - min);
-}
