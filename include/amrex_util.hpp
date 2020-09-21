@@ -179,6 +179,29 @@ std::pair<amrex::Real,int> reflect_boundary(const amrex::Geometry geom,amrex::Re
 
 
 
+// Only two segments
+// system starts at (0,0) 
+// cell size is 1 
+template<int comp>
+inline int construct_segments(amrex::Real x_start ,amrex::Real x_end,std::array<amrex::Real,3> const&seg_points,std::array<int,2> const& seg_idx){
+    seg_idx[0]=floor(x_start);
+    seg_idx[1]=floor(x_end);
+    int diff=seg_idx[1]-seg_idx[0];
+    int ng=abs(diff)+1;
+    seg_points[0]=x_start;
+    if(ng==1){
+    seg_points[1]=seg_idx[0]+diff;
+    seg_points[2]=x_end;
+    }
+    else{
+    seg_points[1]=x_end; 
+    }
+    return ng; 
+}
+
+
+
+
 // List of segments with start,end , cell_idexx. all 1D
 // How do we handle periodicity?
 template<int comp>
@@ -201,7 +224,7 @@ void get_segment_list(const amrex::Geometry geom,
     if(num_segments == 2){
             segment_end = (segment_index+ (sig+1)/2)*cellsize + problo; 
             segments[0]=std::make_tuple(segment_start,segment_end,segment_index);
-            segment_index =segment_index+sig;//(((segment_index +sig) % index_mod) +index_mod) %index_mod ;
+            segment_index =segment_index+sig;
         
             segment_start=(segment_index -((sig-1))/2)*cellsize+problo;
             if(!geom.isPeriodic(comp) && ((segment_index == geom.Domain().smallEnd(comp)+PART_BOUND ) || (segment_index == geom.Domain().bigEnd(comp)-PART_BOUND) )){

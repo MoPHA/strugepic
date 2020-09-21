@@ -32,12 +32,6 @@ class E_source
 };
 
 
-
-inline int mod(int a,int n){
-return (a%n+n)%n;
-}
-
-
 // These are All local update functions, I.e they operate only on local data 
 
 void push_B_E(const amrex::Geometry geom, amrex::Box const& bx,  amrex::Array4<amrex::Real> const& B, amrex::Array4<amrex::Real const> const& E,double dt);
@@ -53,11 +47,6 @@ void push_V_E( CParticles&particles, const amrex::Geometry geom,amrex::Array4<am
 
 // Global update, they also handle triggering global communication
 void G_Theta_B(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &E, amrex::MultiFab &B,double dt );
-
-inline int sign(int x) {
-    return (x > 0) - (x < 0);
-}
-
 
 
 template<int W_range>
@@ -394,7 +383,7 @@ void construct_exterior_interior(const amrex::Geometry geom ,std::vector<std::ar
 }
 
 template<int coord>
-void MABC(const amrex::Geometry geom,amrex::Array4<amrex::Real> const& A,std::vector<std::array<int,3>> &exterior,double dt){
+void MABC(const amrex::Geometry geom,amrex::Array4<amrex::Real> const& A,std::vector<std::array<int,3>> const&exterior,double dt){
    const auto domain=geom.Domain();
    const auto Lo = domain.loVect();
    const auto Hi = domain.hiVect();
@@ -432,22 +421,32 @@ void construct_exterior_interior_full(const amrex::Geometry geom ,std::vector<st
         exterior.erase( std::unique( exterior.begin(), exterior.end() ), exterior.end() );
 }
 
-template<int boundary_size,typename InteriorF,typename ExteriorF> 
-void push_ff(const amrex::Geometry geom, amrex::Box const& bx, amrex::Array4<amrex::Real const> const& Source,amrex::Array4<amrex::Real> const& Target, InteriorF update_interior,ExteriorF update_exterior,double dt){
-   
+typedef void (*F_INTERIOR)(const amrex::Geometry,amrex::Box const&,amrex::Array4<amrex::Real const> const&,amrex::Array4<amrex::Real> const&,double);
+typedef void (*F_EXTERIOR)(const amrex::Geometry,amrex::Array4<amrex::Real > const&,std::vector<std::array<int,3>> const&,double);
+
+
+// Always periodic 
+template<F_INTERIOR InteriorF>
+void push_ff(const amrex::Geometry geom, amrex::Box const& bx, amrex::Array4<amrex::Real const> const& Source,amrex::Array4<amrex::Real> const& Target,double dt){ 
+   auto interior=bx;
+   InteriorF(geom,interior,Source,Target,dt);
+
+}
+// Periodicity can be set at start
+template<F_INTERIOR InteriorF,F_EXTERIOR ExteriorF,int boundary_size=1> 
+void push_ff(const amrex::Geometry geom, amrex::Box const& bx, amrex::Array4<amrex::Real const> const& Source,amrex::Array4<amrex::Real> const& Target,double dt){ 
    auto interior=bx;
    std::vector<std::array<int,3>> exterior;
 
     if(!geom.isAllPeriodic()){
         construct_exterior_interior_full<boundary_size>(geom,exterior,interior);
-        update_exterior(geom,Target,exterior,dt);   
+        ExteriorF(geom,Target,exterior,dt);   
     }
 
-   update_interior(geom,interior,Source,Target,dt);
+   InteriorF(geom,interior,Source,Target,dt);
 
 }
 
-#endif
 
 /* Partial specializations are not possible in c++
  * But here is the code for an arbitrary order iterator, probably no one wants to do more than a couple
@@ -504,3 +503,4 @@ inline void Theta_map4(const amrex::Geometry geom,CParticleContainer&P, amrex::M
    Theta_map2<W_range>(geom,P,E,B,alpha*dt);
 }
 
+#endif

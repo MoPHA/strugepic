@@ -81,11 +81,11 @@ void B_curl(const amrex::Geometry geom, amrex::Box const& bx,  amrex::Array4<amr
 }
 
 void push_B_E(const amrex::Geometry geom, amrex::Box const& bx,  amrex::Array4<amrex::Real> const& B, amrex::Array4<amrex::Real const> const& E,double dt){
-    push_ff<1>(geom,bx,E,B,E_curl,MABC<X>,dt);
+    push_ff<E_curl,MABC<X>>(geom,bx,E,B,dt);
 }
 
 void push_E_B(const amrex::Geometry geom, amrex::Box const& bx,  amrex::Array4<amrex::Real> const& E, amrex::Array4<amrex::Real const> const& B,double dt){
-    push_ff<1>(geom,bx,B,E,B_curl,MABC<X>,dt);
+    push_ff<B_curl,MABC<X>>(geom,bx,B,E,dt);
     }
 
 
