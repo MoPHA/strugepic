@@ -164,18 +164,6 @@ int get_num_segments(const amrex::Geometry geom, amrex::Real x_start,amrex::Real
 }
 
 
-template<int comp> 
-std::pair<amrex::Real,int> reflect_boundary(const amrex::Geometry geom,amrex::Real pos ){
-    if(pos < geom.ProbLo(comp) +PART_BOUND*geom.CellSize(comp)){
-            return {-pos + 2*(geom.ProbLo(comp) + PART_BOUND*geom.CellSize(comp) ),-1}; 
-    }else if(pos > geom.ProbHi(comp) - PART_BOUND*geom.CellSize(comp) )
-    {
-            return {-pos + 2*(geom.ProbHi(comp) - PART_BOUND*geom.CellSize(comp) ),-1};
-    }
-    else{
-        return {pos,1}; 
-    }
-}
 
 
 
@@ -183,14 +171,14 @@ std::pair<amrex::Real,int> reflect_boundary(const amrex::Geometry geom,amrex::Re
 // system starts at (0,0) 
 // cell size is 1 
 template<int comp>
-inline int construct_segments(amrex::Real x_start ,amrex::Real x_end,std::array<amrex::Real,3> const&seg_points,std::array<int,2> const& seg_idx){
+inline int construct_segments(amrex::Real x_start ,amrex::Real x_end,std::array<amrex::Real,3>& seg_points,std::array<int,2> & seg_idx){
     seg_idx[0]=floor(x_start);
     seg_idx[1]=floor(x_end);
     int diff=seg_idx[1]-seg_idx[0];
     int ng=abs(diff)+1;
     seg_points[0]=x_start;
-    if(ng==1){
-    seg_points[1]=seg_idx[0]+diff;
+    if(ng==2){
+    seg_points[1]=seg_idx[0]+(diff+1)/2;
     seg_points[2]=x_end;
     }
     else{
@@ -199,47 +187,23 @@ inline int construct_segments(amrex::Real x_start ,amrex::Real x_end,std::array<
     return ng; 
 }
 
-
-
-
-// List of segments with start,end , cell_idexx. all 1D
-// How do we handle periodicity?
-template<int comp>
-void get_segment_list(const amrex::Geometry geom,
-        std::array<std::tuple<amrex::Real,amrex::Real,int>,2> &segments,int num_segments, amrex::Real x_start ,amrex::Real x_end){
-        
-    const auto cellsize=geom.CellSize(comp);
-    const auto problo = geom.ProbLo(comp);
-    double segment_start = x_start;
-    double segment_end;
-    int segment_index=get_point_line<comp>(geom,segment_start);
-        int sig;
-    if(x_start > x_end ){
-        sig=-1; 
-
-
-    }else{
-        sig=1;
+template<int comp,int W_range>
+inline bool segment_reflect(amrex::Geometry geom,std::array<amrex::Real,3>& seg_points,std::array<int,2> & seg_idx){
+if(!geom.isPeriodic(comp) && ((seg_idx[1] == geom.Domain().smallEnd(comp)+W_range ) || (seg_idx[1] == geom.Domain().bigEnd(comp)-W_range) )){
+        seg_idx[1]=seg_idx[0];
+        seg_points[2]=2*seg_points[1]-seg_points[2];
+        return true;
     }
-    if(num_segments == 2){
-            segment_end = (segment_index+ (sig+1)/2)*cellsize + problo; 
-            segments[0]=std::make_tuple(segment_start,segment_end,segment_index);
-            segment_index =segment_index+sig;
-        
-            segment_start=(segment_index -((sig-1))/2)*cellsize+problo;
-            if(!geom.isPeriodic(comp) && ((segment_index == geom.Domain().smallEnd(comp)+PART_BOUND ) || (segment_index == geom.Domain().bigEnd(comp)-PART_BOUND) )){
-              auto res=reflect_boundary<comp>(geom,x_end);
-              x_end=res.first;
-              sig*=-1;
-            }
-        segment_end = x_end; 
-        segments[1]=std::make_tuple(segment_start,segment_end,segment_index); 
-    }
-    else{
-        segment_end = x_end; 
-        segments[0]=std::make_tuple(segment_start,segment_end,segment_index);
-    }
+        return false;
 }
+template<int comp>
+inline void particle_reflect(CParticle &p,std::array<amrex::Real,3>& seg_points){
+    p.pos(comp)=seg_points[2];
+    p.rdata(comp+2)*=-1;
+}
+
+
+
 
 std::pair<amrex::Real,amrex::Real> get_total_energy(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &E, amrex::MultiFab &B );
 void add_particle_n_per_cell(const amrex::Geometry geom, CParticleContainer&P,double m,double q,double v,int n);

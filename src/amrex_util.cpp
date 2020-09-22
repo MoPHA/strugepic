@@ -173,7 +173,15 @@ for(amrex::MFIter mfi= P.MakeMFIter(0) ;mfi.isValid();++mfi){
 
 double bernstein_density(const amrex::Geometry geom, int i , int j, int k){
     int nr=380;
-    if(i < nr+320){
+    
+    auto domain=geom.Domain();
+    auto lod=amrex::lbound(domain);
+    auto hid=amrex::ubound(domain);
+    if(i<=lod.x+3 | i>=hid.x-3){
+        return 0;
+    }
+
+    else if(i < nr+320){
         return exp( -(i-(nr+320))*(i-(nr+320))/( 2*(nr/3.5)*(nr/3.5) ) ); 
     }
     else if(i >= 1300){
@@ -284,9 +292,6 @@ for(amrex::MFIter mfi= P.MakeMFIter(0) ;mfi.isValid();++mfi){
            double y = geom.ProbLo(Y) + j*geom.CellSize(Y);
            double z = geom.ProbLo(Z) + k*geom.CellSize(Z);
            int num_particles = dist_func(geom,i,j,k)*ppc_max;  
-           if((i <= PART_BOUND+lod.x  || i >= hid.x-PART_BOUND) && !geom.isPeriodic(X)){
-            continue;
-           }
             for(int p =0; p < num_particles ; p++){ 
                 add_single_particle(particles,{x+dist(mt)*geom.CellSize(X),y+dist(mt)*geom.CellSize(Y),z+dist(mt)*geom.CellSize(Z)},{vel(mt),vel(mt),vel(mt)},m_c,q_c);
             }
@@ -325,9 +330,6 @@ for(amrex::MFIter mfi= P.MakeMFIter(0) ;mfi.isValid();++mfi){
            double y = geom.ProbLo(Y) + j*geom.CellSize(Y);
            double z = geom.ProbLo(Z) + k*geom.CellSize(Z);
             for(int p =0; p < n ; p++){ 
-           if((i <= PART_BOUND+lod.x  || i >= hid.x-PART_BOUND) && !geom.isPeriodic(X)){
-            continue;
-           }
                 add_single_particle(particles,{x+dist(mt)*geom.CellSize(X),y+dist(mt)*geom.CellSize(Y),z+dist(mt)*geom.CellSize(Z)},{vel(mt),vel(mt),vel(mt)},m/n,q/n);
             }
        }

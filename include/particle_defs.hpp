@@ -39,15 +39,6 @@
 #define VY 3
 #define VZ 4
 
-// Constant for non-periodic particle boundary
-// Particles are reflected before the boundary as
-// not to affect / be affected by the boundary.
-// =2 would mean that particles are reflected 2 cells before the
-// actual boundary
-// This would affect the segment calculation and the position calculations
-#define PART_BOUND 5 
-
-// 
 
 
 

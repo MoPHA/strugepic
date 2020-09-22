@@ -70,13 +70,14 @@ void G_Theta_E(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab&
 }
 
 
-
+typedef bool (*SEG_BOUNDARY)(const amrex::Geometry,std::array<amrex::Real,3> &, std::array<int,2> &);
+typedef void (*PART_BOUNDARY)(CParticle &, std::array<amrex::Real,3> &);
 
 // This is for one particle type
 // If there are several you need to do this again
 // 0 -> x  , 1-> y 2->z
-template<int comp,int W_range>
-void Theta(CParticles&particles, const amrex::Geometry geom,amrex::Array4<amrex::Real> const& E ,amrex::Array4<amrex::Real> const& B  ,amrex::Box bx ,int ng,double dt){ 
+template<int comp,int W_range,SEG_BOUNDARY F_SEG ,PART_BOUNDARY F_PART>
+void Theta(CParticles&particles, const amrex::Geometry geom,amrex::Array4<amrex::Real> const& E ,amrex::Array4<amrex::Real> const& B  ,amrex::Box bx,double dt){ 
     const auto low = geom.ProbLo();
     const auto Ics = geom.InvCellSize();
     // Remote particle grid lower corner
@@ -87,11 +88,6 @@ void Theta(CParticles&particles, const amrex::Geometry geom,amrex::Array4<amrex:
     const  double B_coef = q/m*geom.CellSize(comp);
     const  double E_coef = q*Ics[X]*Ics[Y]*Ics[Z]*geom.CellSize(comp);
         double new_pos=p.pos(comp)+dt*p.rdata(comp+2);
-        int num_segments=get_num_segments<comp>(geom,p.pos(comp),new_pos);
-       // Never more than two segments!! 
-        std::array<std::tuple<amrex::Real,amrex::Real,int>,2> segments;
-
-        get_segment_list<comp>(geom,segments,num_segments, p.pos(comp) , new_pos);
         int coord[3];
         coord[X]=floor((p.pos(X) -low[X])*Ics[X]);
         coord[Y]=floor((p.pos(Y) -low[Y])*Ics[Y]);
@@ -147,13 +143,18 @@ void Theta(CParticles&particles, const amrex::Geometry geom,amrex::Array4<amrex:
                 comp_uWp[idx]=Wp(nu-cu);
                 idx++;
             }
+        
+        std::array<amrex::Real,3> seg_points;
+        std::array<int,2> seg_idx;
+        
+         int num_segments=construct_segments<comp>(p.pos(comp),new_pos,seg_points,seg_idx);
+         //bool out_not_periodic=segment_reflect<comp,W_range>(geom,seg_points,seg_idx);
+         bool out_not_periodic=F_SEG(geom,seg_points,seg_idx);
 
         for(int seg=0;seg<num_segments;seg++){
-            coord[comp] = std::get<2>(segments[seg]);
-            auto i_s = std::get<0>(segments[seg]); 
-            auto i_e = std::get<1>(segments[seg]);
-            
-
+            coord[comp] = seg_idx[seg];
+            auto i_s = seg_points[seg]; 
+            auto i_e = seg_points[seg+1];
             std::array<double,Wp_r> compI_W12={0};
            
            auto ncs=(i_s-low[comp])*Ics[comp];
@@ -208,10 +209,9 @@ void Theta(CParticles&particles, const amrex::Geometry geom,amrex::Array4<amrex:
         }
 
         // Update position
-            if(!geom.isPeriodic(comp)){
-                auto res = reflect_boundary<comp>(geom,p.pos(comp)+dt*p.rdata(2+comp));
-                p.pos(comp) =res.first;
-                p.rdata(comp+2)*=res.second;   
+            if(out_not_periodic){
+                F_PART(p,seg_points);                
+                //particle_reflect<comp>(p,seg_points);
             }
             else{
             p.pos(comp)+=dt*p.rdata(2+comp);
@@ -328,8 +328,7 @@ void G_Theta(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &E
         
         amrex::Array4<amrex::Real> const& B_loc = bfab.array(); 
         amrex::Array4<amrex::Real> const& E_loc = E[mfi].array(); 
-        int ng = E.nGrow();
-        Theta<coord,W_range>(particles,geom,E_loc,B_loc,box,ng,dt);
+        Theta<coord,W_range,segment_reflect<coord,W_range>,particle_reflect<coord>>(particles,geom,E_loc,B_loc,box,dt);
     }
     
     E.SumBoundary(geom.periodicity());
