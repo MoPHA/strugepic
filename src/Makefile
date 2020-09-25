@@ -1,6 +1,5 @@
 SRCS    := $(wildcard *.cpp)
 OBJS    := $(patsubst %.cpp,%.o,$(SRCS))
-MPICXX=mpicxx
 
 all: $(OBJS)
 
