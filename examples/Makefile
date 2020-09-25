@@ -19,5 +19,5 @@ bernstein:
 	cd full && $(MPICXX) *.cpp -o main $(CXXFLAGS) $(LFLAGS)
 
 clean:
-	cd field_only && rm -f main Backtrace* *.out *.data
-	cd full && rm -f main Backtrace* *.out *.data
+	cd field_only && rm -rf main Backtrace* *.out *.data Field_Only_Data_out
+	cd full && rm -rf main Backtrace* *.out *.data Bernstein_Data_out
