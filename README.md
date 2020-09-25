@@ -1,4 +1,5 @@
-#StrugePIC
+# StrugePIC
+
 A Structure preserving PIC algorithm implemented using AMReX.
 
 
