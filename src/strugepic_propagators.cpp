@@ -2,9 +2,9 @@
 #include "AMReX_Geometry.H"
 #include "AMReX_Loop.H"
 #include "AMReX_MultiFab.H"
-#include "particle_defs.hpp"
-#include "amrex_util.hpp"
-#include "propagators.hpp"
+#include "strugepic_defs.hpp"
+#include "strugepic_util.hpp"
+#include "strugepic_propagators.hpp"
 
 
 

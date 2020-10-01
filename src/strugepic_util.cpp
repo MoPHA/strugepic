@@ -14,11 +14,11 @@
 #include <utility>
 #include <vector>
 #include "AMReX_VisMF.H"
-#include "particle_defs.hpp"
-#include "amrex_util.hpp"
+#include "strugepic_defs.hpp"
+#include "strugepic_util.hpp"
 #include <fstream>
-#include "w_defs.hpp"
-#include "propagators.hpp"
+#include "strugepic_w.hpp"
+#include "strugepic_propagators.hpp"
 
 
 void set_uniform_field(amrex::MultiFab &A, std::array<double,3> vals){

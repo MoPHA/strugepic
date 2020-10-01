@@ -1,11 +1,11 @@
-#ifndef amrex_util
-#define amrex_util
+#ifndef UTIL
+#define UTIL
 #include "AMReX_Array.H"
 #include "AMReX_Geometry.H"
 #include "AMReX_MultiFab.H"
 #include <AMReX_PlotFileUtil.H>
-#include "particle_defs.hpp"
-#include "w_defs.hpp"
+#include "strugepic_defs.hpp"
+#include "strugepic_w.hpp"
 #include <tuple>
 #include <math.h>
 // What cell index is a given point in?

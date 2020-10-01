@@ -1,5 +1,5 @@
-#ifndef particledefs
-#define particledefs
+#ifndef PARTICLEDEFS
+#define PARTICLEDEFS
 #include "AMReX_Particles.H"
 #include<AMReX.H>
 

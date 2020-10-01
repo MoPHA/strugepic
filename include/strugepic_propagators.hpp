@@ -1,14 +1,14 @@
-#ifndef PROPAGATOR
-#define PROPAGATOR
+#ifndef PROPAGATORS
+#define PROPAGATORS
 #include<AMReX_Geometry.H>
 #include <array>
-#include "w_defs.hpp"
+#include "strugepic_w.hpp"
 #include "AMReX_Box.H"
 #include "AMReX_BoxArray.H"
 #include "AMReX_BoxDomain.H"
 #include "AMReX_MultiFab.H"
-#include "particle_defs.hpp"
-#include "amrex_util.hpp"
+#include "strugepic_defs.hpp"
+#include "strugepic_util.hpp"
 #include<cmath>
 
 

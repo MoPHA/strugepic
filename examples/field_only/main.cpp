@@ -20,9 +20,9 @@
 // std c++
 #include <iostream>
 // Own
-#include "amrex_util.hpp"
-#include "propagators.hpp"
-#include "particle_defs.hpp"
+#include "strugepic_util.hpp"
+#include "strugepic_propagators.hpp"
+#include "strugepic_defs.hpp"
 #include "cmath"
 
 void set_sin_field(amrex::MultiFab &A){
