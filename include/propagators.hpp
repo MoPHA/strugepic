@@ -312,7 +312,7 @@ void push_V_E( CParticles&particles, const amrex::Geometry geom,amrex::Array4<am
 
 
 
-template <int coord,int W_range>
+template <int comp,int W_range>
 void G_Theta(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &E, amrex::MultiFab &B,double dt ){
 
     B.FillBoundary(geom.periodicity());
@@ -328,7 +328,7 @@ void G_Theta(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &E
         
         amrex::Array4<amrex::Real> const& B_loc = bfab.array(); 
         amrex::Array4<amrex::Real> const& E_loc = E[mfi].array(); 
-        Theta<coord,W_range,segment_reflect<coord,W_range>,particle_reflect<coord>>(particles,geom,E_loc,B_loc,box,dt);
+        Theta<comp,W_range,segment_reflect<comp,W_range>,particle_reflect<comp>>(particles,geom,E_loc,B_loc,box,dt);
     }
     
     E.SumBoundary(geom.periodicity());
@@ -339,25 +339,25 @@ void G_Theta(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &E
 }
 
 
-template<int coord,int boundary_size>
+template<int comp,int boundary_size>
 void construct_exterior_interior(const amrex::Geometry geom ,std::vector<std::array<int,3>> &exterior,amrex::Box &interior){
    const auto domain=geom.Domain();
    const auto Lo = domain.loVect();
    const auto Hi = domain.hiVect();
    const auto local_lo=interior.loVect();
    const auto local_hi=interior.hiVect();
-   if(!geom.isPeriodic(coord) && boundary_size > 0){
+   if(!geom.isPeriodic(comp) && boundary_size > 0){
         std::array<int,3> point;
-        const int up_c =(coord+1) % 3;
-        const int lo_c =(coord+2) % 3;
-       if(interior.loVect()[coord]==Lo[coord]){
-           interior.growLo(coord,-boundary_size);
+        const int up_c =(comp+1) % 3;
+        const int lo_c =(comp+2) % 3;
+       if(interior.loVect()[comp]==Lo[comp]){
+           interior.growLo(comp,-boundary_size);
             for(int k=local_lo[up_c]; k <= local_hi[up_c];k++){
                 for(int j=local_lo[lo_c]; j<=local_hi[lo_c];j++ ){
-                    for(int i=Lo[coord]; i < Lo[coord]+boundary_size;i++){
+                    for(int i=Lo[comp]; i < Lo[comp]+boundary_size;i++){
                         point[up_c]=k;
                         point[lo_c]=j;
-                        point[coord]=i;
+                        point[comp]=i;
                         exterior.push_back(point);
 
                     }
@@ -365,14 +365,14 @@ void construct_exterior_interior(const amrex::Geometry geom ,std::vector<std::ar
             }
        }
         
-       if(interior.hiVect()[coord]==Hi[coord]){
-           interior.growHi(coord,-boundary_size);
+       if(interior.hiVect()[comp]==Hi[comp]){
+           interior.growHi(comp,-boundary_size);
             for(int k=local_lo[up_c]; k <= local_hi[up_c];k++){
                 for(int j=local_lo[lo_c]; j<=local_hi[lo_c];j++ ){
-                    for(int i=Hi[coord]; i > Hi[coord]-boundary_size;i--){
+                    for(int i=Hi[comp]; i > Hi[comp]-boundary_size;i--){
                         point[up_c]=k;
                         point[lo_c]=j;
-                        point[coord]=i;
+                        point[comp]=i;
                         exterior.push_back(point);
                     }
                 }
@@ -381,28 +381,28 @@ void construct_exterior_interior(const amrex::Geometry geom ,std::vector<std::ar
    }     
 }
 
-template<int coord>
+template<int comp>
 void MABC(const amrex::Geometry geom,amrex::Array4<amrex::Real> const& A,std::vector<std::array<int,3>> const&exterior,double dt){
    const auto domain=geom.Domain();
    const auto Lo = domain.loVect();
    const auto Hi = domain.hiVect();
         for(auto point : exterior){
-          if(point[coord] == Lo[coord]){
+          if(point[comp] == Lo[comp]){
             const int i = point[X];
             const int j = point[Y];
             const int k = point[Z];
             auto npoint=point;
-            npoint[coord]+=1;
+            npoint[comp]+=1;
            A(i,j,k,X) = (1-dt)*A(i,j,k,X)+A(npoint[X],npoint[Y],npoint[Z],X)*dt;
            A(i,j,k,Y) = (1-dt)*A(i,j,k,Y)+A(npoint[X],npoint[Y],npoint[Z],Y)*dt;
            A(i,j,k,Z) = (1-dt)*A(i,j,k,Z)+A(npoint[X],npoint[Y],npoint[Z],Z)*dt; 
           }
-          else if(point[coord] == Hi[coord]){ 
+          else if(point[comp] == Hi[comp]){ 
             const int i = point[X];
             const int j = point[Y];
             const int k = point[Z];
             auto npoint=point;
-            npoint[coord]-=1;
+            npoint[comp]-=1;
            A(i,j,k,X) = (1-dt)*A(i,j,k,X)+A(npoint[X],npoint[Y],npoint[Z],X)*dt;
            A(i,j,k,Y) = (1-dt)*A(i,j,k,Y)+A(npoint[X],npoint[Y],npoint[Z],Y)*dt;
            A(i,j,k,Z) = (1-dt)*A(i,j,k,Z)+A(npoint[X],npoint[Y],npoint[Z],Z)*dt; 
