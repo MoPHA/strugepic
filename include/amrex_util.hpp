@@ -12,7 +12,6 @@
 // This is equivalent with the index for the "Lower left" corner
 amrex::IntArray get_point_cell(const amrex::Geometry geom,const amrex::RealArray pos); 
 void add_single_particle( CParticleTile&particlet ,amrex::RealArray pos , amrex::RealArray vel, double m,double q);
-std::array<int,3> get_num_segments(const amrex::Geometry geom,const amrex::RealArray x_start,const amrex::RealArray  x_end);
 void FillDirichletBoundary(const amrex::Geometry geom, amrex::MultiFab &A );
 double bernstein_density(const amrex::Geometry geom, int i , int j, int k);
 double simple_line_density(const amrex::Geometry geom ,int i , int j , int k);
@@ -154,13 +153,6 @@ int get_point_line(const amrex::Geometry geom,const amrex::Real pos){
     const auto icellsize=geom.InvCellSize(comp);
     auto problo=geom.ProbLo(comp);
     return floor((pos -problo)*icellsize);
-}
-template<int comp>
-int get_num_segments(const amrex::Geometry geom, amrex::Real x_start,amrex::Real x_end ){
-    auto start_idx=get_point_line<comp>(geom,x_start);
-    auto end_idx=get_point_line<comp>(geom,x_end);
-    return abs(start_idx-end_idx)+1;
-
 }
 
 

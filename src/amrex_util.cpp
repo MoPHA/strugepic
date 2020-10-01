@@ -119,21 +119,6 @@ std::array<int,3> get_point_cell(const amrex::Geometry geom,const amrex::RealArr
 }
 
 
-// How many line segments are there if the path is split at each cell boundary
-// Exact border case is not handled?
-// I.e x_start or x_end at cell boundary
-// Vectorization? 
-std::array<int,3> get_num_segments(const amrex::Geometry geom,const amrex::RealArray x_start,const amrex::RealArray  x_end){
-    std::array<int,3> n;
-    auto start_idx=get_point_cell(geom,x_start);
-    auto end_idx=get_point_cell(geom,x_end);
-    n[0]=abs(start_idx[0]-end_idx[0])+1;
-    n[1]=abs(start_idx[1]-end_idx[1])+1;
-    n[2]=abs(start_idx[2]-end_idx[2])+1;
-    return n;
-}
-
-
 
 
 
