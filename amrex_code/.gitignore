@@ -1,9 +1,0 @@
-plt_*
-plt*
-Backtrace*
-amrex_particles_to_vtp
-*.out
-*.data
-*.png
-*.gif
-amrex_main

@@ -1,0 +1,30 @@
+# This should complete
+# in about 1h using 75 cores
+# Tested on mahti.csc.fi
+
+
+
+n_cell = 1800 2 2
+max_grid_size = 24 2 2
+x_periodic = 0
+
+nsteps = 8000
+start_step = 0 # If this is not zero we will try to do a restart from a plotfile
+output_interval = 100 ;
+checkpoint_interval = 4000 ;
+dt = 0.5
+data_folder_name = "Bernstein_Data_out"
+
+q = 15.239667683505981
+m = 426461.27834
+v = 0.008668732661691913
+ppc = 4000
+
+E_init = 0 0 0
+B_init = 0 0 250.39022172065484
+source_pos = 4
+source_comp = 1
+E0 = 1.5185670500857256
+omega = 0.014495335501085017
+
+
