@@ -31,7 +31,7 @@ void set_sin_field(amrex::MultiFab &A){
         const amrex::Box& box = mfi.validbox();
         amrex::Array4<amrex::Real> const& a = A.array(mfi); 
 
-    amrex::ParallelFor(box,  [=] AMREX_GPU_DEVICE (int i,int j,int k ){
+    amrex::ParallelFor(box,  [=]  (int i,int j,int k ){
 
                 a(i,j,k,Y)= sin(2*i*2*3.14151962/300);
 
