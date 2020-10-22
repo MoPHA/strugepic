@@ -26,7 +26,7 @@ void set_uniform_field(amrex::MultiFab &A, std::array<double,3> vals){
     for (amrex::MFIter mfi(A); mfi.isValid(); ++mfi){
         const amrex::Box& box = mfi.validbox();
         amrex::Array4<amrex::Real> const& a = A.array(mfi); 
-
+/*
     amrex::ParallelFor(box,  [=]  (int i,int j,int k ){
 
                 a(i,j,k,X)= vals[X];
@@ -34,7 +34,7 @@ void set_uniform_field(amrex::MultiFab &A, std::array<double,3> vals){
                 a(i,j,k,Z)= vals[Z];
 
             });
-
+*/
     }
 }
 
@@ -43,10 +43,11 @@ inline void dump_field(amrex::MultiFab & A , std::string filename){
     for (amrex::MFIter mfi(A); mfi.isValid(); ++mfi){
         const amrex::Box& box = mfi.validbox();
         amrex::Array4<amrex::Real> const& a = A.array(mfi); 
+/*
     amrex::ParallelFor(box, [=]  (int i,int j,int k ){
             amrex::AllPrintToFile(filename) <<i << " "<< j << " " << k << " "  <<  a(i,j,k,X) << " " <<a(i,j,k,Y) << " " << a(i,j,k,Z) << "\n";
             });
-
+*/
     }
 
 }
@@ -83,7 +84,7 @@ void FillDirichletBoundary(const amrex::Geometry geom, amrex::MultiFab &A,const 
     for (amrex::MFIter mfi(A); mfi.isValid(); ++mfi){
         const amrex::Box& box = mfi.fabbox();
         amrex::Array4<amrex::Real> const& a = A.array(mfi); 
-
+    /*
     amrex::ParallelFor(box,  [=]  (int i,int j,int k ){
             if(
               (i < lo.x && !periodic[X] ) ||
@@ -100,7 +101,7 @@ void FillDirichletBoundary(const amrex::Geometry geom, amrex::MultiFab &A,const 
 
             }
          });
-
+*/
     }
 }
 
@@ -200,11 +201,11 @@ void set_field_gradient_gaussian_x(amrex::MultiFab &A,double A_max,double center
     for (amrex::MFIter mfi(A); mfi.isValid(); ++mfi){
         const amrex::Box& box = mfi.validbox();
         amrex::Array4<amrex::Real> const& a = A.array(mfi); 
-
+    /*
     amrex::ParallelFor(box,  [=]  (int i,int j,int k ){
                 a(i,j,k,X)=A_max*d_gaussian_dist(i,center,std_dev);                 
             });
-
+    */
     }
 
 }

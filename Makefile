@@ -2,6 +2,19 @@ export
 
 CXXFLAGS+= -std=c++14 -O3 -mavx2  -march=native   
 MPICXX=mpic++
+
+
+
+
+ifeq ($(BUILD),GPU)
+  CXX=nvcc -x cu --expt-relaxed-constexpr --expt-extended-lambda --gpu-architecture=compute_70 --gpu-code=sm_70,compute_70
+  NVE="
+  NVB=--compiler-options="
+else
+  CXX=g++
+endif
+
+
 LNAME=strugepic
 
 SRCS := $(wildcard src/*.cpp src/interpolation/*.cpp )
@@ -11,9 +24,9 @@ INTERPOLATION_FUNC=P8R2
 
 all:
 	cd src && $(MAKE)
-	cd src/interpolation && $(MAKE)
+	cd src/interpolation && $(MAKE) CXX=g++
 	mkdir -p lib
-	$(MPICXX) -shared  $(OBJS) $(CXXFLAGS) -o lib/lib$(LNAME).so
+	$(MPICXX) -shared  $(OBJS) -o lib/lib$(LNAME).so
 
 install:
 	mkdir $(PREFIX)/lib

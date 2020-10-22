@@ -23,11 +23,13 @@ void E_source::operator()(double t){
     for (amrex::MFIter mfi(E); mfi.isValid(); ++mfi){
         amrex::Array4<amrex::Real> const& b = E.array(mfi); 
         const auto box= mfi.validbox();
+        /*
         amrex::ParallelFor(box, [=]  (int i,int j,int k ){
             if(i == pos ){
                 b(i,j,k,comp) +=2*E0*sin(omega*t)*dt;
             }
         });
+        */
     }
     E.FillBoundary(geom.periodicity());
  }
@@ -62,21 +64,25 @@ inline std::array<amrex::Real,3> curl_bdiff_1(amrex::Array4<amrex::Real const> c
 
 void E_curl(const amrex::Geometry geom, amrex::Box const& bx,  amrex::Array4<amrex::Real const> const& E, amrex::Array4<amrex::Real > const& B,double dt){
 
+    /*
    amrex::ParallelFor(bx, [=]  (int i,int j,int k ){
          auto res = curl_fdiff_1(E,i,j,k,geom.InvCellSize());
          B(i,j,k,X) =B(i,j,k,X)-dt*res[0] ;  
          B(i,j,k,Y) =B(i,j,k,Y)-dt*res[1] ;
          B(i,j,k,Z) =B(i,j,k,Z)-dt*res[2] ;   
-        }); 
+        });
+    */
 }
 
 void B_curl(const amrex::Geometry geom, amrex::Box const& bx,  amrex::Array4<amrex::Real const> const& B, amrex::Array4<amrex::Real> const& E,double dt){
-   amrex::ParallelFor(bx, [=]  (int i,int j,int k ){
+   /*
+    amrex::ParallelFor(bx, [=]  (int i,int j,int k ){
          auto res = curl_bdiff_1(B,i,j,k,geom.InvCellSize());
          E(i,j,k,X) =E(i,j,k,X)+dt*res[0] ;  
          E(i,j,k,Y) =E(i,j,k,Y)+dt*res[1] ;
          E(i,j,k,Z) =E(i,j,k,Z)+dt*res[2] ;   
-        }); 
+        });
+   */
 
 }
 

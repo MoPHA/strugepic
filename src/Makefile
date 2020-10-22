@@ -1,12 +1,11 @@
 SRCS    := $(wildcard *.cpp)
 OBJS    := $(patsubst %.cpp,%.o,$(SRCS))
+CXXFLAGS+=-fPIC
 
 all: $(OBJS)
 
 %.o: %.cpp
-	$(MPICXX) $(CXXFLAGS) -fPIC -I ../include $< -o $@ -c 
-
-
+	$(CXX) $(NVB)  $(CXXFLAGS) $(NVE) -I ../include $< -o $@ -c 
 
 .PHONY: clean
 clean:
