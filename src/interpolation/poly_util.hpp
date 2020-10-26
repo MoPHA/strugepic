@@ -1,10 +1,9 @@
 #ifndef POLYUTIL
 #define POLYUTIL
 
-
-
-#include<iostream>
-
+#ifdef GPUBUILD
+    #define DEVICE_QUALIFIER __device__  
+#endif
 // Some quick utility functions 
 // To evaluate piecewise polynomials in a compact region
 // with integer limits and integer bins
@@ -15,8 +14,8 @@
 // top include directory
 
 
-    template <class T,int Poly_degree,int lower_limit>
-    inline T P_eval(T x,const T* coeffs){
+ template <class T,int Poly_degree,int lower_limit>
+   DEVICE_QUALIFIER   inline T P_eval(T x,const T* coeffs){
             int start_idx = ( floor(x)-lower_limit)*(Poly_degree+1);
             T sum =coeffs[start_idx];
             for(int i=1; i<(Poly_degree+1);i++){
@@ -25,8 +24,8 @@
             return sum;
         }
 
-    template <class T,int Poly_degree,int lower_limit,int upper_limit>
-    inline T P(T x,const T* coeffs){
+ template <class T,int Poly_degree,int lower_limit,int upper_limit>
+   DEVICE_QUALIFIER  inline T P(T x,const T* coeffs){
 
         if( x >= upper_limit ||  x <= lower_limit){
             return 0;
@@ -36,8 +35,8 @@
         }
         }
 
-    template <class T, int Poly_degree,int lower_limit, int upper_limit>
-        inline T IP(T q,const T* coeffs){
+  template <class T, int Poly_degree,int lower_limit, int upper_limit>
+   DEVICE_QUALIFIER   inline T IP(T q,const T* coeffs){
             if(q >= upper_limit){
                 return 1;
             }else if(q < lower_limit){
