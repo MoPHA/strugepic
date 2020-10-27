@@ -10,10 +10,14 @@ ifeq ($(INTERPOLATION_FUNC),PWL)
 CXXFLAGS+=-DINTERPOLATION_PWL=1
 endif
 
+ifeq ($(BUILD),GPU)
+CXXFLAGS+=-DGPUBUILD
+endif
+
 all: $(OBJS)
 
 %.o:  %.cpp $(HDS)
-	$(CXX) -fPIC $(CXXFLAGS)  $< -o $@ -c
+	$(CXX) $(NVB) -fPIC $(CXXFLAGS) $(NVE)  $< -o $@ -c
 
 .PHONY: clean
 clean:

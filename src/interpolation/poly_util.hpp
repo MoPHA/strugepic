@@ -2,7 +2,9 @@
 #define POLYUTIL
 
 #ifdef GPUBUILD
-    #define DEVICE_QUALIFIER __device__  
+    #define DEVICE_QUALIFIER __host__ __device__  
+#else
+    #define DEVICE_QUALIFIER
 #endif
 // Some quick utility functions 
 // To evaluate piecewise polynomials in a compact region

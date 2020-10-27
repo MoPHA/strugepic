@@ -7,8 +7,8 @@
 
 #ifdef GPUBUILD
     #define ARRAY_QUALIFIER __device__ __const__ REAL
-    #define FUNC_QUALIFIER __device__ REAL __attribute__((weak)) 
-    #define INT_FUNC_QUALIFIER __device__ inline REAL  
+    #define FUNC_QUALIFIER  __host__ __device__ REAL __attribute__((weak)) 
+    #define INT_FUNC_QUALIFIER __host__ __device__ inline REAL  
 #else
     #define ARRAY_QUALIFIER const REAL
     #define FUNC_QUALIFIER REAL __attribute__((weak)) 

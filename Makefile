@@ -24,7 +24,7 @@ INTERPOLATION_FUNC=P8R2
 
 all:
 	cd src && $(MAKE)
-	cd src/interpolation && $(MAKE) CXX=g++
+	cd src/interpolation && $(MAKE)
 	mkdir -p lib
 	$(MPICXX) -shared  $(OBJS) -o lib/lib$(LNAME).so
 
