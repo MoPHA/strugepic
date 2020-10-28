@@ -14,10 +14,10 @@ ifeq ($(BUILD),GPU)
 CXXFLAGS+=-DGPUBUILD
 endif
 
-all: $(OBJS)
+all: $(DOBJS) $(OBJS)
 
 %.o:  %.cpp $(HDS)
-	$(CXX) $(NVB) -fPIC $(CXXFLAGS) $(NVE)  $< -o $@ -c
+	$(CXX) $(NVB) $(CXXFLAGS) $(NVE)  $< -o $@ 
 
 .PHONY: clean
 clean:

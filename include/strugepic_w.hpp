@@ -8,6 +8,7 @@
 // How and where they are implement is up to the user (Just link against a compiled object file or dynamic library )
 
 
+
 AMREX_GPU_HOST_DEVICE amrex::Real W1(amrex::Real x);
 AMREX_GPU_HOST_DEVICE amrex::Real Wp(amrex::Real x);
 AMREX_GPU_HOST_DEVICE amrex::Real I_W1(amrex::Real a,amrex::Real b);
