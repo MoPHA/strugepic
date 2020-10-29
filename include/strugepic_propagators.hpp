@@ -235,7 +235,10 @@ void push_V_E( CParticles&particles, const amrex::Geometry geom,amrex::Array4<am
     const double m= p.rdata(M);
     const double q= p.rdata(Q);
     const double coef = dt*q/m;
-    auto coord =get_point_cell(geom,{p.pos(X),p.pos(Y),p.pos(Z)}) ;
+    int coord[3];
+    coord[X]=floor((p.pos(X) -low[X])*Ics[X]);
+    coord[Y]=floor((p.pos(Y) -low[Y])*Ics[Y]);
+    coord[Z]=floor((p.pos(Z) -low[Z])*Ics[Z]);
        
         double dvx=0;
         double dvy=0;
