@@ -17,7 +17,7 @@ endif
 all: $(DOBJS) $(OBJS)
 
 %.o:  %.cpp $(HDS)
-	$(CXX) $(NVB) $(CXXFLAGS) $(NVE)  $< -o $@ 
+	$(CXX) $(CXXFLAGS) $< -o $@ 
 
 .PHONY: clean
 clean:
