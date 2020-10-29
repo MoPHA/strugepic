@@ -70,8 +70,8 @@ void G_Theta_E(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab&
 }
 
 
-typedef bool (*SEG_BOUNDARY)(const amrex::Geometry,std::array<amrex::Real,3> &, std::array<int,2> &);
-typedef void (*PART_BOUNDARY)(CParticle &, std::array<amrex::Real,3> &);
+typedef bool (*SEG_BOUNDARY)(const amrex::Geometry,amrex::Real *, int *);
+typedef void (*PART_BOUNDARY)(CParticle &, amrex::Real * );
 
 // This is for one particle type
 // If there are several you need to do this again
@@ -144,11 +144,9 @@ void Theta(CParticles&particles, const amrex::Geometry geom,amrex::Array4<amrex:
                 idx++;
             }
         
-        std::array<amrex::Real,3> seg_points;
-        std::array<int,2> seg_idx;
-        
-         int num_segments=construct_segments<comp>(p.pos(comp),new_pos,seg_points,seg_idx);
-         //bool out_not_periodic=segment_reflect<comp,W_range>(geom,seg_points,seg_idx);
+         amrex::Real seg_points[3];
+         int seg_idx[2]; 
+         int num_segments=construct_segments(p.pos(comp),new_pos,seg_points,seg_idx);
          bool out_not_periodic=F_SEG(geom,seg_points,seg_idx);
 
         for(int seg=0;seg<num_segments;seg++){
@@ -213,9 +211,10 @@ void Theta(CParticles&particles, const amrex::Geometry geom,amrex::Array4<amrex:
                 F_PART(p,seg_points);                
                 //particle_reflect<comp>(p,seg_points);
             }
+
+        // .Redistribute should wrap the particles if periodic
             else{
             p.pos(comp)+=dt*p.rdata(2+comp);
-            shift_periodic<comp>(geom,p);
             }
         // B Vel update
         p.rdata( (comp +2 )% 3 +2   )+=B_coef*res_c1;

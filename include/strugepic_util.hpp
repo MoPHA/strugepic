@@ -7,6 +7,7 @@
 #include "strugepic_defs.hpp"
 #include "strugepic_w.hpp"
 #include <tuple>
+#include <AMReX_GpuQualifiers.H>
 #include <math.h>
 // What cell index is a given point in?
 // This is equivalent with the index for the "Lower left" corner
@@ -24,6 +25,7 @@ double uniform_density(const amrex::Geometry geom,int i ,int j ,int k);
 double gaussian_dist(double pos,double center,double std_dev);
 void set_field_gradient_gaussian_x(amrex::MultiFab &A,double A_max,double center,double std_dev);
 
+AMREX_GPU_HOST_DEVICE inline int construct_segments(amrex::Real x_start ,amrex::Real x_end, amrex::Real *seg_points,int *seg_idx);
 
 template<int W_range>
 void get_particle_number_density(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &P_dens){
@@ -159,28 +161,9 @@ int get_point_line(const amrex::Geometry geom,const amrex::Real pos){
 
 
 
-// Only two segments
-// system starts at (0,0) 
-// cell size is 1 
-template<int comp>
-inline int construct_segments(amrex::Real x_start ,amrex::Real x_end,std::array<amrex::Real,3>& seg_points,std::array<int,2> & seg_idx){
-    seg_idx[0]=floor(x_start);
-    seg_idx[1]=floor(x_end);
-    int diff=seg_idx[1]-seg_idx[0];
-    int ng=abs(diff)+1;
-    seg_points[0]=x_start;
-    if(ng==2){
-    seg_points[1]=seg_idx[0]+(diff+1)/2;
-    seg_points[2]=x_end;
-    }
-    else{
-    seg_points[1]=x_end; 
-    }
-    return ng; 
-}
 
 template<int comp,int W_range>
-inline bool segment_reflect(amrex::Geometry geom,std::array<amrex::Real,3>& seg_points,std::array<int,2> & seg_idx){
+AMREX_GPU_HOST_DEVICE inline bool segment_reflect(amrex::Geometry geom,amrex::Real * seg_points,int * seg_idx){
 if(!geom.isPeriodic(comp) && ((seg_idx[1] == geom.Domain().smallEnd(comp)+W_range ) || (seg_idx[1] == geom.Domain().bigEnd(comp)-W_range) )){
         seg_idx[1]=seg_idx[0];
         seg_points[2]=2*seg_points[1]-seg_points[2];
@@ -188,8 +171,9 @@ if(!geom.isPeriodic(comp) && ((seg_idx[1] == geom.Domain().smallEnd(comp)+W_rang
     }
         return false;
 }
+
 template<int comp>
-inline void particle_reflect(CParticle &p,std::array<amrex::Real,3>& seg_points){
+AMREX_GPU_HOST_DEVICE inline void particle_reflect(CParticle &p,amrex::Real* seg_points){
     p.pos(comp)=seg_points[2];
     p.rdata(comp+2)*=-1;
 }

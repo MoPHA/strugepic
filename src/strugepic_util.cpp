@@ -19,6 +19,7 @@
 #include <fstream>
 #include "strugepic_w.hpp"
 #include "strugepic_propagators.hpp"
+#include <AMReX_GpuQualifiers.H>
 
 
 void set_uniform_field(amrex::MultiFab &A, std::array<double,3> vals){
@@ -150,6 +151,25 @@ for(amrex::MFIter mfi= P.MakeMFIter(0) ;mfi.isValid();++mfi){
     }
     P.Redistribute();
 
+}
+
+// Only two segments
+// system starts at (0,0) 
+// cell size is 1 
+AMREX_GPU_HOST_DEVICE inline int construct_segments(amrex::Real x_start ,amrex::Real x_end, amrex::Real *seg_points,int *seg_idx){
+    seg_idx[0]=floor(x_start);
+    seg_idx[1]=floor(x_end);
+    int diff=seg_idx[1]-seg_idx[0];
+    int ng=abs(diff)+1;
+    seg_points[0]=x_start;
+    if(ng==2){
+    seg_points[1]=seg_idx[0]+(diff+1)/2;
+    seg_points[2]=x_end;
+    }
+    else{
+    seg_points[1]=x_end; 
+    }
+    return ng; 
 }
 
 
