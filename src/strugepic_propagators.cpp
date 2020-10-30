@@ -51,7 +51,7 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Array1D<amrex::Real,0,2> curl_cd
 
 
 // forward difference, first order
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Array1D<amrex::Real,0,2> curl_fdiff_1(amrex::Array4<amrex::Real const> const& a ,int i , int j ,int k, const double* ics){
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Array1D<amrex::Real,0,2> curl_fdiff_1(amrex::Array4<amrex::Real const> const& a ,int i , int j ,int k, const double* ics){
     return {
         ((a(i,j+1,k,Z)-a(i,j,k,Z))*ics[Y]-( a(i,j,k+1,Y)-a(i,j,k,Y))*ics[Z]),
         ((a(i,j,k+1,X)-a(i,j,k,X))*ics[Z]-( a(i+1,j,k,Z)-a(i,j,k,Z))*ics[X]),
@@ -60,7 +60,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Array1D<amrex::Real,0,2> curl_fdiff_1
 }
 
 // backward difference, first order
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Array1D<amrex::Real,0,2> curl_bdiff_1(amrex::Array4<amrex::Real const> const& a ,int i , int j ,int k, const double* ics){
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Array1D<amrex::Real,0,2> curl_bdiff_1(amrex::Array4<amrex::Real const> const& a ,int i , int j ,int k, const double* ics){
     return {
         ((a(i,j,k,Z)-a(i,j-1,k,Z))*ics[Y]-( a(i,j,k,Y)-a(i,j,k-1,Y))*ics[Z]),
         ((a(i,j,k,X)-a(i,j,k-1,X))*ics[Z]-( a(i,j,k,Z)-a(i-1,j,k,Z))*ics[X]),
