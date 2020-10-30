@@ -413,6 +413,38 @@ void MABC(const amrex::Geometry geom,amrex::Array4<amrex::Real> const& A,std::ve
 
 }
 
+template<int comp>
+void MABC_bad(const amrex::Geometry geom,amrex::Array4<amrex::Real> const& A,amrex::Box const &bx,double dt ){
+   const auto domain=geom.Domain();
+   const auto _Lo = domain.loVect();
+   const auto _Hi = domain.hiVect();
+    int Lo=_Lo[comp];
+    int Hi=_Hi[comp];
+
+
+   amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE  (int i,int j,int k ){
+            int npoint[3];
+            npoint[X]=i;
+            npoint[Y]=j;
+            npoint[Z]=k;
+           if(npoint[comp] == Lo){
+            npoint[comp]+=1;
+           A(i,j,k,X) = (1-dt)*A(i,j,k,X)+A(npoint[X],npoint[Y],npoint[Z],X)*dt;
+           A(i,j,k,Y) = (1-dt)*A(i,j,k,Y)+A(npoint[X],npoint[Y],npoint[Z],Y)*dt;
+           A(i,j,k,Z) = (1-dt)*A(i,j,k,Z)+A(npoint[X],npoint[Y],npoint[Z],Z)*dt; 
+          }
+          else if(npoint[comp] == Hi){ 
+            npoint[comp]-=1;
+           A(i,j,k,X) = (1-dt)*A(i,j,k,X)+A(npoint[X],npoint[Y],npoint[Z],X)*dt;
+           A(i,j,k,Y) = (1-dt)*A(i,j,k,Y)+A(npoint[X],npoint[Y],npoint[Z],Y)*dt;
+           A(i,j,k,Z) = (1-dt)*A(i,j,k,Z)+A(npoint[X],npoint[Y],npoint[Z],Z)*dt; 
+          }
+    });                 
+
+
+}
+
+
 template<int boundary_size>
 void construct_exterior_interior_full(const amrex::Geometry geom ,std::vector<std::array<int,3>> &exterior,amrex::Box &interior){
         construct_exterior_interior<X,boundary_size>(geom,exterior,interior);
@@ -423,7 +455,7 @@ void construct_exterior_interior_full(const amrex::Geometry geom ,std::vector<st
 }
 
 typedef void (*F_INTERIOR)(const amrex::Geometry,amrex::Box const&,amrex::Array4<amrex::Real const> const&,amrex::Array4<amrex::Real> const&,double);
-typedef void (*F_EXTERIOR)(const amrex::Geometry,amrex::Array4<amrex::Real > const&,std::vector<std::array<int,3>> const&,double);
+typedef void (*F_EXTERIOR)(const amrex::Geometry,amrex::Array4<amrex::Real > const&,amrex::Box const&,double);
 
 
 // Always periodic 
@@ -433,15 +465,30 @@ void push_ff(const amrex::Geometry geom, amrex::Box const& bx, amrex::Array4<amr
    InteriorF(geom,interior,Source,Target,dt);
 
 }
+template<int comp,int boundary_size>
+void construct_interior(const amrex::Geometry geom,amrex::Box &interior){
+   const auto domain=geom.Domain();
+   const auto Lo = domain.loVect();
+   const auto Hi = domain.hiVect();
+   if(!geom.isPeriodic(comp) && interior.loVect()[comp]==Lo[comp]){
+         interior.growLo(comp,-boundary_size);
+   }
+   if(!geom.isPeriodic(comp) && interior.hiVect()[comp]==Hi[comp]){
+         interior.growHi(comp,-boundary_size);
+   }
+}
 // Periodicity can be set at start
 template<F_INTERIOR InteriorF,F_EXTERIOR ExteriorF,int boundary_size=1> 
 void push_ff(const amrex::Geometry geom, amrex::Box const& bx, amrex::Array4<amrex::Real const> const& Source,amrex::Array4<amrex::Real> const& Target,double dt){ 
    auto interior=bx;
-   std::vector<std::array<int,3>> exterior;
 
     if(!geom.isAllPeriodic()){
-        construct_exterior_interior_full<boundary_size>(geom,exterior,interior);
-        ExteriorF(geom,Target,exterior,dt);   
+        construct_interior<X,boundary_size>(geom,interior);
+        construct_interior<Y,boundary_size>(geom,interior);
+        construct_interior<Z,boundary_size>(geom,interior);
+    
+        ExteriorF(geom,Target,bx,dt);   
+    
     }
 
    InteriorF(geom,interior,Source,Target,dt);
