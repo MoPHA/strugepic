@@ -5,7 +5,7 @@ CPU_CXX= -std=c++14 -O3 -mavx2  -march=native
 
 ifeq ($(BUILD),GPU)
   CXX=nvcc
-  CXXFLAGS+= -dc -x cu -std=c++14 -maxrregcount=255 --ptxas-options=-O3 --use_fast_math --expt-relaxed-constexpr --expt-extended-lambda --gpu-architecture=compute_70 --gpu-code=sm_70,compute_70
+  CXXFLAGS+= --Werror ext-lambda-captures-this -dc -x cu -std=c++14 -maxrregcount=255 --ptxas-options=-O3 --use_fast_math --expt-relaxed-constexpr --expt-extended-lambda --gpu-architecture=compute_70 --gpu-code=sm_70,compute_70
   CXXFLAGS+= --compiler-options="$(CPU_CXX)"
   LFLAGS+= --gpu-architecture=compute_70 --gpu-code=sm_70,compute_70 -lib
   LNAME=libstrugepic.a
