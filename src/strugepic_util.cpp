@@ -156,7 +156,7 @@ for(amrex::MFIter mfi= P.MakeMFIter(0) ;mfi.isValid();++mfi){
 // Only two segments
 // system starts at (0,0) 
 // cell size is 1 
-AMREX_GPU_HOST_DEVICE inline int construct_segments(amrex::Real x_start ,amrex::Real x_end, amrex::Real *seg_points,int *seg_idx){
+AMREX_GPU_HOST_DEVICE int construct_segments(amrex::Real x_start ,amrex::Real x_end, amrex::Real *seg_points,int *seg_idx){
     seg_idx[0]=floor(x_start);
     seg_idx[1]=floor(x_end);
     int diff=seg_idx[1]-seg_idx[0];

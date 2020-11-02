@@ -71,13 +71,13 @@ void G_Theta_E(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab&
 
 
 typedef bool (*SEG_BOUNDARY)(const amrex::Geometry,amrex::Real *, int *);
-typedef void (*PART_BOUNDARY)(CParticle const&, amrex::Real * );
+typedef void (*PART_BOUNDARY)(CParticle &, amrex::Real * );
 
 // This is for one particle type
 // If there are several you need to do this again
 // 0 -> x  , 1-> y 2->z
 template<int comp,int W_range,SEG_BOUNDARY F_SEG ,PART_BOUNDARY F_PART>
-void Theta(CParticles&particles, const amrex::Geometry geom,amrex::Array4<amrex::Real> const& E ,amrex::Array4<amrex::Real> const& B  ,amrex::Box bx,double dt){ 
+void Theta(CParticles&particles, const amrex::Geometry geom,amrex::Array4<amrex::Real> const& E ,amrex::Array4<amrex::Real> const& B  ,amrex::Box bx,amrex::Real dt){ 
     const auto _Ics = geom.InvCellSize();
     const long np = particles.numParticles();
     
@@ -93,8 +93,8 @@ void Theta(CParticles&particles, const amrex::Geometry geom,amrex::Array4<amrex:
     auto comp_u = (comp+1)%3;
     auto comp_l = (comp+2)%3;
     auto comp_Cs = geom.CellSize(comp);
-    amrex::GpuArray<float,3> lb;
-    amrex::GpuArray<float,3> Ics;
+    amrex::GpuArray<amrex::Real,3> lb;
+    amrex::GpuArray<amrex::Real,3> Ics;
     lb[X] =geom.ProbLo(X);
     lb[Y] =geom.ProbLo(Y);
     lb[Z] =geom.ProbLo(Z);
@@ -106,13 +106,13 @@ void Theta(CParticles&particles, const amrex::Geometry geom,amrex::Array4<amrex:
     amrex::ParallelFor(np,          
             [=] AMREX_GPU_DEVICE (long i)
             {
-                    auto &p = particles[i];
+                    auto p = particles[i];
 
-    const double m= p.rdata(M);
-    const double q= p.rdata(Q);
-    const  double B_coef = q/m*comp_Cs;
-    const  double E_coef = q*Ics[X]*Ics[Y]*Ics[Z]*comp_Cs;
-        double new_pos=p.pos(comp)+dt*p.rdata(comp+2);
+    const amrex::Real m= p.rdata(M);
+    const amrex::Real q= p.rdata(Q);
+    const amrex::Real B_coef = q/m*comp_Cs;
+    const amrex::Real E_coef = q*Ics[X]*Ics[Y]*Ics[Z]*comp_Cs;
+        amrex::Real new_pos=p.pos(comp)+dt*p.rdata(comp+2);
         int coord[3];
         coord[X]=floor((p.pos(X) -lb[X])*Ics[X]);
         coord[Y]=floor((p.pos(Y) -lb[Y])*Ics[Y]);
@@ -136,27 +136,27 @@ void Theta(CParticles&particles, const amrex::Geometry geom,amrex::Array4<amrex:
             int idx=0;
             for(int l=W1_li; l<=W1_hi;l++){
                 auto cl=coord[comp_l]+(l); 
-                comp_lW1[idx]=W1(nl-cl);
+                comp_lW1(idx)=W1(nl-cl);
                 idx++;
 
             }idx=0;
             for(int l=Wp_li; l<=Wp_hi;l++){
                 auto cl=coord[comp_l]+(l); 
-                comp_lWp[idx]=Wp(nl-cl);
+                comp_lWp(idx)=Wp(nl-cl);
                 idx++;
 
             }idx=0;
             auto nu=(p.pos(comp_u)-lb[comp_u])*Ics[comp_u];
             for(int  u=W1_li; u<=W1_hi;u++){
                 auto cu=coord[comp_u]+(u); 
-                comp_uW1[idx]=W1(nu-cu);
+                comp_uW1(idx)=W1(nu-cu);
                 idx++;
             }idx=0;
         
 
             for(int  u=Wp_li; u<=Wp_hi;u++){
                 auto cu=coord[comp_u]+(u); 
-                comp_uWp[idx]=Wp(nu-cu);
+                comp_uWp(idx)=Wp(nu-cu);
                 idx++;
             }
         
@@ -169,14 +169,14 @@ void Theta(CParticles&particles, const amrex::Geometry geom,amrex::Array4<amrex:
             coord[comp] = seg_idx[seg];
             auto i_s = seg_points[seg]; 
             auto i_e = seg_points[seg+1];
-            std::array<double,Wp_r> compI_W12={0};
+            amrex::Array1D<amrex::Real,0,Wp_r> compI_W12={0};
            
            auto ncs=(i_s-lb[comp])*Ics[comp];
            auto nce=(i_e-lb[comp])*Ics[comp];
            idx=0;
             for(int c=Wp_li;c<=Wp_hi;c++){
                 auto cc=coord[comp]+(c);
-                compI_W12[idx]=I_Wp(ncs- cc ,nce- cc);
+                compI_W12(idx)=I_Wp(ncs- cc ,nce- cc);
                 idx++;
 
             }
@@ -187,9 +187,9 @@ void Theta(CParticles&particles, const amrex::Geometry geom,amrex::Array4<amrex:
                 int idu=0;
                 for(int u=W1_li;u<=W1_hi;u++){
                    int  idc=0;
-                double mul=comp_lW1[idl]*comp_uW1[idu];
-                double mulu12l1=comp_uWp[idu]*comp_lW1[idl];
-                double mull12u1=comp_lWp[idl]*comp_uW1[idu];
+                amrex::Real mul=comp_lW1(idl)*comp_uW1(idu);
+                amrex::Real mulu12l1=comp_uWp(idu)*comp_lW1(idl);
+                amrex::Real mull12u1=comp_lWp(idl)*comp_uW1(idu);
                 for(int c=Wp_li;c<=Wp_hi;c++){
                     int cx,cy,cz;
 
@@ -208,9 +208,9 @@ void Theta(CParticles&particles, const amrex::Geometry geom,amrex::Array4<amrex:
                      cy=coord[Y]+(l);
                      cz=coord[Z]+(c);
                     }
-                    amrex::Gpu::Atomic::Add(E(cx,cy,cz,comp),-E_coef*mul*compI_W12[idc]);
-                    res_c1+=B(cx,cy,cz,comp_u)*mull12u1*compI_W12[idc];
-                    res_c2-=B(cx,cy,cz,comp_l)*compI_W12[idc]*mulu12l1;
+                    amrex::Gpu::Atomic::Add(&E(cx,cy,cz,comp),-E_coef*mul*compI_W12(idc));
+                    res_c1+=B(cx,cy,cz,comp_u)*mull12u1*compI_W12(idc);
+                    res_c2-=B(cx,cy,cz,comp_l)*compI_W12(idc)*mulu12l1;
                     idc++;
                 }
                 idu++;

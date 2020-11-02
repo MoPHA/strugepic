@@ -25,7 +25,7 @@ double uniform_density(const amrex::Geometry geom,int i ,int j ,int k);
 double gaussian_dist(double pos,double center,double std_dev);
 void set_field_gradient_gaussian_x(amrex::MultiFab &A,double A_max,double center,double std_dev);
 
-AMREX_GPU_HOST_DEVICE inline int construct_segments(amrex::Real x_start ,amrex::Real x_end, amrex::Real *seg_points,int *seg_idx);
+AMREX_GPU_HOST_DEVICE int construct_segments(amrex::Real x_start ,amrex::Real x_end, amrex::Real *seg_points,int *seg_idx);
 
 template<int W_range>
 void get_particle_number_density(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &P_dens){
