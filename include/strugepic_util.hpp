@@ -173,9 +173,9 @@ if(!geom.isPeriodic(comp) && ((seg_idx[1] == geom.Domain().smallEnd(comp)+W_rang
 }
 
 template<int comp>
-AMREX_GPU_HOST_DEVICE inline void particle_reflect(CParticle &p,amrex::Real* seg_points){
-    p.pos(comp)=seg_points[2];
-    p.rdata(comp+2)*=-1;
+AMREX_GPU_HOST_DEVICE inline void particle_reflect(CParticle *p,amrex::Real* seg_points){
+    p->pos(comp)=seg_points[2];
+    p->rdata(comp+2)*=-1;
 }
 
 

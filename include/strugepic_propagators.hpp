@@ -71,18 +71,14 @@ void G_Theta_E(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab&
 
 
 typedef bool (*SEG_BOUNDARY)(const amrex::Geometry,amrex::Real *, int *);
-typedef void (*PART_BOUNDARY)(CParticle &, amrex::Real * );
+typedef void (*PART_BOUNDARY)(CParticle *, amrex::Real * );
 
 // This is for one particle type
 // If there are several you need to do this again
 // 0 -> x  , 1-> y 2->z
 template<int comp,int W_range,SEG_BOUNDARY F_SEG ,PART_BOUNDARY F_PART>
-void Theta(CParticles&particles, const amrex::Geometry geom,amrex::Array4<amrex::Real> const& E ,amrex::Array4<amrex::Real> const& B  ,amrex::Box bx,amrex::Real dt){ 
+void Theta(CParticle * particles,long np, const amrex::Geometry geom,amrex::Array4<amrex::Real> const& E ,amrex::Array4<amrex::Real> const& B  ,amrex::Box bx,amrex::Real dt){ 
     const auto _Ics = geom.InvCellSize();
-    const long np = particles.numParticles();
-    
-
-
     constexpr int W1_r=W_range*2;
     constexpr int W1_li=-W_range+1;
     constexpr int W1_hi= W_range;
@@ -106,17 +102,16 @@ void Theta(CParticles&particles, const amrex::Geometry geom,amrex::Array4<amrex:
     amrex::ParallelFor(np,          
             [=] AMREX_GPU_DEVICE (long i)
             {
-                    auto p = particles[i];
 
-    const amrex::Real m= p.rdata(M);
-    const amrex::Real q= p.rdata(Q);
+    const amrex::Real m= particles[i].rdata(M);
+    const amrex::Real q= particles[i].rdata(Q);
     const amrex::Real B_coef = q/m*comp_Cs;
     const amrex::Real E_coef = q*Ics[X]*Ics[Y]*Ics[Z]*comp_Cs;
-        amrex::Real new_pos=p.pos(comp)+dt*p.rdata(comp+2);
+        amrex::Real new_pos=particles[i].pos(comp)+dt*particles[i].rdata(comp+2);
         int coord[3];
-        coord[X]=floor((p.pos(X) -lb[X])*Ics[X]);
-        coord[Y]=floor((p.pos(Y) -lb[Y])*Ics[Y]);
-        coord[Z]=floor((p.pos(Z) -lb[Z])*Ics[Z]);
+        coord[X]=floor((particles[i].pos(X) -lb[X])*Ics[X]);
+        coord[Y]=floor((particles[i].pos(Y) -lb[Y])*Ics[Y]);
+        coord[Z]=floor((particles[i].pos(Z) -lb[Z])*Ics[Z]);
         
 
         amrex::Real res_c1=0;
@@ -132,7 +127,7 @@ void Theta(CParticles&particles, const amrex::Geometry geom,amrex::Array4<amrex:
 
 
 
-            auto nl=(p.pos(comp_l)-lb[comp_l])*Ics[comp_l];
+            auto nl=(particles[i].pos(comp_l)-lb[comp_l])*Ics[comp_l];
             int idx=0;
             for(int l=W1_li; l<=W1_hi;l++){
                 auto cl=coord[comp_l]+(l); 
@@ -146,7 +141,7 @@ void Theta(CParticles&particles, const amrex::Geometry geom,amrex::Array4<amrex:
                 idx++;
 
             }idx=0;
-            auto nu=(p.pos(comp_u)-lb[comp_u])*Ics[comp_u];
+            auto nu=(particles[i].pos(comp_u)-lb[comp_u])*Ics[comp_u];
             for(int  u=W1_li; u<=W1_hi;u++){
                 auto cu=coord[comp_u]+(u); 
                 comp_uW1(idx)=W1(nu-cu);
@@ -162,7 +157,7 @@ void Theta(CParticles&particles, const amrex::Geometry geom,amrex::Array4<amrex:
         
          amrex::Real seg_points[3];
          int seg_idx[2]; 
-         int num_segments=construct_segments(p.pos(comp),new_pos,seg_points,seg_idx);
+         int num_segments=construct_segments(particles[i].pos(comp),new_pos,seg_points,seg_idx);
          bool out_not_periodic=F_SEG(geom,seg_points,seg_idx);
 
         for(int seg=0;seg<num_segments;seg++){
@@ -224,17 +219,17 @@ void Theta(CParticles&particles, const amrex::Geometry geom,amrex::Array4<amrex:
 
         // Update position
             if(out_not_periodic){
-                F_PART(p,seg_points);                
+                F_PART(&particles[i],seg_points);                
                 //particle_reflect<comp>(p,seg_points);
             }
 
         // .Redistribute should wrap the particles if periodic
             else{
-            p.pos(comp)+=dt*p.rdata(2+comp);
+            particles[i].pos(comp)+=dt*particles[i].rdata(2+comp);
             }
         // B Vel update
-        p.rdata( (comp +2 )% 3 +2   )+=B_coef*res_c1;
-        p.rdata( (comp+1) % 3 +2  )+=B_coef*res_c2; 
+        particles[i].rdata( (comp +2 )% 3 +2   )+=B_coef*res_c1;
+        particles[i].rdata( (comp+1) % 3 +2  )+=B_coef*res_c2; 
 
     });
 }
@@ -336,17 +331,18 @@ void G_Theta(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &E
     B.FillBoundary(geom.periodicity());
     E.setBndry(0);
     E.setDomainBndry(0,geom);
-    for (amrex::MFIter mfi(E); mfi.isValid(); ++mfi){
-        auto box=E.box(mfi.index());
+    for (CParIter pti(P, 0); pti.isValid(); ++pti) {
+        auto box=E.box(pti.index());
          
         // Each grid,tile has a their own local particle container
-        auto& Part = P.GetParticles(0)[std::make_pair(mfi.index(),mfi.LocalTileIndex())];
-        auto&  particles = Part.GetArrayOfStructs();
-        amrex::FArrayBox& bfab =B[mfi];
+        CParticle *  AMREX_RESTRICT particles= &(pti.GetArrayOfStructs()[0]);
+        const int np = pti.numParticles();
+    
+        amrex::FArrayBox& bfab =B[pti];
         
         amrex::Array4<amrex::Real> const& B_loc = bfab.array(); 
-        amrex::Array4<amrex::Real> const& E_loc = E[mfi].array(); 
-        Theta<comp,W_range,segment_reflect<comp,W_range>,particle_reflect<comp>>(particles,geom,E_loc,B_loc,box,dt);
+        amrex::Array4<amrex::Real> const& E_loc = E[pti].array(); 
+        Theta<comp,W_range,segment_reflect<comp,W_range>,particle_reflect<comp>>(particles,np,geom,E_loc,B_loc,box,dt);
     }
     
     E.SumBoundary(geom.periodicity());
