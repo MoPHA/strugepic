@@ -17,13 +17,28 @@ else
 endif
 
 
+STRUGEPIC=$(shell readlink -f .)
+AMREX_LIBRARY_HOME ?= ${AMREX_INSTALL_ROOT}
+LIBDIR := $(AMREX_LIBRARY_HOME)/lib
+INCDIR := $(AMREX_LIBRARY_HOME)/include
+
+COMPILE_CPP_FLAGS ?= $(shell awk '/Cflags:/ {$$1=$$2=""; print $$0}' $(LIBDIR)/pkgconfig/amrex.pc)
+COMPILE_LIB_FLAGS ?= $(shell awk '/Libs:/ {$$1=$$2=""; print $$0}' $(LIBDIR)/pkgconfig/amrex.pc)
+
+AMREX_CFLAGS := -I$(INCDIR) $(COMPILE_CPP_FLAGS) -I $(STRUGEPIC)/include
+AMREX_LFLAGS := -L$(LIBDIR) $(COMPILE_LIB_FLAGS) -L $(STRUGEPIC)/lib -lstrugepic  --linker-options=-rpath,$(STRUGEPIC)/lib
+
+
+
+
 
 SRCS := $(wildcard src/*.cpp src/interpolation/*.cpp )
 OBJS := $(patsubst %.cpp,%.o,$(SRCS))
 
-#INTERPOLATION_FUNC=P8R2
-INTERPOLATION_FUNC=PWL
+INTERPOLATION_FUNC=P8R2
+#INTERPOLATION_FUNC=PWL
 all:
+	echo $(STRUGEPIC)
 	cd src && $(MAKE)
 	cd src/interpolation && $(MAKE)
 	mkdir -p lib
