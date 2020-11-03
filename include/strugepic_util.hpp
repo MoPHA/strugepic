@@ -31,19 +31,36 @@ template<int W_range>
 void get_particle_number_density(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &P_dens){
     P_dens.setVal(0);
     P_dens.setBndry(0);
+<<<<<<< HEAD
     for (amrex::MFIter mfi(P_dens); mfi.isValid(); ++mfi){
 
         // Each grid,tile has a their own local particle container
         auto& Part = P.GetParticles(0)[std::make_pair(mfi.index(),mfi.LocalTileIndex())];
         auto&  particles = Part.GetArrayOfStructs();
         amrex::Array4<amrex::Real> const& P_dens_loc = P_dens[mfi].array();
+=======
+    for (CParIter pti(P,0); pti.isValid(); ++pti){
+    
+        // Each grid,tile has a their own local particle container
+        CParticle * AMREX_RESTRICT particles=&(pti.GetArrayOfStructs()[0]);
+        const int np= pti.numParticles();
+        amrex::Array4<amrex::Real> const& P_dens_loc = P_dens[pti].array(); 
+>>>>>>> 89d08ad01bd933f7b16d9d455e39dbc1853c59bb
 
-    const auto low = geom.ProbLo();
-    const auto Ics = geom.InvCellSize();
+    const auto _Ics = geom.InvCellSize();
     // Remote particle grid lower corner
+    amrex::GpuArray<amrex::Real,3> lb;
+    amrex::GpuArray<amrex::Real,3> Ics;
+    lb[X] =geom.ProbLo(X);
+    lb[Y] =geom.ProbLo(Y);
+    lb[Z] =geom.ProbLo(Z);
+    Ics[X]=_Ics[X];
+    Ics[Y]=_Ics[Y];
+    Ics[Z]=_Ics[Z];
 
-     for(auto& p : particles){
+    amrex::ParallelFor(np,[=] AMREX_GPU_DEVICE (long p_i) {
         int coord[3];
+<<<<<<< HEAD
         coord[X]=floor((p.pos(X) -low[X])*Ics[X]);
         coord[Y]=floor((p.pos(Y) -low[Y])*Ics[Y]);
         coord[Z]=floor((p.pos(Z) -low[Z])*Ics[Z]);
@@ -54,6 +71,18 @@ void get_particle_number_density(const amrex::Geometry geom,CParticleContainer&P
         auto py=(p.pos(Y)-low[Y])*Ics[Y];
         auto pz=(p.pos(Z)-low[Z])*Ics[Z];
 
+=======
+        coord[X]=floor((particles[p_i].pos(X) -lb[X])*Ics[X]);
+        coord[Y]=floor((particles[p_i].pos(Y) -lb[Y])*Ics[Y]);
+        coord[Z]=floor((particles[p_i].pos(Z) -lb[Z])*Ics[Z]);
+        
+            
+
+        auto px=(particles[p_i].pos(X)-lb[X])*Ics[X];
+        auto py=(particles[p_i].pos(Y)-lb[Y])*Ics[Y];
+        auto pz=(particles[p_i].pos(Z)-lb[Z])*Ics[Z];
+        
+>>>>>>> 89d08ad01bd933f7b16d9d455e39dbc1853c59bb
         constexpr int W1_li=-W_range+1;
         constexpr int W1_hi= W_range;
         constexpr int Wp_li= W1_li;
@@ -65,13 +94,12 @@ void get_particle_number_density(const amrex::Geometry geom,CParticleContainer&P
                 auto ny=coord[Y] +j;
                 for(int k=Wp_li;k<=Wp_hi;k++){
                     auto nz=coord[Z] +k;
-                       P_dens_loc(nx,ny,nz,X)+=
-                          Wp(px-nx)*Wp(py-ny)*Wp(pz-nz);
+                       amrex::Gpu::Atomic::Add(&P_dens_loc(nx,ny,nz,0),Wp(px-nx)*Wp(py-ny)*Wp(pz-nz));
             }
         }
         }
 
-    }
+    });
 
     }
     P_dens.SumBoundary(geom.periodicity());

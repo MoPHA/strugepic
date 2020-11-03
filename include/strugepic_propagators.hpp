@@ -116,8 +116,10 @@ void Theta(CParticle * particles,long np, const amrex::Geometry geom,amrex::Arra
 
 
 
+
         amrex::Real res_c1=0;
         amrex::Real res_c2=0;
+
 
 
 
