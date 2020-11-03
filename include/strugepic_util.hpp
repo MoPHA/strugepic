@@ -31,21 +31,13 @@ template<int W_range>
 void get_particle_number_density(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &P_dens){
     P_dens.setVal(0);
     P_dens.setBndry(0);
-<<<<<<< HEAD
-    for (amrex::MFIter mfi(P_dens); mfi.isValid(); ++mfi){
-
-        // Each grid,tile has a their own local particle container
-        auto& Part = P.GetParticles(0)[std::make_pair(mfi.index(),mfi.LocalTileIndex())];
-        auto&  particles = Part.GetArrayOfStructs();
-        amrex::Array4<amrex::Real> const& P_dens_loc = P_dens[mfi].array();
-=======
     for (CParIter pti(P,0); pti.isValid(); ++pti){
-    
+
         // Each grid,tile has a their own local particle container
         CParticle * AMREX_RESTRICT particles=&(pti.GetArrayOfStructs()[0]);
         const int np= pti.numParticles();
-        amrex::Array4<amrex::Real> const& P_dens_loc = P_dens[pti].array(); 
->>>>>>> 89d08ad01bd933f7b16d9d455e39dbc1853c59bb
+        amrex::Array4<amrex::Real> const& P_dens_loc = P_dens[pti].array();
+
 
     const auto _Ics = geom.InvCellSize();
     // Remote particle grid lower corner
@@ -60,29 +52,16 @@ void get_particle_number_density(const amrex::Geometry geom,CParticleContainer&P
 
     amrex::ParallelFor(np,[=] AMREX_GPU_DEVICE (long p_i) {
         int coord[3];
-<<<<<<< HEAD
-        coord[X]=floor((p.pos(X) -low[X])*Ics[X]);
-        coord[Y]=floor((p.pos(Y) -low[Y])*Ics[Y]);
-        coord[Z]=floor((p.pos(Z) -low[Z])*Ics[Z]);
-
-
-
-        auto px=(p.pos(X)-low[X])*Ics[X];
-        auto py=(p.pos(Y)-low[Y])*Ics[Y];
-        auto pz=(p.pos(Z)-low[Z])*Ics[Z];
-
-=======
         coord[X]=floor((particles[p_i].pos(X) -lb[X])*Ics[X]);
         coord[Y]=floor((particles[p_i].pos(Y) -lb[Y])*Ics[Y]);
         coord[Z]=floor((particles[p_i].pos(Z) -lb[Z])*Ics[Z]);
-        
-            
+
+
 
         auto px=(particles[p_i].pos(X)-lb[X])*Ics[X];
         auto py=(particles[p_i].pos(Y)-lb[Y])*Ics[Y];
         auto pz=(particles[p_i].pos(Z)-lb[Z])*Ics[Z];
-        
->>>>>>> 89d08ad01bd933f7b16d9d455e39dbc1853c59bb
+
         constexpr int W1_li=-W_range+1;
         constexpr int W1_hi= W_range;
         constexpr int Wp_li= W1_li;
