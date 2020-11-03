@@ -19,7 +19,7 @@
 class E_source
 {
     public:
-        E_source(amrex::Geometry , amrex::MultiFab &E,int pos,int comp,double E0,double omega ,double dt); 
+        E_source(amrex::Geometry , amrex::MultiFab &E,int pos,int comp,double E0,double omega ,double dt);
         void operator()(double t);
     private:
         const amrex::Geometry geom;
@@ -32,7 +32,7 @@ class E_source
 };
 
 
-// These are All local update functions, I.e they operate only on local data 
+// These are All local update functions, I.e they operate only on local data
 
 void push_B_E(const amrex::Geometry geom, amrex::Box const& bx,  amrex::Array4<amrex::Real> const& B, amrex::Array4<amrex::Real const> const& E,double dt);
 
@@ -43,7 +43,7 @@ void Theta_E(const amrex::Geometry geom,amrex::Box const& bx,amrex::Array4<amrex
 void Theta_B(const amrex::Geometry geom,amrex::Box const& bx,amrex::Array4<amrex::Real> const& E,amrex::Array4<amrex::Real const> const& B,double dt );
 
 template<int W_range>
-void push_V_E( CParticles&particles, const amrex::Geometry geom,amrex::Array4<amrex::Real const> const& E ,double dt);
+AMREX_GPU_HOST_DEVICE void push_V_E(CParticle * particles,long np, const amrex::Geometry geom,amrex::Array4<amrex::Real const> const& E ,double dt);
 
 // Global update, they also handle triggering global communication
 void G_Theta_B(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &E, amrex::MultiFab &B,double dt );
@@ -55,14 +55,15 @@ void G_Theta_E(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab&
 
     E.FillBoundary(geom.periodicity());
     for (CParIter pti(P, 0); pti.isValid(); ++pti) {
-        auto&  particles = pti.GetArrayOfStructs();
+        CParticle *  AMREX_RESTRICT particles= &(pti.GetArrayOfStructs()[0]);
+        const int np = pti.numParticles();
         amrex::Array4<amrex::Real const> const& E_loc = E.const_array(pti);
-        push_V_E<W_range>(particles,geom,E_loc,dt);
+        push_V_E<W_range>(particles,np,geom,E_loc,dt);
     }
     for (amrex::MFIter mfi(E); mfi.isValid(); ++mfi){
         const amrex::Box& box = mfi.validbox();
         amrex::Array4<amrex::Real const> const& E_loc = E.const_array(mfi);
-        amrex::Array4<amrex::Real> const& B_loc = B.array(mfi); 
+        amrex::Array4<amrex::Real> const& B_loc = B.array(mfi);
         push_B_E(geom,box, B_loc,E_loc,dt);
     }
 
@@ -77,7 +78,7 @@ typedef void (*PART_BOUNDARY)(CParticle *, amrex::Real * );
 // If there are several you need to do this again
 // 0 -> x  , 1-> y 2->z
 template<int comp,int W_range,SEG_BOUNDARY F_SEG ,PART_BOUNDARY F_PART>
-void Theta(CParticle * particles,long np, const amrex::Geometry geom,amrex::Array4<amrex::Real> const& E ,amrex::Array4<amrex::Real> const& B  ,amrex::Box bx,amrex::Real dt){ 
+void Theta(CParticle * particles,long np, const amrex::Geometry geom,amrex::Array4<amrex::Real> const& E ,amrex::Array4<amrex::Real> const& B  ,amrex::Box bx,amrex::Real dt){
     const auto _Ics = geom.InvCellSize();
     constexpr int W1_r=W_range*2;
     constexpr int W1_li=-W_range+1;
@@ -99,7 +100,7 @@ void Theta(CParticle * particles,long np, const amrex::Geometry geom,amrex::Arra
     Ics[Z]=_Ics[Z];
 
     // Remote particle grid lower corner
-    amrex::ParallelFor(np,          
+    amrex::ParallelFor(np,
             [=] AMREX_GPU_DEVICE (long i)
             {
 
@@ -112,13 +113,16 @@ void Theta(CParticle * particles,long np, const amrex::Geometry geom,amrex::Arra
         coord[X]=floor((particles[i].pos(X) -lb[X])*Ics[X]);
         coord[Y]=floor((particles[i].pos(Y) -lb[Y])*Ics[Y]);
         coord[Z]=floor((particles[i].pos(Z) -lb[Z])*Ics[Z]);
-        
+
+
+
 
         amrex::Real res_c1=0;
         amrex::Real res_c2=0;
 
 
-        
+
+
             amrex::Array1D<amrex::Real,0,W1_r> comp_uW1={0};
             amrex::Array1D<amrex::Real,0,W1_r> comp_lW1={0};
             amrex::Array1D<amrex::Real,0,W1_r> comp_uWp={0};
@@ -130,42 +134,43 @@ void Theta(CParticle * particles,long np, const amrex::Geometry geom,amrex::Arra
             auto nl=(particles[i].pos(comp_l)-lb[comp_l])*Ics[comp_l];
             int idx=0;
             for(int l=W1_li; l<=W1_hi;l++){
-                auto cl=coord[comp_l]+(l); 
+                auto cl=coord[comp_l]+(l);
                 comp_lW1(idx)=W1(nl-cl);
                 idx++;
 
             }idx=0;
             for(int l=Wp_li; l<=Wp_hi;l++){
-                auto cl=coord[comp_l]+(l); 
+                auto cl=coord[comp_l]+(l);
                 comp_lWp(idx)=Wp(nl-cl);
                 idx++;
 
             }idx=0;
             auto nu=(particles[i].pos(comp_u)-lb[comp_u])*Ics[comp_u];
             for(int  u=W1_li; u<=W1_hi;u++){
-                auto cu=coord[comp_u]+(u); 
+                auto cu=coord[comp_u]+(u);
                 comp_uW1(idx)=W1(nu-cu);
                 idx++;
             }idx=0;
-        
+
+
 
             for(int  u=Wp_li; u<=Wp_hi;u++){
-                auto cu=coord[comp_u]+(u); 
+                auto cu=coord[comp_u]+(u);
                 comp_uWp(idx)=Wp(nu-cu);
                 idx++;
             }
-        
+
          amrex::Real seg_points[3];
-         int seg_idx[2]; 
+         int seg_idx[2];
          int num_segments=construct_segments(particles[i].pos(comp),new_pos,seg_points,seg_idx);
          bool out_not_periodic=F_SEG(geom,seg_points,seg_idx);
 
         for(int seg=0;seg<num_segments;seg++){
             coord[comp] = seg_idx[seg];
-            auto i_s = seg_points[seg]; 
+            auto i_s = seg_points[seg];
             auto i_e = seg_points[seg+1];
             amrex::Array1D<amrex::Real,0,Wp_r> compI_W12={0};
-           
+
            auto ncs=(i_s-lb[comp])*Ics[comp];
            auto nce=(i_e-lb[comp])*Ics[comp];
            idx=0;
@@ -214,12 +219,12 @@ void Theta(CParticle * particles,long np, const amrex::Geometry geom,amrex::Arra
             }
 
 
-        
+
         }
 
         // Update position
             if(out_not_periodic){
-                F_PART(&particles[i],seg_points);                
+                F_PART(&particles[i],seg_points);
                 //particle_reflect<comp>(p,seg_points);
             }
 
@@ -229,73 +234,84 @@ void Theta(CParticle * particles,long np, const amrex::Geometry geom,amrex::Arra
             }
         // B Vel update
         particles[i].rdata( (comp +2 )% 3 +2   )+=B_coef*res_c1;
-        particles[i].rdata( (comp+1) % 3 +2  )+=B_coef*res_c2; 
+        particles[i].rdata( (comp+1) % 3 +2  )+=B_coef*res_c2;
 
     });
 }
 
 
 template<int W_range>
-void push_V_E( CParticles&particles, const amrex::Geometry geom,amrex::Array4<amrex::Real const> const& E ,double dt){
+AMREX_GPU_HOST_DEVICE void push_V_E(CParticle * particles,long np, const amrex::Geometry geom,amrex::Array4<amrex::Real const> const& E ,double dt){
 
     // Basis functions are supported over two cells in each direction
-    const auto low =geom.ProbLo();
-    const auto Ics = geom.InvCellSize();
-    
-    for(auto& p : particles){
-    const double m= p.rdata(M);
-    const double q= p.rdata(Q);
-    const double coef = dt*q/m;
-    int coord[3];
-    coord[X]=floor((p.pos(X) -low[X])*Ics[X]);
-    coord[Y]=floor((p.pos(Y) -low[Y])*Ics[Y]);
-    coord[Z]=floor((p.pos(Z) -low[Z])*Ics[Z]);
-       
-        double dvx=0;
-        double dvy=0;
-        double dvz=0;
 
-        constexpr int W1_r=W_range*2;
-        constexpr int W1_li=-W_range+1;
-        constexpr int W1_hi= W_range;
-        constexpr int Wp_li= W1_li;
-        constexpr int Wp_hi= W1_hi-1;
+    const auto _Ics = geom.InvCellSize();
+    amrex::GpuArray<amrex::Real,3> lb;
+    amrex::GpuArray<amrex::Real,3> Ics;
+    lb[X] =geom.ProbLo(X);
+    lb[Y] =geom.ProbLo(Y);
+    lb[Z] =geom.ProbLo(Z);
+    Ics[X]=_Ics[X];
+    Ics[Y]=_Ics[Y];
+    Ics[Z]=_Ics[Z];
 
-        std::array<double,W1_r> W1X={0};
-        std::array<double,W1_r> W1Y={0};
-        std::array<double,W1_r> W1Z={0};
-        std::array<double,W1_r> WpX={0};
-        std::array<double,W1_r> WpY={0};
-        std::array<double,W1_r> WpZ={0};
+    amrex::ParallelFor(np,
+        [=] AMREX_GPU_DEVICE (long i)
+        {
+            const double m= particles[i].rdata(M);
+            const double q= particles[i].rdata(Q);
+            const double coef = dt*q/m;
+            int coord[3];
+            coord[X]=floor((particles[i].pos(X) -lb[X])*Ics[X]);
+            coord[Y]=floor((particles[i].pos(Y) -lb[Y])*Ics[Y]);
+            coord[Z]=floor((particles[i].pos(Z) -lb[Z])*Ics[Z]);
 
-        // Particle coordinate shifted to cell
-        auto nz = (p.pos(Z)-low[Z])*Ics[Z]; 
-        auto ny = (p.pos(Y)-low[Y])*Ics[Y]; 
-        auto nx = (p.pos(X)-low[X])*Ics[X]; 
-      
+            double dvx=0;
+            double dvy=0;
+            double dvz=0;
+
+            constexpr int W1_r=W_range*2;
+            constexpr int W1_li=-W_range+1;
+            constexpr int W1_hi= W_range;
+            constexpr int Wp_li= W1_li;
+            constexpr int Wp_hi= W1_hi-1;
+
+            amrex::Array1D<amrex::Real,0,W1_r> W1X={0};
+            amrex::Array1D<amrex::Real,0,W1_r> W1Y={0};
+            amrex::Array1D<amrex::Real,0,W1_r> W1Z={0};
+            amrex::Array1D<amrex::Real,0,W1_r> WpX={0};
+            amrex::Array1D<amrex::Real,0,W1_r> WpY={0};
+            amrex::Array1D<amrex::Real,0,W1_r> WpZ={0};
+
+            // Particle coordinate shifted to cell
+            auto nz = (particles[i].pos(Z)-lb[Z])*Ics[Z];
+            auto ny = (particles[i].pos(Y)-lb[Y])*Ics[Y];
+            auto nx = (particles[i].pos(X)-lb[X])*Ics[X];
+
             int idx=0;
             for(int  i=W1_li; i<=W1_hi;i++){
                 auto cx = coord[X]+i;
-                W1X[idx]=W1(nx-cx); 
+                W1X(idx)=W1(nx-cx);
                 auto cy = coord[Y]+i;
-                W1Y[idx]=W1(ny-cy);
+                W1Y(idx)=W1(ny-cy);
                 auto cz = coord[Z]+i;
-                W1Z[idx]=W1(nz-cz);
+                W1Z(idx)=W1(nz-cz);
                 idx++;
             }
             idx=0;
             for(int i=Wp_li; i<=Wp_hi;i++){
                 auto cx = coord[X]+i;
-                WpX[idx]=Wp(nx-cx); 
+                WpX(idx)=Wp(nx-cx);
                 auto cy = coord[Y]+i;
-                WpY[idx]=Wp(ny-cy);
+                WpY(idx)=Wp(ny-cy);
                 auto cz = coord[Z]+i;
-                WpZ[idx]=Wp(nz-cz);
+                WpZ(idx)=Wp(nz-cz);
                 idx++;
-            
+
             }
 
-        
+
+
 
 
             int idk=0;
@@ -307,22 +323,21 @@ void push_V_E( CParticles&particles, const amrex::Geometry geom,amrex::Array4<am
                   auto cy = coord[Y]+j;
             for(int  i=W1_li; i<=W1_hi;i++){
                   auto cx = coord[X]+i;
-                   dvx+= E(cx,cy,cz,X)*WpX[idi]*W1Y[idj]*W1Z[idk]; 
-                   dvy+= E(cx,cy,cz,Y)*W1X[idi]*WpY[idj]*W1Z[idk];
-                   dvz+= E(cx,cy,cz,Z)*W1X[idi]*W1Y[idj]*WpZ[idk];
+                   dvx+= E(cx,cy,cz,X)*WpX(idi)*W1Y(idj)*W1Z(idk);
+                   dvy+= E(cx,cy,cz,Y)*W1X(idi)*WpY(idj)*W1Z(idk);
+                   dvz+= E(cx,cy,cz,Z)*W1X(idi)*W1Y(idj)*WpZ(idk);
                    idi++;
                 }
                 idj++;
             }
-            idk++;
-        }
-        p.rdata(VX)+=dvx*coef;
-        p.rdata(VY)+=dvy*coef;
-        p.rdata(VZ)+=dvz*coef;
-        
-    }
-}
+            particles[i].rdata(VX)+=dvx*coef;
+            particles[i].rdata(VY)+=dvy*coef;
+            particles[i].rdata(VZ)+=dvz*coef;
 
+        }
+    });
+
+}
 
 
 template <int comp,int W_range>
@@ -333,23 +348,23 @@ void G_Theta(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &E
     E.setDomainBndry(0,geom);
     for (CParIter pti(P, 0); pti.isValid(); ++pti) {
         auto box=E.box(pti.index());
-         
+
         // Each grid,tile has a their own local particle container
         CParticle *  AMREX_RESTRICT particles= &(pti.GetArrayOfStructs()[0]);
         const int np = pti.numParticles();
-    
+
         amrex::FArrayBox& bfab =B[pti];
-        
-        amrex::Array4<amrex::Real> const& B_loc = bfab.array(); 
-        amrex::Array4<amrex::Real> const& E_loc = E[pti].array(); 
+
+        amrex::Array4<amrex::Real> const& B_loc = bfab.array();
+        amrex::Array4<amrex::Real> const& E_loc = E[pti].array();
         Theta<comp,W_range,segment_reflect<comp,W_range>,particle_reflect<comp>>(particles,np,geom,E_loc,B_loc,box,dt);
     }
-    
+
     E.SumBoundary(geom.periodicity());
     P.Redistribute();
-    
 
-    
+
+
 }
 
 
@@ -378,7 +393,7 @@ void construct_exterior_interior(const amrex::Geometry geom ,std::vector<std::ar
                 }
             }
        }
-        
+
        if(interior.hiVect()[comp]==Hi[comp]){
            interior.growHi(comp,-boundary_size);
             for(int k=local_lo[up_c]; k <= local_hi[up_c];k++){
@@ -392,7 +407,7 @@ void construct_exterior_interior(const amrex::Geometry geom ,std::vector<std::ar
                 }
             }
        }
-   }     
+   }
 }
 
 template<int comp>
@@ -409,9 +424,9 @@ void MABC(const amrex::Geometry geom,amrex::Array4<amrex::Real> const& A,std::ve
             npoint[comp]+=1;
            A(i,j,k,X) = (1-dt)*A(i,j,k,X)+A(npoint[X],npoint[Y],npoint[Z],X)*dt;
            A(i,j,k,Y) = (1-dt)*A(i,j,k,Y)+A(npoint[X],npoint[Y],npoint[Z],Y)*dt;
-           A(i,j,k,Z) = (1-dt)*A(i,j,k,Z)+A(npoint[X],npoint[Y],npoint[Z],Z)*dt; 
+           A(i,j,k,Z) = (1-dt)*A(i,j,k,Z)+A(npoint[X],npoint[Y],npoint[Z],Z)*dt;
           }
-          else if(point[comp] == Hi[comp]){ 
+          else if(point[comp] == Hi[comp]){
             const int i = point[X];
             const int j = point[Y];
             const int k = point[Z];
@@ -419,9 +434,9 @@ void MABC(const amrex::Geometry geom,amrex::Array4<amrex::Real> const& A,std::ve
             npoint[comp]-=1;
            A(i,j,k,X) = (1-dt)*A(i,j,k,X)+A(npoint[X],npoint[Y],npoint[Z],X)*dt;
            A(i,j,k,Y) = (1-dt)*A(i,j,k,Y)+A(npoint[X],npoint[Y],npoint[Z],Y)*dt;
-           A(i,j,k,Z) = (1-dt)*A(i,j,k,Z)+A(npoint[X],npoint[Y],npoint[Z],Z)*dt; 
+           A(i,j,k,Z) = (1-dt)*A(i,j,k,Z)+A(npoint[X],npoint[Y],npoint[Z],Z)*dt;
           }
-        }         
+        }
 
 }
 
@@ -443,15 +458,15 @@ void MABC_bad(const amrex::Geometry geom,amrex::Array4<amrex::Real> const& A,amr
             npoint[comp]+=1;
            A(i,j,k,X) = (1-dt)*A(i,j,k,X)+A(npoint[X],npoint[Y],npoint[Z],X)*dt;
            A(i,j,k,Y) = (1-dt)*A(i,j,k,Y)+A(npoint[X],npoint[Y],npoint[Z],Y)*dt;
-           A(i,j,k,Z) = (1-dt)*A(i,j,k,Z)+A(npoint[X],npoint[Y],npoint[Z],Z)*dt; 
+           A(i,j,k,Z) = (1-dt)*A(i,j,k,Z)+A(npoint[X],npoint[Y],npoint[Z],Z)*dt;
           }
-          else if(npoint[comp] == Hi){ 
+          else if(npoint[comp] == Hi){
             npoint[comp]-=1;
            A(i,j,k,X) = (1-dt)*A(i,j,k,X)+A(npoint[X],npoint[Y],npoint[Z],X)*dt;
            A(i,j,k,Y) = (1-dt)*A(i,j,k,Y)+A(npoint[X],npoint[Y],npoint[Z],Y)*dt;
-           A(i,j,k,Z) = (1-dt)*A(i,j,k,Z)+A(npoint[X],npoint[Y],npoint[Z],Z)*dt; 
+           A(i,j,k,Z) = (1-dt)*A(i,j,k,Z)+A(npoint[X],npoint[Y],npoint[Z],Z)*dt;
           }
-    });                 
+    });
 
 
 }
@@ -470,9 +485,9 @@ typedef void (*F_INTERIOR)(const amrex::Geometry,amrex::Box const&,amrex::Array4
 typedef void (*F_EXTERIOR)(const amrex::Geometry,amrex::Array4<amrex::Real > const&,amrex::Box const&,double);
 
 
-// Always periodic 
+// Always periodic
 template<F_INTERIOR InteriorF>
-void push_ff(const amrex::Geometry geom, amrex::Box const& bx, amrex::Array4<amrex::Real const> const& Source,amrex::Array4<amrex::Real> const& Target,double dt){ 
+void push_ff(const amrex::Geometry geom, amrex::Box const& bx, amrex::Array4<amrex::Real const> const& Source,amrex::Array4<amrex::Real> const& Target,double dt){
    auto interior=bx;
    InteriorF(geom,interior,Source,Target,dt);
 
@@ -490,17 +505,17 @@ void construct_interior(const amrex::Geometry geom,amrex::Box &interior){
    }
 }
 // Periodicity can be set at start
-template<F_INTERIOR InteriorF,F_EXTERIOR ExteriorF,int boundary_size=1> 
-void push_ff(const amrex::Geometry geom, amrex::Box const& bx, amrex::Array4<amrex::Real const> const& Source,amrex::Array4<amrex::Real> const& Target,double dt){ 
+template<F_INTERIOR InteriorF,F_EXTERIOR ExteriorF,int boundary_size=1>
+void push_ff(const amrex::Geometry geom, amrex::Box const& bx, amrex::Array4<amrex::Real const> const& Source,amrex::Array4<amrex::Real> const& Target,double dt){
    auto interior=bx;
 
     if(!geom.isAllPeriodic()){
         construct_interior<X,boundary_size>(geom,interior);
         construct_interior<Y,boundary_size>(geom,interior);
         construct_interior<Z,boundary_size>(geom,interior);
-    
-        ExteriorF(geom,Target,bx,dt);   
-    
+
+        ExteriorF(geom,Target,bx,dt);
+
     }
 
    InteriorF(geom,interior,Source,Target,dt);
@@ -511,7 +526,7 @@ void push_ff(const amrex::Geometry geom, amrex::Box const& bx, amrex::Array4<amr
 /* Partial specializations are not possible in c++
  * But here is the code for an arbitrary order iterator, probably no one wants to do more than a couple
  * of orders, so creating them by hand should be ok
- 
+
 template<int order,int W_range>
 inline void Theta_map(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &E, amrex::MultiFab &B,double dt ){
    const int l=order/2-1;
