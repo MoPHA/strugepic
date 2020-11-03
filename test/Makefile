@@ -1,7 +1,3 @@
-
-
-LFLAGS= -L ../../lib -I ../../include -Wl,-rpath=\$$ORIGIN/../../lib -lgfortran -lstrugepic -lamrex  
-
 ifeq ($(INTERPOLATION_FUNC),P8R2)
 TEST_WRANGE=2
 endif
@@ -14,10 +10,12 @@ CXXFLAGS+= -DWRANGE=$(TEST_WRANGE)
 all: energy single
 
 energy:
-	cd energy_conservation && $(MPICXX) *.cpp -o main $(CXXFLAGS) $(LFLAGS)
+	cd energy_conservation && $(CXX) $(CXXFLAGS) $(AMREX_CFLAGS) *.cpp -o main.o
+	cd energy_conservation && $(CXX) $(AMREX_LFLAGS) main.o -o main
 
 single: 
-	cd single_particle && $(MPICXX) *.cpp -o main $(CXXFLAGS) $(LFLAGS)
+	cd single_particle && $(CXX) $(CXXFLAGS) $(AMREX_CFLAGS) *.cpp -o main.o
+	cd single_particle && $(CXX) $(AMREX_LFLAGS) main.o -o main
 
 clean:
 	cd  energy_conservation && rm -f main Backtrace* *.out *.data

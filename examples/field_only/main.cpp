@@ -25,20 +25,6 @@
 #include "strugepic_defs.hpp"
 #include "cmath"
 
-void set_sin_field(amrex::MultiFab &A){
-
-    for (amrex::MFIter mfi(A); mfi.isValid(); ++mfi){
-        const amrex::Box& box = mfi.validbox();
-        amrex::Array4<amrex::Real> const& a = A.array(mfi); 
-
-    amrex::ParallelFor(box,  [=]  (int i,int j,int k ){
-
-                a(i,j,k,Y)= sin(2*i*2*3.14151962/300);
-
-            });
-
-    }
-}
 
 void main_main();
 
