@@ -8,6 +8,7 @@
 #include "AMReX_ParallelDescriptor.H"
 #include <AMReX_PlotFileUtil.H>
 #include "AMReX_ParallelReduce.H"
+#include "AMReX_GpuReduce.H"
 #include "AMReX_REAL.H"
 #include <iostream>
 #include <math.h>
@@ -362,13 +363,20 @@ void print_Particle_info(const amrex::Geometry geom,CParticleContainer&P ){
 
 std::pair<amrex::Real,amrex::Real> get_total_energy(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &E, amrex::MultiFab &B ){
     // Kinetic part 
-    amrex::Real E_kin=0;
+    amrex::Box box(amrex::IntVect{0,0,0}, amrex::IntVect{1,0,0});
+    amrex::FArrayBox E_kin_farrayBox(box, 1);
+    auto E_kin = E_kin_farrayBox.array();
+    E_kin(0, 0, 0) = 0.;
     amrex::Real E_field=0;
     for (CParIter pti(P, 0); pti.isValid(); ++pti) {
-        auto&  particles = pti.GetArrayOfStructs();
-        for(auto p : particles ){
-            E_kin+=p.rdata(M)*0.5*( p.rdata(VX)*p.rdata(VX)+p.rdata(VY)*p.rdata(VY)+p.rdata(VZ)*p.rdata(VZ)  );
-        }
+        const int np  = pti.numParticles();
+        auto particles = &(pti.GetArrayOfStructs()[0]);
+        AMREX_PARALLEL_FOR_1D ( np, i,
+        {
+            amrex::Real tmp =particles[i].rdata(M)*0.5*
+                    ( particles[i].rdata(VX)*particles[i].rdata(VX)+particles[i].rdata(VY)*particles[i].rdata(VY)+particles[i].rdata(VZ)*particles[i].rdata(VZ) );
+            amrex::Gpu::Atomic::Add(&E_kin(0, 0, 0), tmp);
+        });
     }
 
     auto E_L2_norm=E.norm2({X,Y,Z});
@@ -378,8 +386,5 @@ std::pair<amrex::Real,amrex::Real> get_total_energy(const amrex::Geometry geom,C
     E_field*=0.5;
 
     amrex::ParallelAllReduce::Sum(E_kin,amrex::ParallelDescriptor::Communicator());
-    return std::make_pair(E_field*geom.CellSize(X)*geom.CellSize(Y)*geom.CellSize(Z),E_kin);
-
+    return std::make_pair(E_field*geom.CellSize(X)*geom.CellSize(Y)*geom.CellSize(Z),E_kin(0, 0, 0));
 }
-
-
