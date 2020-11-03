@@ -385,6 +385,6 @@ std::pair<amrex::Real,amrex::Real> get_total_energy(const amrex::Geometry geom,C
     E_field+=B_L2_norm[X]*B_L2_norm[X]+B_L2_norm[Y]*B_L2_norm[Y]+B_L2_norm[Z]*B_L2_norm[Z];
     E_field*=0.5;
 
-    amrex::ParallelAllReduce::Sum(E_kin,amrex::ParallelDescriptor::Communicator());
+    amrex::ParallelAllReduce::Sum(E_kin(0,0,0),amrex::ParallelDescriptor::Communicator());
     return std::make_pair(E_field*geom.CellSize(X)*geom.CellSize(Y)*geom.CellSize(Z),E_kin(0, 0, 0));
 }
