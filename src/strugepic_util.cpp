@@ -362,12 +362,11 @@ void print_Particle_info(const amrex::Geometry geom,CParticleContainer&P ){
 }
 
 std::pair<amrex::Real,amrex::Real> get_total_energy(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &E, amrex::MultiFab &B ){
-    // Kinetic part 
-    amrex::Box box(amrex::IntVect{0,0,0}, amrex::IntVect{1,0,0});
-    amrex::FArrayBox E_kin_farrayBox(box, 1);
-    auto E_kin = E_kin_farrayBox.array();
-    E_kin(0, 0, 0) = 0.;
+    // kinetic energy is computed on gpu with atomic adds on a vector of size 20
+    amrex::Gpu::DeviceVector<amrex::Real> EkinVect(20, 0.); 
+    amrex::Real* EkinPtr = EkinVect.dataPtr();
 
+    // Kinetic part 
     amrex::Real E_field=0;
     for (CParIter pti(P, 0); pti.isValid(); ++pti) {
         const int np  = pti.numParticles();
@@ -376,9 +375,13 @@ std::pair<amrex::Real,amrex::Real> get_total_energy(const amrex::Geometry geom,C
         {
             amrex::Real tmp =particles[i].rdata(M)*0.5*
                     ( particles[i].rdata(VX)*particles[i].rdata(VX)+particles[i].rdata(VY)*particles[i].rdata(VY)+particles[i].rdata(VZ)*particles[i].rdata(VZ) );
-            amrex::Gpu::Atomic::Add(&E_kin(0, 0, 0), tmp);
+            amrex::Gpu::Atomic::Add(EkinPtr + (i%20), tmp);
         });
     }
+
+    // reduce the ekin vector to one final scalar
+    amrex::Real E_kin = amrex::Reduce::Sum(20, EkinPtr);
+    amrex::Gpu::synchronize();
 
     auto E_L2_norm=E.norm2({X,Y,Z});
     auto B_L2_norm=B.norm2({X,Y,Z});
@@ -386,6 +389,6 @@ std::pair<amrex::Real,amrex::Real> get_total_energy(const amrex::Geometry geom,C
     E_field+=B_L2_norm[X]*B_L2_norm[X]+B_L2_norm[Y]*B_L2_norm[Y]+B_L2_norm[Z]*B_L2_norm[Z];
     E_field*=0.5;
 
-    amrex::ParallelAllReduce::Sum(E_kin(0,0,0),amrex::ParallelDescriptor::Communicator());
-    return std::make_pair(E_field*geom.CellSize(X)*geom.CellSize(Y)*geom.CellSize(Z),E_kin(0, 0, 0));
+    amrex::ParallelAllReduce::Sum(E_kin, amrex::ParallelDescriptor::Communicator());
+    return std::make_pair(E_field*geom.CellSize(X)*geom.CellSize(Y)*geom.CellSize(Z), E_kin);
 }
