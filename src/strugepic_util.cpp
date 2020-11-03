@@ -27,15 +27,15 @@ void set_uniform_field(amrex::MultiFab &A, std::array<double,3> vals){
     for (amrex::MFIter mfi(A); mfi.isValid(); ++mfi){
         const amrex::Box& box = mfi.validbox();
         amrex::Array4<amrex::Real> const& a = A.array(mfi);
-/*
-    amrex::ParallelFor(box,  [=]  (int i,int j,int k ){
+
+    amrex::ParallelFor(box,  [=]  AMREX_GPU_DEVICE (int i,int j,int k ){
 
                 a(i,j,k,X)= vals[X];
                 a(i,j,k,Y)= vals[Y];
                 a(i,j,k,Z)= vals[Z];
 
             });
-*/
+
     }
 }
 
