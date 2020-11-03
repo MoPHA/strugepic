@@ -26,7 +26,7 @@ void set_uniform_field(amrex::MultiFab &A, std::array<double,3> vals){
 
     for (amrex::MFIter mfi(A); mfi.isValid(); ++mfi){
         const amrex::Box& box = mfi.validbox();
-        amrex::Array4<amrex::Real> const& a = A.array(mfi); 
+        amrex::Array4<amrex::Real> const& a = A.array(mfi);
 /*
     amrex::ParallelFor(box,  [=]  (int i,int j,int k ){
 
@@ -43,7 +43,7 @@ void set_uniform_field(amrex::MultiFab &A, std::array<double,3> vals){
 inline void dump_field(amrex::MultiFab & A , std::string filename){
     for (amrex::MFIter mfi(A); mfi.isValid(); ++mfi){
         const amrex::Box& box = mfi.validbox();
-        amrex::Array4<amrex::Real> const& a = A.array(mfi); 
+        amrex::Array4<amrex::Real> const& a = A.array(mfi);
 /*
     amrex::ParallelFor(box, [=]  (int i,int j,int k ){
             amrex::AllPrintToFile(filename) <<i << " "<< j << " " << k << " "  <<  a(i,j,k,X) << " " <<a(i,j,k,Y) << " " << a(i,j,k,Z) << "\n";
@@ -54,10 +54,10 @@ inline void dump_field(amrex::MultiFab & A , std::string filename){
 }
 
 void SimulationIO::dump_E_field(std::string filename){
-        dump_field(this->E,filename);   
+        dump_field(this->E,filename);
 }
 void SimulationIO::dump_B_field(std::string filename){
-        dump_field(this->B,filename);   
+        dump_field(this->B,filename);
 }
 
 
@@ -77,14 +77,14 @@ SimulationIO::SimulationIO(amrex::Geometry geom,amrex::MultiFab & E,amrex::Multi
     }
 
 void FillDirichletBoundary(const amrex::Geometry geom, amrex::MultiFab &A,const amrex::Real b_val){
-   
+
    const auto domain=geom.Domain();
    const auto lo = amrex::lbound(domain);
    const auto hi = amrex::ubound(domain);
    const auto periodic=geom.isPeriodic();
     for (amrex::MFIter mfi(A); mfi.isValid(); ++mfi){
         const amrex::Box& box = mfi.fabbox();
-        amrex::Array4<amrex::Real> const& a = A.array(mfi); 
+        amrex::Array4<amrex::Real> const& a = A.array(mfi);
     /*
     amrex::ParallelFor(box,  [=]  (int i,int j,int k ){
             if(
@@ -93,7 +93,7 @@ void FillDirichletBoundary(const amrex::Geometry geom, amrex::MultiFab &A,const 
               (j < lo.y && !periodic[Y] ) ||
               (j > hi.y && !periodic[Y] ) ||
               (k < lo.z && !periodic[Z] ) ||
-              (k > hi.z && !periodic[Z] )  
+              (k > hi.z && !periodic[Z] )
               ){
 
                 a(i,j,k,X)=b_val;
@@ -109,8 +109,8 @@ void FillDirichletBoundary(const amrex::Geometry geom, amrex::MultiFab &A,const 
 
 // What cell index is a given point in?
 // This is equivalent with the index for the "Lower left" corner
-// Vectorization? 
-std::array<int,3> get_point_cell(const amrex::Geometry geom,const amrex::RealArray pos){ 
+// Vectorization?
+std::array<int,3> get_point_cell(const amrex::Geometry geom,const amrex::RealArray pos){
     std::array<int,3> id;
     auto icellsize=geom.InvCellSize();
     auto problo=geom.ProbLo();
@@ -126,7 +126,7 @@ std::array<int,3> get_point_cell(const amrex::Geometry geom,const amrex::RealArr
 
 // Create a single particle in the simulation
 
- void add_single_particle( CParticleTile&particlet ,amrex::RealArray pos , amrex::RealArray vel, double m,double q){ 
+ void add_single_particle( CParticleTile&particlet ,amrex::RealArray pos , amrex::RealArray vel, double m,double q){
     CParticle p;
     p.id()   = CParticle::NextID();
     p.cpu()  = amrex::ParallelDescriptor::MyProc();
@@ -143,7 +143,7 @@ std::array<int,3> get_point_cell(const amrex::Geometry geom,const amrex::RealArr
 
 void add_single_particle(CParticleContainer&P,amrex::RealArray pos , amrex::RealArray vel, double m,double q){
 for(amrex::MFIter mfi= P.MakeMFIter(0) ;mfi.isValid();++mfi){
-    
+
     auto& particles = P.GetParticles(0)[std::make_pair(mfi.index(),mfi.tileIndex())];
         if(mfi.index()==0){
             add_single_particle(particles,pos,vel,m,q);
@@ -154,9 +154,9 @@ for(amrex::MFIter mfi= P.MakeMFIter(0) ;mfi.isValid();++mfi){
 }
 
 // Only two segments
-// system starts at (0,0) 
-// cell size is 1 
-AMREX_GPU_HOST_DEVICE inline int construct_segments(amrex::Real x_start ,amrex::Real x_end, amrex::Real *seg_points,int *seg_idx){
+// system starts at (0,0)
+// cell size is 1
+AMREX_GPU_HOST_DEVICE int construct_segments(amrex::Real x_start ,amrex::Real x_end, amrex::Real *seg_points,int *seg_idx){
     seg_idx[0]=floor(x_start);
     seg_idx[1]=floor(x_end);
     int diff=seg_idx[1]-seg_idx[0];
@@ -167,19 +167,19 @@ AMREX_GPU_HOST_DEVICE inline int construct_segments(amrex::Real x_start ,amrex::
     seg_points[2]=x_end;
     }
     else{
-    seg_points[1]=x_end; 
+    seg_points[1]=x_end;
     }
-    return ng; 
+    return ng;
 }
 
 
 // The dist function should return [0,1]
 // m and q are the normalized mass and charge for the "real" particle
-// These are then scaled according to the number of computational particles 
+// These are then scaled according to the number of computational particles
 
 double bernstein_density(const amrex::Geometry geom, int i , int j, int k){
     int nr=380;
-    
+
     auto domain=geom.Domain();
     auto lod=amrex::lbound(domain);
     auto hid=amrex::ubound(domain);
@@ -188,7 +188,7 @@ double bernstein_density(const amrex::Geometry geom, int i , int j, int k){
     }
 
     else if(i < nr+320){
-        return exp( -(i-(nr+320))*(i-(nr+320))/( 2*(nr/3.5)*(nr/3.5) ) ); 
+        return exp( -(i-(nr+320))*(i-(nr+320))/( 2*(nr/3.5)*(nr/3.5) ) );
     }
     else if(i >= 1300){
           return exp(-(i-1300)*(i-1300)/26122.0);
@@ -203,7 +203,7 @@ double uniform_density(const amrex::Geometry geom,int i ,int j ,int k){
 }
 
 double simple_line_density(const amrex::Geometry geom ,int i , int j , int k){
-      return (1.0*i/20);  
+      return (1.0*i/20);
 }
 
 double gaussian_dist(double pos,double center,double std_dev){
@@ -220,10 +220,10 @@ void set_field_gradient_gaussian_x(amrex::MultiFab &A,double A_max,double center
 
     for (amrex::MFIter mfi(A); mfi.isValid(); ++mfi){
         const amrex::Box& box = mfi.validbox();
-        amrex::Array4<amrex::Real> const& a = A.array(mfi); 
+        amrex::Array4<amrex::Real> const& a = A.array(mfi);
     /*
     amrex::ParallelFor(box,  [=]  (int i,int j,int k ){
-                a(i,j,k,X)=A_max*d_gaussian_dist(i,center,std_dev);                 
+                a(i,j,k,X)=A_max*d_gaussian_dist(i,center,std_dev);
             });
     */
     }
@@ -266,9 +266,9 @@ void distribute_processes_pdens(amrex::DistributionMapping dm,const amrex::Geome
 void add_particle_density(const amrex::Geometry geom , CParticleContainer&P, double (*dist_func)(const amrex::Geometry,int,int,int),int ppc_max ,double m, double q, double v){
 
     std::random_device rd;
-    std::mt19937 mt(rd());
+    std::mt19937 mt(0);
     std::uniform_real_distribution<double> dist(0,1);
-    std::normal_distribution<double> vel(0,v); 
+    std::normal_distribution<double> vel(0,v);
     double q_c = q/ppc_max;
     double m_c = m/ppc_max;
 
@@ -276,13 +276,13 @@ void add_particle_density(const amrex::Geometry geom , CParticleContainer&P, dou
 
 
 for(amrex::MFIter mfi= P.MakeMFIter(0) ;mfi.isValid();++mfi){
-    
+
     // Each grid,tile has a their own local particle container
     auto& particles = P.GetParticles(0)[std::make_pair(mfi.index(),
                                         mfi.LocalTileIndex())];
     auto box=mfi.validbox();
 
-    
+
    auto domain=geom.Domain();
    auto lod=amrex::lbound(domain);
    auto hid=amrex::ubound(domain);
@@ -292,13 +292,13 @@ for(amrex::MFIter mfi= P.MakeMFIter(0) ;mfi.isValid();++mfi){
    const auto hi = amrex::ubound(box);
    for     (int k = lo.z; k <= hi.z; ++k) {
      for   (int j = lo.y; j <= hi.y; ++j) {
-       for (int i = lo.x; i <= hi.x; ++i) { 
-            
+       for (int i = lo.x; i <= hi.x; ++i) {
+
            double x = geom.ProbLo(X) + i*geom.CellSize(X);
            double y = geom.ProbLo(Y) + j*geom.CellSize(Y);
            double z = geom.ProbLo(Z) + k*geom.CellSize(Z);
-           int num_particles = dist_func(geom,i,j,k)*ppc_max;  
-            for(int p =0; p < num_particles ; p++){ 
+           int num_particles = dist_func(geom,i,j,k)*ppc_max;
+            for(int p =0; p < num_particles ; p++){
                 add_single_particle(particles,{x+dist(mt)*geom.CellSize(X),y+dist(mt)*geom.CellSize(Y),z+dist(mt)*geom.CellSize(Z)},{vel(mt),vel(mt),vel(mt)},m_c,q_c);
             }
        }
@@ -314,9 +314,9 @@ void add_particle_n_per_cell(amrex::Geometry geom, CParticleContainer&P,double m
     std::random_device rd;
     std::mt19937 mt(rd());
     std::uniform_real_distribution<double> dist(0,1);
-    std::normal_distribution<double> vel(0,v); 
+    std::normal_distribution<double> vel(0,v);
 for(amrex::MFIter mfi= P.MakeMFIter(0) ;mfi.isValid();++mfi){
-    
+
     // Each grid,tile has a their own local particle container
     auto& particles = P.GetParticles(0)[std::make_pair(mfi.index(),
                                         mfi.LocalTileIndex())];
@@ -330,12 +330,12 @@ for(amrex::MFIter mfi= P.MakeMFIter(0) ;mfi.isValid();++mfi){
    const auto hi = amrex::ubound(box);
    for     (int k = lo.z; k <= hi.z; ++k) {
      for   (int j = lo.y; j <= hi.y; ++j) {
-       for (int i = lo.x; i <= hi.x; ++i) { 
-            
+       for (int i = lo.x; i <= hi.x; ++i) {
+
            double x = geom.ProbLo(X) + i*geom.CellSize(X);
            double y = geom.ProbLo(Y) + j*geom.CellSize(Y);
            double z = geom.ProbLo(Z) + k*geom.CellSize(Z);
-            for(int p =0; p < n ; p++){ 
+            for(int p =0; p < n ; p++){
                 add_single_particle(particles,{x+dist(mt)*geom.CellSize(X),y+dist(mt)*geom.CellSize(Y),z+dist(mt)*geom.CellSize(Z)},{vel(mt),vel(mt),vel(mt)},m/n,q/n);
             }
        }
@@ -361,7 +361,7 @@ void print_Particle_info(const amrex::Geometry geom,CParticleContainer&P ){
 }
 
 std::pair<amrex::Real,amrex::Real> get_total_energy(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &E, amrex::MultiFab &B ){
-    // Kinetic part 
+    // Kinetic part
     amrex::Real E_kin=0;
     amrex::Real E_field=0;
     for (CParIter pti(P, 0); pti.isValid(); ++pti) {
@@ -381,5 +381,3 @@ std::pair<amrex::Real,amrex::Real> get_total_energy(const amrex::Geometry geom,C
     return std::make_pair(E_field*geom.CellSize(X)*geom.CellSize(Y)*geom.CellSize(Z),E_kin);
 
 }
-
-

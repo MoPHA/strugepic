@@ -11,7 +11,7 @@
 #include <math.h>
 // What cell index is a given point in?
 // This is equivalent with the index for the "Lower left" corner
-amrex::IntArray get_point_cell(const amrex::Geometry geom,const amrex::RealArray pos); 
+amrex::IntArray get_point_cell(const amrex::Geometry geom,const amrex::RealArray pos);
 void add_single_particle( CParticleTile&particlet ,amrex::RealArray pos , amrex::RealArray vel, double m,double q);
 void FillDirichletBoundary(const amrex::Geometry geom, amrex::MultiFab &A );
 double bernstein_density(const amrex::Geometry geom, int i , int j, int k);
@@ -25,18 +25,18 @@ double uniform_density(const amrex::Geometry geom,int i ,int j ,int k);
 double gaussian_dist(double pos,double center,double std_dev);
 void set_field_gradient_gaussian_x(amrex::MultiFab &A,double A_max,double center,double std_dev);
 
-AMREX_GPU_HOST_DEVICE inline int construct_segments(amrex::Real x_start ,amrex::Real x_end, amrex::Real *seg_points,int *seg_idx);
+AMREX_GPU_HOST_DEVICE int construct_segments(amrex::Real x_start ,amrex::Real x_end, amrex::Real *seg_points,int *seg_idx);
 
 template<int W_range>
 void get_particle_number_density(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &P_dens){
-    P_dens.setVal(0); 
+    P_dens.setVal(0);
     P_dens.setBndry(0);
     for (amrex::MFIter mfi(P_dens); mfi.isValid(); ++mfi){
-    
+
         // Each grid,tile has a their own local particle container
         auto& Part = P.GetParticles(0)[std::make_pair(mfi.index(),mfi.LocalTileIndex())];
         auto&  particles = Part.GetArrayOfStructs();
-        amrex::Array4<amrex::Real> const& P_dens_loc = P_dens[mfi].array(); 
+        amrex::Array4<amrex::Real> const& P_dens_loc = P_dens[mfi].array();
 
     const auto low = geom.ProbLo();
     const auto Ics = geom.InvCellSize();
@@ -47,18 +47,18 @@ void get_particle_number_density(const amrex::Geometry geom,CParticleContainer&P
         coord[X]=floor((p.pos(X) -low[X])*Ics[X]);
         coord[Y]=floor((p.pos(Y) -low[Y])*Ics[Y]);
         coord[Z]=floor((p.pos(Z) -low[Z])*Ics[Z]);
-        
-            
+
+
 
         auto px=(p.pos(X)-low[X])*Ics[X];
         auto py=(p.pos(Y)-low[Y])*Ics[Y];
         auto pz=(p.pos(Z)-low[Z])*Ics[Z];
-        
+
         constexpr int W1_li=-W_range+1;
         constexpr int W1_hi= W_range;
         constexpr int Wp_li= W1_li;
         constexpr int Wp_hi= W1_hi-1;
-        
+
         for(int i=Wp_li;i<=Wp_hi;i++){
             auto nx=coord[X] +i;
             for(int j=Wp_li;j<=Wp_hi;j++){
@@ -74,7 +74,7 @@ void get_particle_number_density(const amrex::Geometry geom,CParticleContainer&P
     }
 
     }
-    P_dens.SumBoundary(geom.periodicity());  
+    P_dens.SumBoundary(geom.periodicity());
 }
 
 template<int comp>
@@ -83,13 +83,13 @@ void shift_periodic(const amrex::Geometry geom ,CParticle &particle){
     double pos=particle.pos(comp);
     double lb =geom.ProbLo(comp);
     double ub =geom.ProbHi(comp);
-   
+
     if(pos > ub){
-        particle.pos(comp) = lb+(pos-ub); 
+        particle.pos(comp) = lb+(pos-ub);
     }
     else if(pos < lb){
 
-        particle.pos(comp) = ub-(lb-pos); 
+        particle.pos(comp) = ub-(lb-pos);
     }
 
 
@@ -111,7 +111,7 @@ class SimulationIO
         amrex::MultiFab  Pdens;
         CParticleContainer &P;
         double dt;
-        std::string data_folder_name; 
+        std::string data_folder_name;
 
 
 };
@@ -151,7 +151,7 @@ void print_Particle_info(const amrex::Geometry geom,CParticleContainer&P );
 
 
 template<int comp>
-int get_point_line(const amrex::Geometry geom,const amrex::Real pos){ 
+int get_point_line(const amrex::Geometry geom,const amrex::Real pos){
     const auto icellsize=geom.InvCellSize(comp);
     auto problo=geom.ProbLo(comp);
     return floor((pos -problo)*icellsize);
@@ -173,9 +173,9 @@ if(!geom.isPeriodic(comp) && ((seg_idx[1] == geom.Domain().smallEnd(comp)+W_rang
 }
 
 template<int comp>
-AMREX_GPU_HOST_DEVICE inline void particle_reflect(CParticle &p,amrex::Real* seg_points){
-    p.pos(comp)=seg_points[2];
-    p.rdata(comp+2)*=-1;
+AMREX_GPU_HOST_DEVICE inline void particle_reflect(CParticle *p,amrex::Real* seg_points){
+    p->pos(comp)=seg_points[2];
+    p->rdata(comp+2)*=-1;
 }
 
 
@@ -185,7 +185,7 @@ std::pair<amrex::Real,amrex::Real> get_total_energy(const amrex::Geometry geom,C
 void add_particle_n_per_cell(const amrex::Geometry geom, CParticleContainer&P,double m,double q,double v,int n);
 template <int comp>
 void set_two_stream_drift(CParticleContainer &P,double v){
-    for(CParIter pti(P,0);pti.isValid() ; ++pti){ 
+    for(CParIter pti(P,0);pti.isValid() ; ++pti){
         auto & particles = pti.GetArrayOfStructs();
         for (auto &p : particles){
              p.rdata(comp +2)+= ((p.id() % 2)*2 -1)*v;
@@ -198,12 +198,12 @@ template <int comp>
 void set_temprature_gradient_gaussian(CParticleContainer &P,double v_min,double v_max,double center,double std_dev,double B_init){
     std::random_device rd;
     std::mt19937 mt(rd());
-    
+
     double v_min_var=v_min*v_min;
     double v_max_var=v_max*v_max;
     double v_diff_var=v_max_var-v_min_var;
     std::uniform_real_distribution<double> angle(0,2*M_PI);
-    for(CParIter pti(P,0);pti.isValid() ; ++pti){ 
+    for(CParIter pti(P,0);pti.isValid() ; ++pti){
         auto & particles = pti.GetArrayOfStructs();
         for (auto &p : particles){
             double v = sqrt(v_min_var+gaussian_dist(p.pos(comp),center,std_dev)*v_diff_var);
@@ -218,25 +218,25 @@ void set_temprature_gradient_gaussian(CParticleContainer &P,double v_min,double 
             p.rdata(VY)= v_mag*cos(ang);
             p.pos(X)+=rad*cos(ang);
             p.pos(Y)+=rad*sin(ang);
-        
+
             p.rdata(VZ)= vel(mt);
         }
     }
-    
+
 }
 
 template  <int p_comp,int v_comp>
 void save_velocity_distribution( CParticleContainer &P, double p_min,double p_max, double v_min,double v_max,int p_bins,int v_bins,std::string filename )  {
-        int count = p_bins*v_bins; 
+        int count = p_bins*v_bins;
         int * data = (int *) calloc(count,sizeof(int));
         double v_bin_size=(v_max-v_min)/v_bins;
         double p_bin_size=(p_max-p_min)/p_bins;
-    for(CParIter pti(P,0);pti.isValid() ; ++pti){ 
+    for(CParIter pti(P,0);pti.isValid() ; ++pti){
         auto & particles = pti.GetArrayOfStructs();
         for (auto &p : particles){
-            int vel_b = (int)((p.rdata(2+v_comp)-v_min)/v_bin_size); 
+            int vel_b = (int)((p.rdata(2+v_comp)-v_min)/v_bin_size);
             int pos_b = (int)((p.pos(p_comp)-p_min)/p_bin_size);    ;
-            data[pos_b+vel_b*p_bins]+=1; 
+            data[pos_b+vel_b*p_bins]+=1;
         }
     }
     amrex::ParallelDescriptor::ReduceIntSum(data,count);
