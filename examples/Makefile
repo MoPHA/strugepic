@@ -11,9 +11,11 @@ CXXFLAGS+= -DWRANGE=$(TEST_WRANGE)
 all: field bernstein 
 
 field:
-	cd field_only && $(CXX) *.cpp -o main $(CXXFLAGS) $(AMREX_CFLAGS) $(AMREX_LFLAGS)
+	cd field_only && $(CXX) $(CXXFLAGS) $(AMREX_CFLAGS) *.cpp -o main.o
+	cd field_only && $(CXX) $(AMREX_LFLAGS) main.o -o main
 bernstein:
-	cd full && $(CXX) *.cpp -o main $(CXXFLAGS) $(AMREX_CFLAGS) $(AMREX_LFLAGS)
+	cd full && $(CXX) $(CXXFLAGS) $(AMREX_CFLAGS) *.cpp -o main.o
+	cd full && $(CXX) $(AMREX_LFLAGS) main.o -o main
 
 clean:
 	cd field_only && rm -rf main Backtrace* *.out *.data Field_Only_Data_out
