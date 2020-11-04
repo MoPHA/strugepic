@@ -330,11 +330,11 @@ AMREX_GPU_HOST_DEVICE void push_V_E(CParticle * particles,long np, const amrex::
                 }
                 idj++;
             }
+            idk++;
+        }
             particles[i].rdata(VX)+=dvx*coef;
             particles[i].rdata(VY)+=dvy*coef;
             particles[i].rdata(VZ)+=dvz*coef;
-
-        }
     });
 
 }

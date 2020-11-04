@@ -267,7 +267,7 @@ void distribute_processes_pdens(amrex::DistributionMapping dm,const amrex::Geome
 void add_particle_density(const amrex::Geometry geom , CParticleContainer&P, double (*dist_func)(const amrex::Geometry,int,int,int),int ppc_max ,double m, double q, double v){
 
     std::random_device rd;
-    std::mt19937 mt(0);
+    std::mt19937 mt(rd());
     std::uniform_real_distribution<double> dist(0,1);
     std::normal_distribution<double> vel(0,v);
     double q_c = q/ppc_max;
