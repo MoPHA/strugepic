@@ -10,12 +10,12 @@ CXXFLAGS+= -DWRANGE=$(TEST_WRANGE)
 all: energy single
 
 energy:
-	cd energy_conservation && $(CXX) $(CXXFLAGS) $(AMREX_CFLAGS) *.cpp -o main.o
-	cd energy_conservation && $(CXX) $(AMREX_LFLAGS) main.o -o main
+	cd energy_conservation && $(CXX) *.cpp -o main.o $(CXXFLAGS) $(AMREX_CFLAGS) 
+	cd energy_conservation && $(CXX) main.o -o main $(AMREX_LFLAGS) 
 
 single: 
-	cd single_particle && $(CXX) $(CXXFLAGS) $(AMREX_CFLAGS) *.cpp -o main.o
-	cd single_particle && $(CXX) $(AMREX_LFLAGS) main.o -o main
+	cd single_particle && $(CXX) *.cpp -o main.o $(CXXFLAGS) $(AMREX_CFLAGS) 
+	cd single_particle && $(CXX) main.o -o main $(AMREX_LFLAGS) 
 
 clean:
 	cd  energy_conservation && rm -f main Backtrace* *.out *.data

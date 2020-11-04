@@ -8,15 +8,18 @@ endif
 
 CXXFLAGS+= -DWRANGE=$(TEST_WRANGE)
 
-all: field bernstein 
+all: field bernstein langmuir 
 
 field:
-	cd field_only && $(CXX) $(CXXFLAGS) $(AMREX_CFLAGS) *.cpp -o main.o
-	cd field_only && $(CXX) $(AMREX_LFLAGS) main.o -o main
+	cd field_only && $(CXX) *.cpp -o main.o  $(CXXFLAGS) $(AMREX_CFLAGS) 
+	cd field_only && $(CXX) main.o -o main $(AMREX_LFLAGS) 
 bernstein:
-	cd full && $(CXX) $(CXXFLAGS) $(AMREX_CFLAGS) *.cpp -o main.o
-	cd full && $(CXX) $(AMREX_LFLAGS) main.o -o main
+	cd full && $(CXX) bernstein_main.cpp -o bernstein_main.o  $(CXXFLAGS) $(AMREX_CFLAGS) 
+	cd full && $(CXX) bernstein_main.o -o bernstein_main $(AMREX_LFLAGS) 
+langmuir:
+	cd full && $(CXX) langmuir_main.cpp -o langmuir_main.o  $(CXXFLAGS) $(AMREX_CFLAGS) 
+	cd full && $(CXX) langmuir_main.o -o langmuir_main $(AMREX_LFLAGS) 
 
 clean:
 	cd field_only && rm -rf main Backtrace* *.out *.data Field_Only_Data_out
-	cd full && rm -rf main Backtrace* *.out *.data Bernstein_Data_out
+	cd full && rm -rf main Backtrace* *.out *.data *Data_out
