@@ -51,7 +51,7 @@ install:
 	mkdir $(PREFIX)/lib
 	mkdir $(PREFIX)/include
 	cp include/*.hpp $(PREFIX)/include
-	cp lib/lib$(LNAME)* $(PREFIX)/lib
+	cp lib/$(LNAME)* $(PREFIX)/lib
 
 
 .PHONY: test
