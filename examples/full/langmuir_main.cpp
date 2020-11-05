@@ -25,7 +25,6 @@
 #include "strugepic_defs.hpp"
 #include "cmath"
 
-
 void main_main();
 
 int main(int argc, char* argv[])
@@ -38,22 +37,26 @@ int main(int argc, char* argv[])
 }
 void main_main()
 {
+    // Simulation parameters,  these should be read from a file quite soon
     amrex::ParmParse pp;
 
     std::array<int,3> n_cell;
     std::array<int,3> max_grid_size;
     int x_periodic;
-    int Nghost = 3; 
+    int Nghost = interpolation_range;
 
     int nsteps;
     int start_step;
     double dt;
+    double q;
+    double m;
+    double v;
+    int ppc;
     int output_interval;
     int checkpoint_interval;
-    
-    double Es;
-    double omega;
-    int sp;
+
+    std::array<double,3> E_init;
+    std::array<double,3> B_init;
     int Ncomp  = 3;
 
     std::string data_folder_name;
@@ -63,30 +66,24 @@ void main_main()
     pp.get("checkpoint_interval",checkpoint_interval);
     pp.get("n_cell",n_cell);
     pp.get("max_grid_size",max_grid_size);
-    pp.get("x_periodic",x_periodic);
     pp.get("nsteps",nsteps);
     pp.get("start_step",start_step);
-    pp.get("sp",sp);
     pp.get("dt",dt);
-    pp.get("Es",Es);
-    pp.get("omega",omega);
+    pp.get("q",q);
+    pp.get("m",m);
+    pp.get("ppc",ppc);
+    pp.get("v",v);
+    pp.get("E_init",E_init);
+    pp.get("B_init",B_init);
     pp.get("data_folder_name",data_folder_name);
 
 
 
-
-
-
-
-    
-
-
-///////////7
-
-
+    // Do a quite even load balancing
+    amrex::DistributionMapping::strategy(amrex::DistributionMapping::KNAPSACK);
 
     // Periodic
-    amrex::Vector<int> is_periodic({x_periodic,1,1});     
+    amrex::Vector<int> is_periodic({1,1,1});
     // Cell indexing
     amrex::IndexType typ({AMREX_D_DECL(0,0,0)});
 
@@ -99,6 +96,7 @@ void main_main()
     // Initialize the boxarray "ba" from the single box "bx"
     // Break up boxarray "ba" into chunks no larger than "max_grid_size" along a direction
     ba.maxSize({max_grid_size[X],max_grid_size[Y],max_grid_size[Z]});
+
     // This defines the physical box, [-1,1] in each direction.
     amrex::RealBox real_box({AMREX_D_DECL(0,0,0)},
                      {AMREX_D_DECL((double)n_cell[X] , (double)n_cell[Y],(double)n_cell[Z])});
@@ -108,29 +106,35 @@ void main_main()
     // How Boxes are distrubuted among MPI processes
     amrex::DistributionMapping dm(ba);
     CParticleContainer P(geom,dm,ba);
-    //distribute_processes_pdens(dm,geom,ba,bernstein_density,"SFC");    
+    // distribute_processes_pdens(dm,geom,ba,bernstein_density,"SFC");
 
 
     amrex::MultiFab E(ba,dm,Ncomp,Nghost);
     amrex::MultiFab B(ba,dm,Ncomp,Nghost);
     auto SimIO=SimulationIO(geom,E,B,P,dt,data_folder_name);
-    auto Source=E_source(geom,E,sp,Y,Es,omega,dt);
-
-
-////////////7
 
     if(start_step !=0){
     SimIO.read(start_step);
+    }
+    else{
+
+    set_uniform_field(E,E_init);
+    set_uniform_field(B,B_init);
+    add_particle_density(geom,P,uniform_density,ppc,m,q,v);
     }
 
     E.FillBoundary(geom.periodicity());
     B.FillBoundary(geom.periodicity());
 
 
-for(int step=start_step; step<nsteps;step++){ 
-    print_Particle_info(geom,P);
+
+    P.Redistribute();
+
+
+
+for(int step=start_step; step<nsteps;step++){
     amrex::Print() <<"Step:" <<step << std::endl;
-    auto E_tot = get_total_energy(geom,P,E,B); 
+    auto E_tot = get_total_energy(geom,P,E,B);
     amrex::Print() <<"ENERGY: "<<E_tot.first <<" "<< E_tot.second << std::endl;
     if(step % output_interval ==0 && output_interval != -1){
         SimIO.write<WRANGE>(step);
@@ -138,14 +142,9 @@ for(int step=start_step; step<nsteps;step++){
     if(step % checkpoint_interval ==0 && checkpoint_interval  !=-1){
         SimIO.write<WRANGE>(step,true,false);
     }
-
-    G_Theta_E<WRANGE>(geom,P,E,B,dt/2);
-    Source(dt*step);
-    G_Theta_B(geom,P,E,B,dt);
-    G_Theta_E<WRANGE>(geom,P,E,B,dt/2);
+    Theta_map1<WRANGE>(geom,P,E,B,dt);
 }
 
 
 
 }
-
