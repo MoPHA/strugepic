@@ -33,6 +33,11 @@ git clone https://github.com/MoPHA/strugepic
 make -j 4
 make install PREFIX=/path/to/install
 ```
+### GPU version
+Build with `make BUILD=GPU`, AMReX also has to be built with GPU support (CUDA)
+Currently make file is hardcoded to use `nvcc` for compiling gpu. All GPU interface is done through
+AMReX, so in theory, HIP could work if the Makefile is edited and AMReX was built with HIP support.
+
 
 **Note:** Makefile assumes that AMReX is properly in path, i.e. LIBRARY_PATH and CPATH.
 Building the library also does not link against AMReX, this only occurs when building the final program.
