@@ -10,17 +10,16 @@ AMREX_LIBRARY_HOME ?= ${AMREX_INSTALL_ROOT}
 LIBDIR := $(AMREX_LIBRARY_HOME)/lib
 INCDIR := $(AMREX_LIBRARY_HOME)/include
 
-COMPILE_CPP_FLAGS ?= $(shell awk '/Cflags:/ {$$1=$$2=""; print $$0}' $(LIBDIR)/pkgconfig/amrex.pc)
-COMPILE_LIB_FLAGS ?= $(shell awk '/Libs:/ {$$1=$$2=""; print $$0}' $(LIBDIR)/pkgconfig/amrex.pc)
+COMPILE_CPP_FLAGS ?= $(shell awk '/Cflags:/ {$$1=$$2=""; print $$0}' $(LIBDIR)/pkgconfig/amrex.pc )
+COMPILE_LIB_FLAGS ?= $(shell awk '/Libs:/ {$$1=$$2=""; print $$0}' $(LIBDIR)/pkgconfig/amrex.pc | sed 's/-pthread//g' | sed 's/-Wl,-rpath,/--linker-options=-rpath,/g' | sed 's/-Wl,-rpath -Wl,/--linker-options=-rpath,/g')
 
-AMREX_CFLAGS := -I$(INCDIR)  -I $(STRUGEPIC)/include
+AMREX_CFLAGS := -I$(INCDIR)  -I $(STRUGEPIC)/include $(COMPILE_CPP_FLAGS)
 AMREX_LFLAGS := -L $(STRUGEPIC)/lib -lstrugepic -L$(LIBDIR) $(COMPILE_LIB_FLAGS)   
 
 ifeq ($(BUILD),GPU)
   CXX=nvcc
-  CXXFLAGS+= --Werror ext-lambda-captures-this -dc -x cu -std=c++14 -maxrregcount=255 --ptxas-options=-O3 --use_fast_math --expt-relaxed-constexpr --expt-extended-lambda --gpu-architecture=compute_70 --gpu-code=sm_70,compute_70
-  CXXFLAGS+= --compiler-options="$(CPU_CXX)"
-  LFLAGS+= --gpu-architecture=compute_70 --gpu-code=sm_70,compute_70 -lib
+  LFLAGS+= -lib
+  CXXFLAGS=$(AMREX_CFLAGS) #Mahti workaround -ccbin=/appl/spack/v014/install-tree/gcc-4.8.5/gcc-9.3.0-3cdxud/bin/g++
   LNAME=libstrugepic.a
   AMREX_LFLAGS+=--linker-options=-rpath,$(STRUGEPIC)/lib
 else

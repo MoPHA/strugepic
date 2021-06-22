@@ -43,7 +43,7 @@ void Theta_E(const amrex::Geometry geom,amrex::Box const& bx,amrex::Array4<amrex
 void Theta_B(const amrex::Geometry geom,amrex::Box const& bx,amrex::Array4<amrex::Real> const& E,amrex::Array4<amrex::Real const> const& B,double dt );
 
 template<int W_range>
-AMREX_GPU_HOST_DEVICE void push_V_E(CParticle * particles,long np, const amrex::Geometry geom,amrex::Array4<amrex::Real const> const& E ,double dt);
+ void push_V_E(CParticle * particles,long np, const amrex::Geometry geom,amrex::Array4<amrex::Real const> const& E ,double dt);
 
 // Global update, they also handle triggering global communication
 void G_Theta_B(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab &E, amrex::MultiFab &B,double dt );
@@ -71,7 +71,7 @@ void G_Theta_E(const amrex::Geometry geom,CParticleContainer&P, amrex::MultiFab&
 }
 
 
-typedef bool (*SEG_BOUNDARY)(const amrex::Geometry,amrex::Real *, int *);
+typedef bool (*SEG_BOUNDARY)(int isPeriodic,int smallEnd,int bigEnd,amrex::Real *, int *);
 typedef void (*PART_BOUNDARY)(CParticle *, amrex::Real * );
 
 // This is for one particle type
@@ -98,6 +98,10 @@ void Theta(CParticle * particles,long np, const amrex::Geometry geom,amrex::Arra
     Ics[X]=_Ics[X];
     Ics[Y]=_Ics[Y];
     Ics[Z]=_Ics[Z];
+
+    int IP=geom.isPeriodic(comp);
+    int SE=geom.Domain().smallEnd(comp);
+    int BE=geom.Domain().bigEnd(comp);
 
     // Remote particle grid lower corner
     amrex::ParallelFor(np,
@@ -163,7 +167,7 @@ void Theta(CParticle * particles,long np, const amrex::Geometry geom,amrex::Arra
          amrex::Real seg_points[3];
          int seg_idx[2];
          int num_segments=construct_segments(particles[i].pos(comp),new_pos,seg_points,seg_idx);
-         bool out_not_periodic=F_SEG(geom,seg_points,seg_idx);
+         bool out_not_periodic=F_SEG(IP,SE,BE,seg_points,seg_idx);
 
         for(int seg=0;seg<num_segments;seg++){
             coord[comp] = seg_idx[seg];
@@ -241,7 +245,7 @@ void Theta(CParticle * particles,long np, const amrex::Geometry geom,amrex::Arra
 
 
 template<int W_range>
-AMREX_GPU_HOST_DEVICE void push_V_E(CParticle * particles,long np, const amrex::Geometry geom,amrex::Array4<amrex::Real const> const& E ,double dt){
+void push_V_E(CParticle * particles,long np, const amrex::Geometry geom,amrex::Array4<amrex::Real const> const& E ,double dt){
 
     // Basis functions are supported over two cells in each direction
 
