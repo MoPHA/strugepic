@@ -5,7 +5,7 @@ OBJS    := $(patsubst %.cpp,%.o,$(SRCS))
 all:  $(OBJS)
 
 %.o: %.cpp
-	$(CXX) $(CXXFLAGS)  $(AMREX_CFLAGS) -I ../include $< -o $@  
+	$(CXX) $(CXXFLAGS) -I ../include $< -o $@  
 
 .PHONY: clean
 clean:
