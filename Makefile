@@ -11,7 +11,12 @@ LIBDIR := $(AMREX_LIBRARY_HOME)/lib
 INCDIR := $(AMREX_LIBRARY_HOME)/include
 
 COMPILE_CPP_FLAGS ?= $(shell awk '/Cflags:/ {$$1=$$2=""; print $$0}' $(LIBDIR)/pkgconfig/amrex.pc )
+ifeq ($(BUILD),GPU)
+# Nvcc does not understand gcc linker arguments
 COMPILE_LIB_FLAGS ?= $(shell awk '/Libs:/ {$$1=$$2=""; print $$0}' $(LIBDIR)/pkgconfig/amrex.pc | sed 's/-pthread//g' | sed 's/-Wl,-rpath,/--linker-options=-rpath,/g' | sed 's/-Wl,-rpath -Wl,/--linker-options=-rpath,/g')
+else
+COMPILE_LIB_FLAGS ?= $(shell awk '/Libs:/ {$$1=$$2=""; print $$0}' $(LIBDIR)/pkgconfig/amrex.pc )
+endif
 
 AMREX_CFLAGS := -I$(INCDIR)  -I $(STRUGEPIC)/include $(COMPILE_CPP_FLAGS)
 AMREX_LFLAGS := -L $(STRUGEPIC)/lib -lstrugepic -L$(LIBDIR) $(COMPILE_LIB_FLAGS)   
@@ -24,7 +29,7 @@ ifeq ($(BUILD),GPU)
   AMREX_LFLAGS+=--linker-options=-rpath,$(STRUGEPIC)/lib
 else
   CXX=g++
-  CXXFLAGS+=$(CPU_CXX) -fPIC $(AMREX_CFLAGS)
+  CXXFLAGS+=$(CPU_CXX) -fPIC -c $(AMREX_CFLAGS)
   LNAME=libstrugepic.so
   LFLAGS= -shared
   AMREX_LFLAGS+= -Wl,-rpath=$(STRUGEPIC)/lib
