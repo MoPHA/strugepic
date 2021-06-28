@@ -170,8 +170,8 @@ int get_point_line(const amrex::Geometry geom,const amrex::Real pos){
 
 
 template<int comp,int W_range>
-AMREX_GPU_HOST_DEVICE inline bool segment_reflect(amrex::Geometry geom,amrex::Real * seg_points,int * seg_idx){
-if(!geom.isPeriodic(comp) && ((seg_idx[1] == geom.Domain().smallEnd(comp)+W_range ) || (seg_idx[1] == geom.Domain().bigEnd(comp)-W_range) )){
+AMREX_GPU_HOST_DEVICE inline bool segment_reflect(int isPeriodic ,int smallEnd, int bigEnd,amrex::Real * seg_points,int * seg_idx){
+if(!isPeriodic && ((seg_idx[1] == smallEnd+W_range ) || (seg_idx[1] == bigEnd-W_range) )){
         seg_idx[1]=seg_idx[0];
         seg_points[2]=2*seg_points[1]-seg_points[2];
         return true;

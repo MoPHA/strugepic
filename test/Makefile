@@ -10,11 +10,11 @@ CXXFLAGS+= -DWRANGE=$(TEST_WRANGE)
 all: energy single
 
 energy:
-	cd energy_conservation && $(CXX) *.cpp -o main.o $(CXXFLAGS) $(AMREX_CFLAGS) 
+	cd energy_conservation && $(CXX) *.cpp -o main.o $(CXXFLAGS)  
 	cd energy_conservation && $(CXX) main.o -o main $(AMREX_LFLAGS) 
 
 single: 
-	cd single_particle && $(CXX) *.cpp -o main.o $(CXXFLAGS) $(AMREX_CFLAGS) 
+	cd single_particle && $(CXX) *.cpp -o main.o $(CXXFLAGS) 
 	cd single_particle && $(CXX) main.o -o main $(AMREX_LFLAGS) 
 
 clean:
