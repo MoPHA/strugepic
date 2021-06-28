@@ -24,7 +24,7 @@ ifeq ($(BUILD),GPU)
   AMREX_LFLAGS+=--linker-options=-rpath,$(STRUGEPIC)/lib
 else
   CXX=g++
-  CXXFLAGS+= $(CPU_CXX) -fPIC -c 
+  CXXFLAGS+=$(CPU_CXX) -fPIC $(AMREX_CFLAGS)
   LNAME=libstrugepic.so
   LFLAGS= -shared
   AMREX_LFLAGS+= -Wl,-rpath=$(STRUGEPIC)/lib
